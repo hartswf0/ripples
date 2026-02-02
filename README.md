@@ -1,4 +1,4 @@
-# RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies in Simulated Systems
+# RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies in Simulacra
 
 > *"The map is not the territory, but the territory is not the world."*
 
