@@ -1,0 +1,2306 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RIPPLES: Operative Ecologies in the Worldtext</title>
+
+    <!-- Only external dependency allowed: JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* =========================================================
+       "Tailwind-for-layout" (minimal embedded utility subset)
+       ========================================================= */
+        :root {
+            --bg: #07090c;
+            --panel: #0c1017;
+            --panel2: #0a0d12;
+            --border: #1a2230;
+
+            --txt: #c7d0e0;
+            --muted: #7f8aa3;
+
+            --good: #43ff9a;
+            /* entities */
+            --warn: #ffd36b;
+            /* goals */
+            --bad: #ff5166;
+            /* obstacles */
+            --shift: #7aa7ff;
+            /* shift accents */
+
+            --glow: 0 0 18px rgba(67, 255, 154, .18);
+
+            --cellPadX: 10px;
+            --cellPadY: 6px;
+
+            --radius: 14px;
+            --radius2: 18px;
+
+            --shadow: 0 16px 40px rgba(0, 0, 0, .35);
+
+            --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(1200px 900px at 30% 20%, #0b1220 0%, var(--bg) 60%);
+            color: var(--txt);
+            font-family: var(--mono);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Minimal utility classes (enough for layout-only tailwind usage) */
+        .flex {
+            display: flex
+        }
+
+        .grid {
+            display: grid
+        }
+
+        .col {
+            flex-direction: column
+        }
+
+        .row {
+            flex-direction: row
+        }
+
+        .wrap {
+            flex-wrap: wrap
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-between {
+            justify-content: space-between
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .gap-1 {
+            gap: .25rem
+        }
+
+        .gap-2 {
+            gap: .5rem
+        }
+
+        .gap-3 {
+            gap: .75rem
+        }
+
+        .gap-4 {
+            gap: 1rem
+        }
+
+        .p-1 {
+            padding: .25rem
+        }
+
+        .p-2 {
+            padding: .5rem
+        }
+
+        .p-3 {
+            padding: .75rem
+        }
+
+        .p-4 {
+            padding: 1rem
+        }
+
+        .px-2 {
+            padding-left: .5rem;
+            padding-right: .5rem
+        }
+
+        .px-3 {
+            padding-left: .75rem;
+            padding-right: .75rem
+        }
+
+        .py-1 {
+            padding-top: .25rem;
+            padding-bottom: .25rem
+        }
+
+        .py-2 {
+            padding-top: .5rem;
+            padding-bottom: .5rem
+        }
+
+        .rounded {
+            border-radius: 12px
+        }
+
+        .rounded-lg {
+            border-radius: var(--radius)
+        }
+
+        .rounded-xl {
+            border-radius: var(--radius2)
+        }
+
+        .border {
+            border: 1px solid var(--border)
+        }
+
+        .w-full {
+            width: 100%
+        }
+
+        .h-full {
+            height: 100%
+        }
+
+        .text-xs {
+            font-size: 12px
+        }
+
+        .text-sm {
+            font-size: 13px
+        }
+
+        .text-base {
+            font-size: 14px
+        }
+
+        .text-lg {
+            font-size: 16px
+        }
+
+        .text-xl {
+            font-size: 18px
+        }
+
+        .font-600 {
+            font-weight: 600
+        }
+
+        .font-400 {
+            font-weight: 400
+        }
+
+        .font-300 {
+            font-weight: 300
+        }
+
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .sr-only {
+            position: absolute;
+            left: -9999px
+        }
+
+        /* =========================================================
+       App layout
+       ========================================================= */
+        .app {
+            height: 100%;
+            display: grid;
+            grid-template-columns: 320px 1fr 360px;
+            gap: 14px;
+            padding: 14px;
+        }
+
+        @media (max-width: 1100px) {
+            .app {
+                grid-template-columns: 290px 1fr 340px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            body {
+                overflow: auto;
+            }
+
+            .app {
+                height: auto;
+                min-height: 100%;
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, .01));
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panelHeader {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .02));
+            border-bottom: 1px solid var(--border);
+            padding: 12px 12px 10px 12px;
+        }
+
+        .panelBody {
+            padding: 12px;
+        }
+
+        /* =========================================================
+       Buttons / chips / toggles
+       ========================================================= */
+        button {
+            font-family: var(--mono);
+            color: var(--txt);
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: transform .06s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
+            user-select: none;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, .05);
+            border-color: #263149;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(122, 167, 255, .18);
+        }
+
+        .chip {
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .chip[aria-pressed="true"] {
+            border-color: #2a3a55;
+            background: rgba(122, 167, 255, .10);
+            box-shadow: 0 0 0 2px rgba(122, 167, 255, .10) inset;
+        }
+
+        .btnBig {
+            width: 100%;
+            padding: 16px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btnBig small {
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .btnGoal {
+            border-color: rgba(255, 211, 107, .35);
+        }
+
+        .btnGoal:hover {
+            background: rgba(255, 211, 107, .08);
+        }
+
+        .btnObstacle {
+            border-color: rgba(255, 81, 102, .35);
+        }
+
+        .btnObstacle:hover {
+            background: rgba(255, 81, 102, .08);
+        }
+
+        .btnShift {
+            border-color: rgba(122, 167, 255, .35);
+        }
+
+        .btnShift:hover {
+            background: rgba(122, 167, 255, .08);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, .18);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--muted);
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+        }
+
+        .dot.good {
+            background: var(--good);
+            box-shadow: 0 0 18px rgba(67, 255, 154, .18);
+        }
+
+        .dot.warn {
+            background: var(--warn);
+            box-shadow: 0 0 18px rgba(255, 211, 107, .16);
+        }
+
+        .dot.bad {
+            background: var(--bad);
+            box-shadow: 0 0 18px rgba(255, 81, 102, .16);
+        }
+
+        .dot.shift {
+            background: var(--shift);
+            box-shadow: 0 0 18px rgba(122, 167, 255, .16);
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, .02);
+            user-select: none;
+        }
+
+        .switch {
+            width: 46px;
+            height: 26px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid var(--border);
+            position: relative;
+            transition: background .12s ease, border-color .12s ease;
+            flex: 0 0 auto;
+        }
+
+        .switch::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .90);
+            transition: transform .14s ease;
+            box-shadow: 0 8px 14px rgba(0, 0, 0, .35);
+        }
+
+        .toggle[aria-checked="true"] .switch {
+            background: rgba(67, 255, 154, .14);
+            border-color: rgba(67, 255, 154, .35);
+        }
+
+        .toggle[aria-checked="true"] .switch::after {
+            transform: translateX(20px);
+        }
+
+        /* =========================================================
+       Worldtext viewport
+       ========================================================= */
+        .viewportWrap {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 520px;
+        }
+
+        @media (max-width: 980px) {
+            .viewportWrap {
+                min-height: 420px;
+            }
+        }
+
+        .worldTopbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(0, 0, 0, .30), rgba(0, 0, 0, .08));
+        }
+
+        .worldTitle {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .worldTitle .h {
+            font-size: 13px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .worldTitle .sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .worldViewport {
+            position: relative;
+            flex: 1 1 auto;
+            background:
+                radial-gradient(900px 600px at 55% 35%, rgba(67, 255, 154, .06) 0%, rgba(0, 0, 0, 0) 55%),
+                radial-gradient(900px 600px at 25% 65%, rgba(255, 211, 107, .05) 0%, rgba(0, 0, 0, 0) 55%),
+                radial-gradient(900px 600px at 75% 80%, rgba(122, 167, 255, .05) 0%, rgba(0, 0, 0, 0) 55%),
+                linear-gradient(180deg, rgba(0, 0, 0, .35), rgba(0, 0, 0, .25));
+            overflow: hidden;
+        }
+
+        .worldGrid {
+            position: absolute;
+            inset: 0;
+            padding: 12px;
+            display: grid;
+            gap: 6px;
+            align-content: start;
+            /* columns set via --cols */
+            grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+        }
+
+        .cell {
+            border: 1px solid rgba(26, 34, 48, .65);
+            background: rgba(0, 0, 0, .16);
+            border-radius: 12px;
+            padding: var(--cellPadY) var(--cellPadX);
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: background .12s ease, border-color .12s ease, transform .06s ease;
+            user-select: none;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, .03);
+            border-color: rgba(38, 49, 73, .9);
+        }
+
+        .cell:active {
+            transform: translateY(1px);
+        }
+
+        .cellText {
+            font-size: 12px;
+            line-height: 1.15;
+            letter-spacing: .01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            opacity: .94;
+        }
+
+        .tag {
+            position: absolute;
+            top: -9px;
+            right: 10px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .45);
+            border: 1px solid rgba(26, 34, 48, .8);
+            color: var(--muted);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .t-entity {
+            border-color: rgba(67, 255, 154, .35);
+        }
+
+        .t-goal {
+            border-color: rgba(255, 211, 107, .35);
+        }
+
+        .t-obstacle {
+            border-color: rgba(255, 81, 102, .35);
+        }
+
+        .t-shift {
+            border-color: rgba(122, 167, 255, .35);
+        }
+
+        .c-entity {
+            color: rgba(67, 255, 154, .92);
+            text-shadow: var(--glow);
+        }
+
+        .c-goal {
+            color: rgba(255, 211, 107, .92);
+            text-shadow: 0 0 18px rgba(255, 211, 107, .14);
+        }
+
+        .c-obstacle {
+            color: rgba(255, 81, 102, .92);
+            text-shadow: 0 0 18px rgba(255, 81, 102, .14);
+        }
+
+        .c-shift {
+            color: rgba(122, 167, 255, .92);
+            text-shadow: 0 0 18px rgba(122, 167, 255, .14);
+        }
+
+        .active {
+            animation: shiver 440ms infinite steps(2, end);
+        }
+
+        @keyframes shiver {
+            0% {
+                transform: translate(0, 0);
+                filter: brightness(1.0);
+            }
+
+            50% {
+                transform: translate(0.5px, -0.5px);
+                filter: brightness(1.12);
+            }
+
+            100% {
+                transform: translate(-0.5px, 0.5px);
+                filter: brightness(1.0);
+            }
+        }
+
+        .flash {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(900px 600px at 50% 50%, rgba(255, 255, 255, .10), rgba(0, 0, 0, 0) 60%);
+            opacity: 0;
+            transition: opacity .22s ease;
+        }
+
+        .flash.on {
+            opacity: 1;
+        }
+
+        .readout {
+            border-top: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(0, 0, 0, .12), rgba(0, 0, 0, .22));
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .readout .line {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .readout b {
+            color: var(--txt);
+            font-weight: 600;
+        }
+
+        /* =========================================================
+       Audit log (corner overlay)
+       ========================================================= */
+        .auditDock {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: min(440px, 46vw);
+            height: 160px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, .38);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, .35);
+            overflow: hidden;
+        }
+
+        @media (max-width: 980px) {
+            .auditDock {
+                width: calc(100% - 24px);
+                height: 150px;
+            }
+        }
+
+        .auditHead {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(26, 34, 48, .8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .auditBody {
+            padding: 8px 10px;
+            height: calc(100% - 41px);
+            overflow: auto;
+            font-size: 11px;
+            color: rgba(199, 208, 224, .90);
+        }
+
+        .auditLine {
+            padding: 2px 0;
+            opacity: .95;
+        }
+
+        .auditLine .k {
+            color: var(--muted);
+        }
+
+        .auditLine .e {
+            color: rgba(67, 255, 154, .92);
+        }
+
+        .auditLine .vGoal {
+            color: rgba(255, 211, 107, .92);
+        }
+
+        .auditLine .vObs {
+            color: rgba(255, 81, 102, .92);
+        }
+
+        .auditLine .vShift {
+            color: rgba(122, 167, 255, .92);
+        }
+
+        /* =========================================================
+       Right panel tabs + image dock
+       ========================================================= */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(0, 0, 0, .14), rgba(0, 0, 0, .06));
+        }
+
+        .tabBtn {
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+        }
+
+        .tabBtn[aria-selected="true"] {
+            border-color: #2a3a55;
+            background: rgba(122, 167, 255, .10);
+            box-shadow: 0 0 0 2px rgba(122, 167, 255, .10) inset;
+        }
+
+        .tabPane {
+            display: none;
+        }
+
+        .tabPane.on {
+            display: block;
+        }
+
+        .imgList {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 260px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .thumb {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 8px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, .10);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .thumb:hover {
+            background: rgba(255, 255, 255, .03);
+            border-color: #263149;
+        }
+
+        .thumb[aria-selected="true"] {
+            border-color: rgba(67, 255, 154, .35);
+            box-shadow: 0 0 0 2px rgba(67, 255, 154, .10) inset;
+        }
+
+        .thumbImg {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid rgba(26, 34, 48, .9);
+            background: rgba(255, 255, 255, .03);
+            flex: 0 0 auto;
+        }
+
+        .thumbMeta {
+            min-width: 0;
+        }
+
+        .thumbMeta .name {
+            font-size: 12px;
+        }
+
+        .thumbMeta .note {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .preview {
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, .12);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .preview img {
+            width: 100%;
+            height: 190px;
+            object-fit: cover;
+            display: block;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .preview .cap {
+            padding: 10px 10px 12px 10px;
+            border-top: 1px solid rgba(26, 34, 48, .8);
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* =========================================================
+       Left sidebar scenario list
+       ========================================================= */
+        .scenarioBtn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 12px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .scenarioBtn[aria-current="true"] {
+            border-color: rgba(122, 167, 255, .35);
+            background: rgba(122, 167, 255, .08);
+            box-shadow: 0 0 0 2px rgba(122, 167, 255, .10) inset;
+        }
+
+        .kbd {
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(26, 34, 48, .8);
+            background: rgba(0, 0, 0, .25);
+            color: var(--muted);
+            font-size: 10px;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .hr {
+            height: 1px;
+            background: rgba(26, 34, 48, .9);
+            margin: 10px 0;
+        }
+
+        .noteBox {
+            border: 1px dashed rgba(26, 34, 48, .9);
+            background: rgba(0, 0, 0, .10);
+            border-radius: 16px;
+            padding: 10px 10px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        /* Reduce-motion respect */
+        @media (prefers-reduced-motion: reduce) {
+            .active {
+                animation: none !important;
+            }
+
+            button,
+            .cell {
+                transition: none !important;
+            }
+
+            .flash {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- =========================
+         LEFT: SCENARIOS (click-only)
+         ========================= -->
+        <aside class="panel">
+            <div class="panelHeader">
+                <div class="flex col gap-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex col" style="min-width:0">
+                            <div class="text-lg font-600 truncate">RIPPLES</div>
+                            <div class="text-xs muted truncate">Operative Ecologies in the Worldtext</div>
+                        </div>
+                        <div class="pill">
+                            <span class="dot shift"></span>
+                            <span class="text-xs muted" id="modeBadge">Supervised</span>
+                        </div>
+                    </div>
+                    <div class="noteBox">
+                        Constraint: <b>no typing</b>. Selection is the instrument.
+                        <div style="margin-top:6px">
+                            Click a <b>Scenario</b>, then an <b>Entity</b> (chip or word-in-grid), then inject a
+                            <b>Vector</b>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panelBody">
+                <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">
+                    Preset Scenarios</div>
+
+                <div class="flex col gap-2" id="scenarioList"></div>
+
+                <div class="hr"></div>
+
+                <div class="flex col gap-2">
+                    <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Project Media
+                    </div>
+                    <button id="openImagesFromSidebar" class="scenarioBtn" type="button" aria-current="false">
+                        <span class="flex items-center gap-2">
+                            <span class="dot good"></span>
+                            <span class="text-sm">Sync Images</span>
+                        </span>
+                        <span class="kbd">IMAGES</span>
+                    </button>
+                    <div class="noteBox">
+                        If you have frames in <b>/Users/gaia/RIPPLE/IMAGES</b>, use <b>Load Image Folder</b> (right
+                        panel) to import them in-browser.
+                        Files stay local (object URLs). No network calls.
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- =========================
+         CENTER: WORLD VIEWPORT
+         ========================= -->
+        <main class="panel viewportWrap">
+            <div class="worldTopbar">
+                <div class="worldTitle" style="min-width:0">
+                    <div class="h truncate" id="scenarioTitle">The Cupboard</div>
+                    <div class="sub truncate" id="scenarioSubtitle">Worldtext terrain. Description is operation.</div>
+                </div>
+
+                <div class="flex items-center gap-2 wrap" style="justify-content:flex-end">
+                    <span class="pill" title="Tick counter">
+                        <span class="dot"></span>
+                        <span class="text-xs"><span class="muted">Tick</span> <b id="tickLabel">0</b></span>
+                    </span>
+                    <span class="pill" title="Perspective entity">
+                        <span class="dot good"></span>
+                        <span class="text-xs"><span class="muted">Perspective</span> <b
+                                id="perspectiveLabel">Dust_Mote</b></span>
+                    </span>
+                    <span class="pill" title="Last vector applied">
+                        <span class="dot warn"></span>
+                        <span class="text-xs"><span class="muted">Vector</span> <b id="vectorLabel">—</b></span>
+                    </span>
+                </div>
+            </div>
+
+            <section class="worldViewport" id="worldViewport" aria-label="Worldtext Viewport">
+                <div class="worldGrid" id="worldGrid" style="--cols: 8;"></div>
+                <div class="flash" id="flash"></div>
+
+                <!-- Audit log overlay -->
+                <div class="auditDock" aria-label="Audit Log">
+                    <div class="auditHead">
+                        <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Audit Log
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="text-xs" id="clearLogBtn" title="Clear log">Clear</button>
+                        </div>
+                    </div>
+                    <div class="auditBody" id="auditBody"></div>
+                </div>
+            </section>
+
+            <div class="readout">
+                <div class="line">
+                    <span class="muted">Location Readout:</span>
+                    <b id="locationReadout"></b>
+                </div>
+                <div class="line">
+                    <span class="muted">Instruction:</span>
+                    <span>Click an <b>Entity</b> in the grid or chips → inject <b>GOAL</b>, <b>OBSTACLE</b>, or
+                        <b>SHIFT</b>.</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- =========================
+         RIGHT: CONTROL + IMAGES
+         ========================= -->
+        <aside class="panel">
+            <div class="tabs" role="tablist" aria-label="Right Panel Tabs">
+                <button class="tabBtn" id="tabControl" role="tab" aria-selected="true" type="button">CONTROL</button>
+                <button class="tabBtn" id="tabImages" role="tab" aria-selected="false" type="button">IMAGES</button>
+                <button class="tabBtn" id="tabState" role="tab" aria-selected="false" type="button">STATE</button>
+            </div>
+
+            <div class="panelBody">
+                <!-- CONTROL -->
+                <section class="tabPane on" id="paneControl" role="tabpanel" aria-labelledby="tabControl">
+                    <div class="flex col gap-3">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Entity
+                                Pool</div>
+                            <button type="button" id="randomEntityBtn" class="text-xs">Random</button>
+                        </div>
+                        <div class="flex wrap gap-2" id="entityChips"></div>
+
+                        <div class="toggle" id="autoplayToggle" role="switch" aria-checked="false" tabindex="0">
+                            <div class="flex col">
+                                <div class="text-sm font-600">AUTOPLAY</div>
+                                <div class="text-xs muted">Unsupervised mode (system selects perspective + vector)</div>
+                            </div>
+                            <div class="switch" aria-hidden="true"></div>
+                        </div>
+
+                        <div class="hr"></div>
+
+                        <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Inject Vector
+                        </div>
+
+                        <button type="button" class="btnBig btnGoal" id="btnGoal">
+                            <span class="flex items-center gap-2">
+                                <span class="dot warn"></span>
+                                GOAL
+                            </span>
+                            <small>seek connection / resource / movement</small>
+                        </button>
+
+                        <button type="button" class="btnBig btnObstacle" id="btnObstacle">
+                            <span class="flex items-center gap-2">
+                                <span class="dot bad"></span>
+                                OBSTACLE
+                            </span>
+                            <small>barrier / resistance / stasis</small>
+                        </button>
+
+                        <button type="button" class="btnBig btnShift" id="btnShift">
+                            <span class="flex items-center gap-2">
+                                <span class="dot shift"></span>
+                                SHIFT
+                            </span>
+                            <small>internal transformation / state change</small>
+                        </button>
+
+                        <div class="hr"></div>
+
+                        <div class="flex gap-2">
+                            <button type="button" id="exportSnapshotBtn" class="w-full">Export Snapshot</button>
+                            <button type="button" id="resetBtn" class="w-full">Reset</button>
+                        </div>
+
+                        <div class="noteBox">
+                            <b>Cross-fade:</b> each Ripple overwrites the Worldtext grid over time (procedural
+                            replacement), while highlighting active words with shiver.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- IMAGES -->
+                <section class="tabPane" id="paneImages" role="tabpanel" aria-labelledby="tabImages">
+                    <div class="flex col gap-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Image
+                                Library</div>
+                            <button type="button" id="loadFolderBtn" class="text-xs">Load Image Folder</button>
+                            <input id="folderInput" class="sr-only" type="file" webkitdirectory multiple
+                                accept="image/*" />
+                        </div>
+
+                        <div class="noteBox">
+                            This organizes your local frames (sorted by filename). Click an image to view it, then
+                            <b>Sync Current State</b> to attach the current scenario/perspective/vector/tick to that
+                            frame.
+                        </div>
+
+                        <div class="imgList" id="imgList"></div>
+
+                        <div class="preview" id="imgPreview" style="display:none;">
+                            <img id="imgPreviewEl" alt="Selected frame preview">
+                            <div class="cap">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="truncate" id="imgName" style="color:var(--txt);font-size:12px;"></div>
+                                    <span class="pill"><span class="dot good"></span><span
+                                            class="text-xs muted">synced</span> <b id="imgSyncedFlag">no</b></span>
+                                </div>
+                                <div id="imgAttachedState" class="text-xs"></div>
+                                <div class="flex gap-2">
+                                    <button type="button" id="syncStateToImageBtn" class="w-full">Sync Current
+                                        State</button>
+                                    <button type="button" id="recallStateFromImageBtn" class="w-full">Recall
+                                        State</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="button" id="exportImageMapBtn" class="w-full">Export Image Map</button>
+                            <button type="button" id="clearImagesBtn" class="w-full">Clear Images</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STATE -->
+                <section class="tabPane" id="paneState" role="tabpanel" aria-labelledby="tabState">
+                    <div class="flex col gap-3">
+                        <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">WorldState
+                        </div>
+
+                        <div class="noteBox" id="stateSummary"></div>
+
+                        <div class="hr"></div>
+
+                        <div class="text-xs muted" style="letter-spacing:.08em;text-transform:uppercase;">Latent Library
+                        </div>
+                        <div class="noteBox">
+                            No live API. Ripples pull from an internal JSON library per scenario/entity/vector.
+                            Autoplay uses light adjacency/weight rules (biased toward “plausible drift”).
+                        </div>
+
+                        <button type="button" id="showLibraryBtn" class="w-full">View Library (Readonly)</button>
+                        <div class="noteBox" id="libraryDump"
+                            style="display:none;max-height:260px;overflow:auto;white-space:pre-wrap;"></div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        /* =========================================================
+           RIPPLES: Operative Ecologies in the Worldtext
+           Single-file HTML/CSS/JS prototype (no external deps).
+           Constraint: click-only; no typing.
+           ========================================================= */
+
+        const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+        const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const nowISO = () => new Date().toISOString();
+
+        const VECTORS = {
+            goal: { id: "goal", label: "GOAL", tag: "goal", dotClass: "warn" },
+            obstacle: { id: "obstacle", label: "OBSTACLE", tag: "obstacle", dotClass: "bad" },
+            shift: { id: "shift", label: "SHIFT", tag: "shift", dotClass: "shift" }
+        };
+
+        /* =========================================================
+           LATENT LIBRARY (internal, poetic, pre-written)
+           ========================================================= */
+        const LATENT_LIBRARY = {
+            cupboard: {
+                id: "cupboard",
+                title: "The Cupboard",
+                subtitle: "Pressurized stillness; ceramics; hairline light; dust as weather.",
+                defaultPerspective: "dust_mote",
+                baselineReadout:
+                    "The cupboard space is pressurized by stillness. Light seeps only through marginal cracks between door and frame. Objects maintain rigid proximity. Six tall glasses (silica/dust coated) delimit the left boundary. A stack of twenty ceramic plates compresses the lower shelf space. The air is stagnant.",
+                baseTokens: [
+                    "still", "stagnant", "shadowed", "tight", "packed", "ceramic", "silica",
+                    "hinge", "frame", "crack", "dry", "mute", "dusty", "cold", "stacked",
+                    "edge", "grain", "film", "quiet", "pressure", "close", "residue", "shelf"
+                ],
+                entities: [
+                    { id: "six_tall_glasses", label: "Six_Tall_Glasses", kind: "object" },
+                    { id: "ant", label: "Ant", kind: "organism" },
+                    { id: "plate_stack_20", label: "Plate_Stack_20", kind: "object" },
+                    { id: "dust_mote", label: "Dust_Mote", kind: "particulate" }
+                ],
+                // Per entity + vector pre-written ripples
+                ripples: {
+                    ant: {
+                        goal:
+                            "Perspective: Formicidae scout. Vector: Goal (Sustenance/Sugar trace). The stillness breaks into micro-vibrations. The Ant abandons the boundary cracks and navigates the ceramic topography of the Plate_Stack_20. It traces an invisible chemical line toward the Six_Tall_Glasses where a dried sweetness lingers. Dust text lifts, displaced by its feet.",
+                        obstacle:
+                            "Perspective: Ant. Vector: Obstacle (Smooth cliff-face). The glaze of the plates is a slick continent. Each step skates; scent becomes noise. The Ant meets a vertical lip—an impassable porcelain horizon—where traction fails and the air tastes of nothing.",
+                        shift:
+                            "Perspective: Ant. Vector: Shift (Signal rewriting). The Ant pauses, antennae drawing a new map from absence. It stops chasing sweetness and begins sampling dust—treating drift as data. A new route is invented: slower, closer, more certain."
+                    },
+                    dust_mote: {
+                        goal:
+                            "Perspective: Dust_Mote. Vector: Goal (Find light). The mote leans toward the crack like a seed toward sun. It rides a subvisible draft, seeking a brighter band of air. The cupboard becomes an atmosphere of gradients—warmth, shade, and a faint pull outward.",
+                        obstacle:
+                            "Perspective: Dust_Mote. Vector: Obstacle (Static cling). The mote is captured by invisible charge and pinned to glass. Stillness becomes adhesive. The world narrows to a single point of contact—pressure, grit, and a refusal to float.",
+                        shift:
+                            "Perspective: Dust_Mote. Vector: Shift (Aggregation). The mote collides with kin and becomes a small constellation. Dust is no longer solitary; it thickens into texture. The air reads as grain instead of emptiness."
+                    },
+                    plate_stack_20: {
+                        goal:
+                            "Perspective: Plate_Stack_20. Vector: Goal (Hold). The plates intensify their compression, tightening the shelf-space as if to keep the cupboard from drifting apart. Their rims align like a white ridge. They become terrain that invites traversal and forbids collapse.",
+                        obstacle:
+                            "Perspective: Plate_Stack_20. Vector: Obstacle (Chipped edge). A fracture announces itself. One plate bears a sharp missing arc—an injury that catches dust and redirects tiny movements. A small hazard forms: a snag in the smoothness.",
+                        shift:
+                            "Perspective: Plate_Stack_20. Vector: Shift (Resonance). A faint vibration travels through the stack. Ceramic sings at a frequency too small to hear. The cupboard’s silence becomes structured: layers of quiet arranged into standing waves."
+                    },
+                    six_tall_glasses: {
+                        goal:
+                            "Perspective: Six_Tall_Glasses. Vector: Goal (Collect). The glasses gather the dimness as if it were liquid. Each cylinder holds a slightly different night. Residue at the bottom reads like history: thin rings, mineral signatures, dried narratives.",
+                        obstacle:
+                            "Perspective: Six_Tall_Glasses. Vector: Obstacle (Fogging). A brief warmth condenses into a milky breath on inner walls. Vision blurs. Light is scattered into pale noise. The cupboard forgets its outlines for a moment.",
+                        shift:
+                            "Perspective: Six_Tall_Glasses. Vector: Shift (Refraction). The crack-light splits into faint spectra. Edges multiply. Glass becomes a lens; the cupboard becomes a small instrument. Dust glitter appears, then disappears."
+                    }
+                },
+                // Simple autoplay weights/adjacency bias
+                autoplay: {
+                    entityWeights: { ant: 0.33, dust_mote: 0.26, plate_stack_20: 0.21, six_tall_glasses: 0.20 },
+                    vectorWeights: { goal: 0.42, obstacle: 0.30, shift: 0.28 }
+                }
+            },
+
+            abandoned_house: {
+                id: "abandoned_house",
+                title: "Abandoned House",
+                subtitle: "Rot, echo, fiberglass light; a staircase that remembers weight.",
+                defaultPerspective: "mold",
+                baselineReadout:
+                    "An abandoned house holds its breath in long hallways. Wallpaper peels in strips like old receipts. Floorboards complain under imaginary footsteps. A window leaks pale daylight onto dust and quiet mold bloom.",
+                baseTokens: [
+                    "peel", "rot", "echo", "hollow", "stair", "board", "mildew", "window", "lint", "silence",
+                    "draft", "paper", "rust", "nail", "beam", "crawlspace", "shade", "sag", "smell", "soft"
+                ],
+                entities: [
+                    { id: "mold", label: "Mold", kind: "organism" },
+                    { id: "floorboard", label: "Floorboard", kind: "object" },
+                    { id: "window_light", label: "Window_Light", kind: "phenomenon" },
+                    { id: "spider_web", label: "Spider_Web", kind: "structure" }
+                ],
+                ripples: {
+                    mold: {
+                        goal: "Perspective: Mold. Vector: Goal (colonize). A damp corner becomes a continent. Filaments extend, tasting old paper and glue. The house becomes food.",
+                        obstacle: "Perspective: Mold. Vector: Obstacle (dry snap). Air turns sharp; humidity drops. Growth stalls into a powdery pause.",
+                        shift: "Perspective: Mold. Vector: Shift (sporulation). The colony changes tactic—release instead of extend. Tiny packets of future drift into the hallway."
+                    },
+                    floorboard: {
+                        goal: "Perspective: Floorboard. Vector: Goal (hold weight). The board tightens its grain, remembering pressure. It wants to be walked on again.",
+                        obstacle: "Perspective: Floorboard. Vector: Obstacle (warp). Moisture curves the plank. A small ridge forms: an ankle-trap for ghosts.",
+                        shift: "Perspective: Floorboard. Vector: Shift (creak language). The board begins to speak in micro-cracks. Sound becomes an interface."
+                    },
+                    window_light: {
+                        goal: "Perspective: Window_Light. Vector: Goal (reach). Light pours inward, searching for reflective dust to announce itself.",
+                        obstacle: "Perspective: Window_Light. Vector: Obstacle (curtain tatters). Fabric interrupts. Light becomes stripes and gaps.",
+                        shift: "Perspective: Window_Light. Vector: Shift (golden hour). Color temperature turns amber. The room becomes suddenly tender."
+                    },
+                    spider_web: {
+                        goal: "Perspective: Spider_Web. Vector: Goal (catch). Threads pull taut—waiting for impact and meaning.",
+                        obstacle: "Perspective: Spider_Web. Vector: Obstacle (break). A strand snaps; tension redistributes like panic.",
+                        shift: "Perspective: Spider_Web. Vector: Shift (dew). Tiny beads appear. The web becomes a map of droplets."
+                    }
+                },
+                autoplay: {
+                    entityWeights: { mold: 0.35, floorboard: 0.25, window_light: 0.22, spider_web: 0.18 },
+                    vectorWeights: { goal: 0.38, obstacle: 0.34, shift: 0.28 }
+                }
+            },
+
+            forest: {
+                id: "forest",
+                title: "Forest",
+                subtitle: "Fungi logics; leaf-noise; soil as archive; moisture as instruction.",
+                defaultPerspective: "fungus",
+                baselineReadout:
+                    "A forest does not display itself; it composes itself. Leaves translate sunlight into sugar. Soil holds conversations between roots and fungi. Wind runs as a low-frequency editor through branches.",
+                baseTokens: [
+                    "leaf", "root", "soil", "spore", "moss", "bark", "dew", "shade", "canopy", "humus",
+                    "river", "bird", "thicket", "fungal", "mycelium", "scent", "trail", "rain", "dark", "green"
+                ],
+                entities: [
+                    { id: "fungus", label: "Fungus", kind: "organism" },
+                    { id: "root_network", label: "Root_Network", kind: "structure" },
+                    { id: "rain", label: "Rain", kind: "phenomenon" },
+                    { id: "beetle", label: "Beetle", kind: "organism" }
+                ],
+                ripples: {
+                    fungus: {
+                        goal: "Perspective: Fungus. Vector: Goal (connect). Mycelium threads seek sugars, stitching distances into one shared metabolism.",
+                        obstacle: "Perspective: Fungus. Vector: Obstacle (salted patch). A hostile zone burns hyphae back. The network detours.",
+                        shift: "Perspective: Fungus. Vector: Shift (fruiting). Hidden structure becomes visible mushrooms—brief, declarative architecture."
+                    },
+                    root_network: {
+                        goal: "Perspective: Root_Network. Vector: Goal (share). Roots pass water and warnings. The forest gains coordination.",
+                        obstacle: "Perspective: Root_Network. Vector: Obstacle (compaction). Soil tightens; oxygen thins. Growth slows to negotiation.",
+                        shift: "Perspective: Root_Network. Vector: Shift (new rootlet). A fine hair grows toward a darker pocket of moisture."
+                    },
+                    rain: {
+                        goal: "Perspective: Rain. Vector: Goal (enter). Droplets want infiltration—soil, bark, leaf, everywhere.",
+                        obstacle: "Perspective: Rain. Vector: Obstacle (canopy). Leaves intercept, delay, and redirect the fall into drip-lattices.",
+                        shift: "Perspective: Rain. Vector: Shift (mist). Water becomes suspended; the forest turns soft at the edges."
+                    },
+                    beetle: {
+                        goal: "Perspective: Beetle. Vector: Goal (find rot). The beetle reads bark as a door. It seeks the sweet collapse beneath.",
+                        obstacle: "Perspective: Beetle. Vector: Obstacle (sap trap). Sticky resin holds a leg. Struggle becomes heat.",
+                        shift: "Perspective: Beetle. Vector: Shift (molting). Old shell splits. A softer self emerges briefly, then hardens again."
+                    }
+                },
+                autoplay: {
+                    entityWeights: { fungus: 0.31, root_network: 0.27, rain: 0.22, beetle: 0.20 },
+                    vectorWeights: { goal: 0.41, obstacle: 0.29, shift: 0.30 }
+                }
+            },
+
+            urban_jungle: {
+                id: "urban_jungle",
+                title: "Urban Jungle",
+                subtitle: "Neon weather; pigeons and vents; asphalt as heat memory.",
+                defaultPerspective: "pigeon",
+                baselineReadout:
+                    "An urban jungle compiles motion into patterns: footfalls, vents breathing, traffic tides. Light is synthetic and constant. Small organisms specialize in gaps: ledges, gutters, cracks, scaffolds.",
+                baseTokens: [
+                    "neon", "asphalt", "vent", "gutter", "ledge", "signal", "crowd", "heat", "glass", "metal",
+                    "sirens", "shadow", "steam", "puddle", "cable", "scaffold", "pulse", "lane", "brick", "noise"
+                ],
+                entities: [
+                    { id: "pigeon", label: "Pigeon", kind: "organism" },
+                    { id: "traffic", label: "Traffic", kind: "flow" },
+                    { id: "vent_steam", label: "Vent_Steam", kind: "phenomenon" },
+                    { id: "alley_puddle", label: "Alley_Puddle", kind: "object" }
+                ],
+                ripples: {
+                    pigeon: {
+                        goal: "Perspective: Pigeon. Vector: Goal (crumbs). The bird tracks human forgetfulness—bits of bread, salt, sugar—scattered like permission.",
+                        obstacle: "Perspective: Pigeon. Vector: Obstacle (hawk-shadow). A silhouette crosses the streetlight. The pigeon freezes into vigilance.",
+                        shift: "Perspective: Pigeon. Vector: Shift (route learning). The city becomes a remembered graph. One shortcut becomes doctrine."
+                    },
+                    traffic: {
+                        goal: "Perspective: Traffic. Vector: Goal (flow). Lanes attempt continuity; green lights act as temporary treaties.",
+                        obstacle: "Perspective: Traffic. Vector: Obstacle (gridlock). Movement becomes an argument without resolution.",
+                        shift: "Perspective: Traffic. Vector: Shift (night lull). Engines fade; the city exhales."
+                    },
+                    vent_steam: {
+                        goal: "Perspective: Vent_Steam. Vector: Goal (rise). Warm breath seeks open air, carrying scent-traces of kitchens and machines.",
+                        obstacle: "Perspective: Vent_Steam. Vector: Obstacle (wind shear). A gust tears the plume into fragments.",
+                        shift: "Perspective: Vent_Steam. Vector: Shift (condense). Steam becomes droplets; a new puddle is authored."
+                    },
+                    alley_puddle: {
+                        goal: "Perspective: Alley_Puddle. Vector: Goal (reflect). The puddle wants light—any light—to become a mirror.",
+                        obstacle: "Perspective: Alley_Puddle. Vector: Obstacle (tire splash). Turbulence erases the reflection into noise.",
+                        shift: "Perspective: Alley_Puddle. Vector: Shift (oil film). A rainbow skin appears. The puddle becomes an interface."
+                    }
+                },
+                autoplay: {
+                    entityWeights: { pigeon: 0.30, traffic: 0.26, vent_steam: 0.22, alley_puddle: 0.22 },
+                    vectorWeights: { goal: 0.39, obstacle: 0.33, shift: 0.28 }
+                }
+            }
+        };
+
+        /* =========================================================
+           WORLD STATE
+           ========================================================= */
+        const WorldState = {
+            tick: 0,
+            currentScenarioId: "cupboard",
+            perspectiveEntityId: LATENT_LIBRARY.cupboard.defaultPerspective,
+            lastVector: null,
+            entities: [...LATENT_LIBRARY.cupboard.entities],
+            // world grid contents
+            grid: { cols: 0, rows: 0, cells: [] }, // each cell: { text, type, entityId?, active? }
+            // image sync map
+            imageMap: {}, // filename -> { scenarioId, perspectiveEntityId, lastVector, tick, readout, ts }
+            // runtime
+            autoplay: false,
+            autoplayTimer: null
+        };
+
+        /* =========================================================
+           DOM refs
+           ========================================================= */
+        const scenarioListEl = document.getElementById("scenarioList");
+        const scenarioTitleEl = document.getElementById("scenarioTitle");
+        const scenarioSubtitleEl = document.getElementById("scenarioSubtitle");
+        const tickLabelEl = document.getElementById("tickLabel");
+        const perspectiveLabelEl = document.getElementById("perspectiveLabel");
+        const vectorLabelEl = document.getElementById("vectorLabel");
+        const locationReadoutEl = document.getElementById("locationReadout");
+        const entityChipsEl = document.getElementById("entityChips");
+
+        const worldViewportEl = document.getElementById("worldViewport");
+        const worldGridEl = document.getElementById("worldGrid");
+        const flashEl = document.getElementById("flash");
+
+        const auditBodyEl = document.getElementById("auditBody");
+        const clearLogBtn = document.getElementById("clearLogBtn");
+
+        const autoplayToggleEl = document.getElementById("autoplayToggle");
+        const modeBadgeEl = document.getElementById("modeBadge");
+
+        const btnGoal = document.getElementById("btnGoal");
+        const btnObstacle = document.getElementById("btnObstacle");
+        const btnShift = document.getElementById("btnShift");
+
+        const randomEntityBtn = document.getElementById("randomEntityBtn");
+        const exportSnapshotBtn = document.getElementById("exportSnapshotBtn");
+        const resetBtn = document.getElementById("resetBtn");
+
+        // Tabs
+        const tabControl = document.getElementById("tabControl");
+        const tabImages = document.getElementById("tabImages");
+        const tabState = document.getElementById("tabState");
+        const paneControl = document.getElementById("paneControl");
+        const paneImages = document.getElementById("paneImages");
+        const paneState = document.getElementById("paneState");
+
+        const openImagesFromSidebar = document.getElementById("openImagesFromSidebar");
+
+        // Images
+        const loadFolderBtn = document.getElementById("loadFolderBtn");
+        const folderInput = document.getElementById("folderInput");
+        const imgListEl = document.getElementById("imgList");
+        const imgPreviewWrap = document.getElementById("imgPreview");
+        const imgPreviewEl = document.getElementById("imgPreviewEl");
+        const imgNameEl = document.getElementById("imgName");
+        const imgSyncedFlagEl = document.getElementById("imgSyncedFlag");
+        const imgAttachedStateEl = document.getElementById("imgAttachedState");
+        const syncStateToImageBtn = document.getElementById("syncStateToImageBtn");
+        const recallStateFromImageBtn = document.getElementById("recallStateFromImageBtn");
+        const exportImageMapBtn = document.getElementById("exportImageMapBtn");
+        const clearImagesBtn = document.getElementById("clearImagesBtn");
+
+        // State panel
+        const stateSummaryEl = document.getElementById("stateSummary");
+        const showLibraryBtn = document.getElementById("showLibraryBtn");
+        const libraryDumpEl = document.getElementById("libraryDump");
+
+        /* =========================================================
+           Audit log
+           ========================================================= */
+        const auditLines = [];
+        function audit(line) {
+            auditLines.push(line);
+            while (auditLines.length > 240) auditLines.shift();
+            renderAudit();
+        }
+        function renderAudit() {
+            const max = 80;
+            const slice = auditLines.slice(-max);
+            auditBodyEl.innerHTML = slice.map(s => `<div class="auditLine">${s}</div>`).join("");
+            auditBodyEl.scrollTop = auditBodyEl.scrollHeight;
+        }
+
+        clearLogBtn.addEventListener("click", () => {
+            auditLines.length = 0;
+            renderAudit();
+            audit(`<span class="k">Log cleared.</span>`);
+        });
+
+        /* =========================================================
+           Tabs (click-only)
+           ========================================================= */
+        function setTab(which) {
+            const set = (btn, pane, on) => {
+                btn.setAttribute("aria-selected", on ? "true" : "false");
+                pane.classList.toggle("on", on);
+            };
+            set(tabControl, paneControl, which === "control");
+            set(tabImages, paneImages, which === "images");
+            set(tabState, paneState, which === "state");
+        }
+
+        tabControl.addEventListener("click", () => setTab("control"));
+        tabImages.addEventListener("click", () => setTab("images"));
+        tabState.addEventListener("click", () => setTab("state"));
+        openImagesFromSidebar.addEventListener("click", () => setTab("images"));
+
+        /* =========================================================
+           Scenario UI
+           ========================================================= */
+        function renderScenarioList() {
+            const ids = ["cupboard", "abandoned_house", "forest", "urban_jungle"];
+            scenarioListEl.innerHTML = ids.map((id, idx) => {
+                const sc = LATENT_LIBRARY[id];
+                const current = id === WorldState.currentScenarioId;
+                return `
+          <button type="button" class="scenarioBtn" data-scenario="${id}" aria-current="${current ? "true" : "false"}">
+            <span class="flex col" style="min-width:0">
+              <span class="text-sm font-600 truncate">${sc.title}</span>
+              <span class="text-xs muted truncate">${sc.subtitle}</span>
+            </span>
+            <span class="kbd">${idx + 1}</span>
+          </button>
+        `;
+            }).join("");
+
+            [...scenarioListEl.querySelectorAll("button[data-scenario]")].forEach(btn => {
+                btn.addEventListener("click", () => setScenario(btn.dataset.scenario));
+            });
+        }
+
+        function setScenario(id) {
+            if (!LATENT_LIBRARY[id]) return;
+            WorldState.currentScenarioId = id;
+
+            const sc = LATENT_LIBRARY[id];
+            WorldState.entities = [...sc.entities];
+            WorldState.perspectiveEntityId = sc.defaultPerspective || sc.entities[0].id;
+            WorldState.lastVector = null;
+
+            audit(`<span class="k">${WorldState.tickLabel ?? ""}</span> <span class="k">Scenario →</span> <b>${sc.title}</b>`);
+            renderScenarioList();
+            renderEntityChips();
+            updateLabels();
+
+            // regenerate baseline grid and crossfade in
+            const baseline = sc.baselineReadout;
+            buildAndCrossfadeGrid({ reason: "scenario", text: baseline, vector: null });
+
+            // update readout
+            locationReadoutEl.textContent = baseline;
+
+            renderStatePanel();
+        }
+
+        /* =========================================================
+           Entity selection UI
+           ========================================================= */
+        function renderEntityChips() {
+            const sc = currentScenario();
+            entityChipsEl.innerHTML = WorldState.entities.map(e => {
+                const pressed = e.id === WorldState.perspectiveEntityId;
+                return `
+          <button type="button" class="chip" data-entity="${e.id}" aria-pressed="${pressed ? "true" : "false"}">
+            ${e.label}
+          </button>
+        `;
+            }).join("");
+
+            [...entityChipsEl.querySelectorAll("button[data-entity]")].forEach(btn => {
+                btn.addEventListener("click", () => setPerspective(btn.dataset.entity, { source: "chip" }));
+            });
+        }
+
+        function setPerspective(entityId, meta = {}) {
+            if (!WorldState.entities.find(e => e.id === entityId)) return;
+            WorldState.perspectiveEntityId = entityId;
+            updateLabels();
+            renderEntityChips();
+            audit(`<span class="k">Tick</span> <b>${WorldState.tick}</b>: <span class="k">Perspective →</span> <span class="e">${entityLabel(entityId)}</span> <span class="k">(${meta.source || "select"})</span>`);
+            renderStatePanel();
+        }
+
+        randomEntityBtn.addEventListener("click", () => {
+            const e = pick(WorldState.entities);
+            setPerspective(e.id, { source: "random" });
+        });
+
+        /* =========================================================
+           Autoplay toggle (click-only + keyboard optional)
+           ========================================================= */
+        function setAutoplay(on) {
+            WorldState.autoplay = !!on;
+            autoplayToggleEl.setAttribute("aria-checked", WorldState.autoplay ? "true" : "false");
+            modeBadgeEl.textContent = WorldState.autoplay ? "Unsupervised" : "Supervised";
+
+            if (WorldState.autoplay) {
+                startAutoplay();
+                audit(`<span class="k">Autoplay →</span> <b>ON</b>`);
+            } else {
+                stopAutoplay();
+                audit(`<span class="k">Autoplay →</span> <b>OFF</b>`);
+            }
+        }
+
+        function toggleAutoplay() {
+            setAutoplay(!WorldState.autoplay);
+        }
+
+        autoplayToggleEl.addEventListener("click", toggleAutoplay);
+        autoplayToggleEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleAutoplay();
+            }
+        });
+
+        function startAutoplay() {
+            stopAutoplay();
+            WorldState.autoplayTimer = setInterval(() => {
+                const sc = currentScenario();
+                const eId = weightedPick(Object.entries(sc.autoplay.entityWeights));
+                const vId = weightedPick(Object.entries(sc.autoplay.vectorWeights));
+                setPerspective(eId, { source: "autoplay" });
+                ripple(vId, { source: "autoplay" });
+            }, 1250);
+        }
+
+        function stopAutoplay() {
+            if (WorldState.autoplayTimer) {
+                clearInterval(WorldState.autoplayTimer);
+                WorldState.autoplayTimer = null;
+            }
+        }
+
+        function weightedPick(entries) {
+            // entries: [ [key, weight], ... ]
+            let sum = 0;
+            for (const [, w] of entries) sum += w;
+            let r = Math.random() * sum;
+            for (const [k, w] of entries) {
+                r -= w;
+                if (r <= 0) return k;
+            }
+            return entries[entries.length - 1][0];
+        }
+
+        /* =========================================================
+           Ripple: core mechanic
+           ========================================================= */
+        function ripple(vectorId, meta = {}) {
+            const vector = VECTORS[vectorId];
+            if (!vector) return;
+
+            const sc = currentScenario();
+            const eId = WorldState.perspectiveEntityId;
+
+            WorldState.tick += 1;
+            WorldState.lastVector = vectorId;
+
+            // pull text from latent library (fallback if missing)
+            const text = (sc.ripples?.[eId]?.[vectorId]) ||
+                `Perspective: ${entityLabel(eId)}. Vector: ${vector.label}. The world advances one tick; relations rearrange under sparse causality.`;
+
+            // write readout and UI labels
+            locationReadoutEl.textContent = text;
+            updateLabels();
+
+            // audit
+            const vClass = vectorId === "goal" ? "vGoal" : (vectorId === "obstacle" ? "vObs" : "vShift");
+            audit(`<span class="k">Tick</span> <b>${WorldState.tick}</b>: <span class="k">Entity</span> '<span class="e">${entityLabel(eId)}</span>' → <span class="${vClass}">${vector.label}</span>`);
+
+            // crossfade grid to reflect ripple
+            buildAndCrossfadeGrid({ reason: "ripple", text, vector: vectorId });
+
+            renderStatePanel();
+        }
+
+        btnGoal.addEventListener("click", () => ripple("goal", { source: "button" }));
+        btnObstacle.addEventListener("click", () => ripple("obstacle", { source: "button" }));
+        btnShift.addEventListener("click", () => ripple("shift", { source: "button" }));
+
+        /* =========================================================
+           WorldGrid generation + procedural crossfade overwrite
+           ========================================================= */
+        function currentScenario() {
+            return LATENT_LIBRARY[WorldState.currentScenarioId];
+        }
+
+        function entityLabel(entityId) {
+            const sc = currentScenario();
+            const e = sc.entities.find(x => x.id === entityId);
+            return e ? e.label : entityId;
+        }
+
+        function measureGrid() {
+            const rect = worldViewportEl.getBoundingClientRect();
+
+            // block-cell sizing heuristic (dense but readable)
+            const targetCellW = 112; // px
+            const targetCellH = 38;  // px (min height is ~32)
+            const cols = clamp(Math.floor((rect.width - 24) / targetCellW), 6, 16);
+            const rows = clamp(Math.floor((rect.height - 24) / targetCellH), 10, 22);
+
+            return { cols, rows };
+        }
+
+        function buildGridModel({ text, vector }) {
+            const sc = currentScenario();
+            const { cols, rows } = measureGrid();
+            const count = cols * rows;
+
+            // tokens from baseline + ripple keywords
+            const baseline = sc.baseTokens;
+            const rippleKeywords = extractKeywords(text);
+
+            // Ensure entity tokens appear (clickable targets)
+            const entityIds = sc.entities.map(e => e.id);
+            const entityLabels = sc.entities.reduce((acc, e) => { acc[e.id] = e.label; return acc; }, {});
+            const perspective = WorldState.perspectiveEntityId;
+
+            // Place entities at fixed-ish positions (deterministic per tick)
+            const seed = (WorldState.tick * 99991 + sc.id.length * 1337) >>> 0;
+            const entitySpots = pickEntitySpots(entityIds, count, seed);
+
+            const cells = new Array(count).fill(null).map((_, i) => {
+                // base
+                const t = (Math.random() < 0.60) ? pick(baseline) : pick(rippleKeywords);
+                return { text: t, type: "base", entityId: null, active: false };
+            });
+
+            // sprinkle short phrases from ripple text into random cells
+            const phrases = chopPhrases(text);
+            const sprinkleN = clamp(Math.floor(count * 0.16), 18, 70);
+            for (let j = 0; j < sprinkleN; j++) {
+                const idx = (seededRand(seed + j * 17) * count) | 0;
+                cells[idx] = { text: pick(phrases), type: vectorType(vector), entityId: null, active: (Math.random() < 0.22) };
+            }
+
+            // place entity cells
+            entityIds.forEach((eid, k) => {
+                const idx = entitySpots[k];
+                const isPerspective = eid === perspective;
+                cells[idx] = {
+                    text: entityLabels[eid],
+                    type: "entity",
+                    entityId: eid,
+                    active: isPerspective
+                };
+            });
+
+            // highlight a path for the Cupboard example: Ant + Goal
+            if (sc.id === "cupboard" && perspective === "ant" && vector === "goal") {
+                // draw a bright-ish trail across a few cells
+                const trail = buildTrail(count, seed, 12);
+                for (const idx of trail) {
+                    if (cells[idx].type === "entity") continue;
+                    cells[idx] = { text: pick(["scent-line", "trace", "sugar", "ceramic", "route", "micro-vibration", "toward"]), type: "goal", entityId: null, active: true };
+                }
+            }
+
+            return { cols, rows, cells };
+        }
+
+        function vectorType(vector) {
+            if (!vector) return "base";
+            if (vector === "goal") return "goal";
+            if (vector === "obstacle") return "obstacle";
+            if (vector === "shift") return "shift";
+            return "base";
+        }
+
+        function pickEntitySpots(entityIds, count, seed) {
+            // stable-ish spread: pick distinct indices
+            const spots = [];
+            const used = new Set();
+            for (let i = 0; i < entityIds.length; i++) {
+                let tries = 0;
+                while (tries++ < 999) {
+                    const idx = (seededRand(seed + i * 1009 + tries * 17) * count) | 0;
+                    // keep away from edges a bit
+                    const ok = idx > count * 0.08 && idx < count * 0.94;
+                    if (ok && !used.has(idx)) {
+                        used.add(idx);
+                        spots.push(idx);
+                        break;
+                    }
+                }
+            }
+            // fallback fill
+            while (spots.length < entityIds.length) {
+                const idx = (Math.random() * count) | 0;
+                if (!used.has(idx)) { used.add(idx); spots.push(idx); }
+            }
+            return spots;
+        }
+
+        function seededRand(seed) {
+            // xorshift32
+            let x = seed | 0;
+            x ^= x << 13;
+            x ^= x >>> 17;
+            x ^= x << 5;
+            return ((x >>> 0) / 4294967296);
+        }
+
+        function buildTrail(count, seed, steps) {
+            const trail = [];
+            let idx = (seededRand(seed + 42) * count) | 0;
+            for (let i = 0; i < steps; i++) {
+                trail.push(idx);
+                // drift by a pseudo-step
+                const delta = (((seededRand(seed + 700 + i * 9) * 19) | 0) - 9);
+                idx = clamp(idx + delta + 7, 0, count - 1);
+            }
+            return [...new Set(trail)];
+        }
+
+        function extractKeywords(text) {
+            // rough keyword pool from text
+            const raw = (text || "")
+                .replace(/[^\w\s\-\/\(\)\.]/g, " ")
+                .split(/\s+/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            const keep = raw.filter(w => w.length >= 4 && w.length <= 18);
+            const pool = keep.length ? keep : ["drift", "relation", "texture", "signal", "terrain", "trace", "pressure"];
+            // duplicate to bias selection
+            return pool.concat(pool).concat(["still", "grain", "edge", "between", "micro", "field", "dense"]);
+        }
+
+        function chopPhrases(text) {
+            // small phrase library from sentences
+            const parts = (text || "")
+                .split(/[.]/g)
+                .map(s => s.trim())
+                .filter(s => s.length >= 8);
+
+            const phrases = [];
+            for (const p of parts) {
+                const words = p.split(/\s+/);
+                if (words.length <= 6) phrases.push(p);
+                else {
+                    for (let i = 0; i < Math.min(4, Math.floor(words.length / 4)); i++) {
+                        const start = (Math.random() * (words.length - 5)) | 0;
+                        phrases.push(words.slice(start, start + (4 + ((Math.random() * 3) | 0))).join(" "));
+                    }
+                }
+            }
+            return phrases.length ? phrases : ["world advances", "relations rearrange", "text becomes terrain", "operative ekphrasis"];
+        }
+
+        function flash() {
+            flashEl.classList.add("on");
+            setTimeout(() => flashEl.classList.remove("on"), 160);
+        }
+
+        function renderGridModel(model) {
+            WorldState.grid = model;
+            worldGridEl.style.setProperty("--cols", model.cols);
+
+            // DOM build: reuse nodes if possible
+            const count = model.cells.length;
+            worldGridEl.innerHTML = "";
+            const frag = document.createDocumentFragment();
+
+            for (let i = 0; i < count; i++) {
+                const c = model.cells[i];
+                const cell = document.createElement("div");
+                cell.className = "cell";
+                cell.dataset.idx = String(i);
+
+                // tagging/types
+                if (c.type === "entity") cell.classList.add("t-entity");
+                if (c.type === "goal") cell.classList.add("t-goal");
+                if (c.type === "obstacle") cell.classList.add("t-obstacle");
+                if (c.type === "shift") cell.classList.add("t-shift");
+
+                if (c.entityId) cell.dataset.entity = c.entityId;
+
+                const txt = document.createElement("div");
+                txt.className = "cellText";
+                if (c.type === "entity") txt.classList.add("c-entity");
+                if (c.type === "goal") txt.classList.add("c-goal");
+                if (c.type === "obstacle") txt.classList.add("c-obstacle");
+                if (c.type === "shift") txt.classList.add("c-shift");
+                if (c.active) txt.classList.add("active");
+                txt.textContent = c.text;
+
+                cell.appendChild(txt);
+
+                if (c.type !== "base") {
+                    const tag = document.createElement("div");
+                    tag.className = "tag";
+                    tag.textContent = c.type === "entity" ? "entity" : c.type;
+                    cell.appendChild(tag);
+                }
+
+                // click: if entity cell, select perspective
+                cell.addEventListener("click", () => {
+                    const ent = cell.dataset.entity;
+                    if (ent) {
+                        setPerspective(ent, { source: "grid" });
+                    } else {
+                        // click on non-entity: soft-ping; no typing; no authoring
+                        audit(`<span class="k">Tick</span> <b>${WorldState.tick}</b>: <span class="k">Grid click →</span> <span class="k">"${escapeHTML(c.text)}"</span>`);
+                    }
+                });
+
+                frag.appendChild(cell);
+            }
+
+            worldGridEl.appendChild(frag);
+        }
+
+        function escapeHTML(s) {
+            return (s || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+        }
+
+        async function buildAndCrossfadeGrid({ reason, text, vector }) {
+            const next = buildGridModel({ text, vector });
+            flash();
+
+            // first render if empty
+            if (!WorldState.grid.cells.length) {
+                renderGridModel(next);
+                return;
+            }
+
+            // procedural overwrite: gradually replace cells
+            const prev = WorldState.grid;
+            // If dims changed, hard swap (still "overwrite" via quick shuffle)
+            const sameDims = prev.cols === next.cols && prev.rows === next.rows;
+
+            if (!sameDims) {
+                // quick overwrite illusion: swap in chunks
+                renderGridModel(prev); // ensure DOM exists
+                WorldState.grid = prev;
+                const domCells = [...worldGridEl.querySelectorAll(".cell")];
+                const nextCells = next.cells;
+
+                // rebuild dom to new dims first
+                renderGridModel(next);
+                // then "overwrite" by briefly jittering active tokens
+                setTimeout(() => {
+                    [...worldGridEl.querySelectorAll(".cellText")].slice(0, 40).forEach(n => n.classList.add("active"));
+                    setTimeout(() => [...worldGridEl.querySelectorAll(".cellText")].forEach(n => n.classList.remove("active")), 220);
+                }, 30);
+                return;
+            }
+
+            // same dims: overwrite existing DOM in a cross-fade manner
+            const domCells = [...worldGridEl.querySelectorAll(".cell")];
+            const order = shuffledIndices(next.cells.length);
+
+            // snapshot the "next" into WorldState, but we’ll apply to DOM over time
+            WorldState.grid = next;
+
+            const steps = clamp(Math.floor(order.length / 10), 70, 160);
+            const perStep = Math.ceil(order.length / steps);
+            let step = 0;
+
+            const interval = setInterval(() => {
+                const start = step * perStep;
+                const end = Math.min(order.length, start + perStep);
+
+                for (let k = start; k < end; k++) {
+                    const idx = order[k];
+                    const c = next.cells[idx];
+                    const cell = domCells[idx];
+                    if (!cell) continue;
+
+                    // reset classes
+                    cell.className = "cell";
+                    cell.removeAttribute("data-entity");
+
+                    // set tag/type
+                    if (c.type === "entity") cell.classList.add("t-entity");
+                    if (c.type === "goal") cell.classList.add("t-goal");
+                    if (c.type === "obstacle") cell.classList.add("t-obstacle");
+                    if (c.type === "shift") cell.classList.add("t-shift");
+                    if (c.entityId) cell.dataset.entity = c.entityId;
+
+                    // update text node (first child is .cellText)
+                    const txt = cell.querySelector(".cellText");
+                    if (txt) {
+                        txt.className = "cellText";
+                        if (c.type === "entity") txt.classList.add("c-entity");
+                        if (c.type === "goal") txt.classList.add("c-goal");
+                        if (c.type === "obstacle") txt.classList.add("c-obstacle");
+                        if (c.type === "shift") txt.classList.add("c-shift");
+                        if (c.active) txt.classList.add("active");
+                        txt.textContent = c.text;
+                    }
+
+                    // remove old tag and add if needed
+                    const oldTag = cell.querySelector(".tag");
+                    if (oldTag) oldTag.remove();
+
+                    if (c.type !== "base") {
+                        const tag = document.createElement("div");
+                        tag.className = "tag";
+                        tag.textContent = c.type === "entity" ? "entity" : c.type;
+                        cell.appendChild(tag);
+                    }
+                }
+
+                step++;
+                if (step >= steps) {
+                    clearInterval(interval);
+                }
+            }, 18);
+        }
+
+        function shuffledIndices(n) {
+            const a = Array.from({ length: n }, (_, i) => i);
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = (Math.random() * (i + 1)) | 0;
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        /* =========================================================
+           Labels + state panel
+           ========================================================= */
+        function updateLabels() {
+            const sc = currentScenario();
+            scenarioTitleEl.textContent = sc.title;
+            scenarioSubtitleEl.textContent = sc.subtitle;
+
+            tickLabelEl.textContent = String(WorldState.tick);
+            perspectiveLabelEl.textContent = entityLabel(WorldState.perspectiveEntityId);
+
+            const v = WorldState.lastVector ? VECTORS[WorldState.lastVector].label : "—";
+            vectorLabelEl.textContent = v;
+
+            // update dot in vector pill
+            const dot = document.querySelector(".worldTopbar .pill:nth-child(3) .dot");
+            if (dot) {
+                dot.classList.remove("warn", "bad", "shift");
+                if (WorldState.lastVector === "goal") dot.classList.add("warn");
+                if (WorldState.lastVector === "obstacle") dot.classList.add("bad");
+                if (WorldState.lastVector === "shift") dot.classList.add("shift");
+            }
+        }
+
+        function renderStatePanel() {
+            const sc = currentScenario();
+            const v = WorldState.lastVector ? VECTORS[WorldState.lastVector].label : "—";
+            const summary = [
+                `<b>Scenario:</b> ${sc.title}`,
+                `<b>Tick:</b> ${WorldState.tick}`,
+                `<b>Perspective:</b> ${entityLabel(WorldState.perspectiveEntityId)}`,
+                `<b>Vector:</b> ${v}`,
+                `<b>Entities:</b> ${sc.entities.map(e => e.label).join(", ")}`
+            ].join("<br>");
+            stateSummaryEl.innerHTML = summary;
+        }
+
+        showLibraryBtn.addEventListener("click", () => {
+            const on = libraryDumpEl.style.display !== "none";
+            libraryDumpEl.style.display = on ? "none" : "block";
+            if (!on) {
+                libraryDumpEl.textContent = JSON.stringify(LATENT_LIBRARY, null, 2);
+            }
+        });
+
+        /* =========================================================
+           Export snapshot (current state + readout + small grid slice)
+           ========================================================= */
+        exportSnapshotBtn.addEventListener("click", () => {
+            const sc = currentScenario();
+            const snapshot = {
+                title: "RIPPLES Snapshot",
+                ts: nowISO(),
+                tick: WorldState.tick,
+                scenarioId: WorldState.currentScenarioId,
+                scenarioTitle: sc.title,
+                perspectiveEntityId: WorldState.perspectiveEntityId,
+                perspectiveLabel: entityLabel(WorldState.perspectiveEntityId),
+                lastVector: WorldState.lastVector,
+                readout: locationReadoutEl.textContent,
+                // export a small sample of grid text only (keeps file size sane)
+                grid: {
+                    cols: WorldState.grid.cols,
+                    rows: WorldState.grid.rows,
+                    sample: WorldState.grid.cells.slice(0, Math.min(60, WorldState.grid.cells.length)).map(c => ({
+                        text: c.text, type: c.type, entityId: c.entityId || null, active: !!c.active
+                    }))
+                }
+            };
+            downloadJSON(snapshot, `ripples_snapshot_tick_${WorldState.tick}.json`);
+            audit(`<span class="k">Exported snapshot →</span> <b>tick_${WorldState.tick}.json</b>`);
+        });
+
+        function downloadJSON(obj, filename) {
+            const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 500);
+        }
+
+        /* =========================================================
+           Reset
+           ========================================================= */
+        resetBtn.addEventListener("click", () => {
+            stopAutoplay();
+            setAutoplay(false);
+            WorldState.tick = 0;
+            WorldState.currentScenarioId = "cupboard";
+            WorldState.perspectiveEntityId = LATENT_LIBRARY.cupboard.defaultPerspective;
+            WorldState.lastVector = null;
+            WorldState.entities = [...LATENT_LIBRARY.cupboard.entities];
+            auditLines.length = 0;
+            renderAudit();
+            audit(`<span class="k">System reset.</span>`);
+            renderScenarioList();
+            renderEntityChips();
+            updateLabels();
+            locationReadoutEl.textContent = LATENT_LIBRARY.cupboard.baselineReadout;
+            buildAndCrossfadeGrid({ reason: "reset", text: LATENT_LIBRARY.cupboard.baselineReadout, vector: null });
+            renderStatePanel();
+        });
+
+        /* =========================================================
+           Images: load folder (webkitdirectory) + ordering + sync map
+           ========================================================= */
+        const Images = {
+            files: [],       // { name, url, file }
+            selected: null   // name
+        };
+
+        loadFolderBtn.addEventListener("click", () => folderInput.click());
+        folderInput.addEventListener("change", async (e) => {
+            const files = [...(e.target.files || [])]
+                .filter(f => f.type && f.type.startsWith("image/"))
+                .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+
+            // cleanup prior urls
+            Images.files.forEach(x => URL.revokeObjectURL(x.url));
+            Images.files = files.map(f => ({ file: f, name: f.name, url: URL.createObjectURL(f) }));
+            Images.selected = Images.files[0]?.name || null;
+
+            renderImageList();
+            if (Images.selected) selectImage(Images.selected);
+            audit(`<span class="k">Loaded image folder →</span> <b>${Images.files.length}</b> file(s)`);
+        });
+
+        clearImagesBtn.addEventListener("click", () => {
+            Images.files.forEach(x => URL.revokeObjectURL(x.url));
+            Images.files = [];
+            Images.selected = null;
+            imgListEl.innerHTML = "";
+            imgPreviewWrap.style.display = "none";
+            audit(`<span class="k">Cleared images.</span>`);
+        });
+
+        function renderImageList() {
+            if (!Images.files.length) {
+                imgListEl.innerHTML = `<div class="noteBox">No images loaded. Click <b>Load Image Folder</b> to import frames.</div>`;
+                imgPreviewWrap.style.display = "none";
+                return;
+            }
+
+            imgListEl.innerHTML = Images.files.map(x => {
+                const sel = x.name === Images.selected;
+                const mapped = !!WorldState.imageMap[x.name];
+                const note = mapped
+                    ? `synced to ${LATENT_LIBRARY[WorldState.imageMap[x.name].scenarioId]?.title || WorldState.imageMap[x.name].scenarioId} @ tick ${WorldState.imageMap[x.name].tick}`
+                    : "unsynced";
+                return `
+          <div class="thumb" role="button" tabindex="0" data-img="${escapeHTML(x.name)}" aria-selected="${sel ? "true" : "false"}">
+            <img class="thumbImg" alt="thumb" src="${x.url}">
+            <div class="thumbMeta">
+              <div class="name truncate">${escapeHTML(x.name)}</div>
+              <div class="note truncate">${escapeHTML(note)}</div>
+            </div>
+          </div>
+        `;
+            }).join("");
+
+            [...imgListEl.querySelectorAll(".thumb")].forEach(el => {
+                el.addEventListener("click", () => selectImage(el.dataset.img));
+                el.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        selectImage(el.dataset.img);
+                    }
+                });
+            });
+        }
+
+        function selectImage(name) {
+            Images.selected = name;
+            renderImageList();
+
+            const item = Images.files.find(x => x.name === name);
+            if (!item) return;
+
+            imgPreviewWrap.style.display = "block";
+            imgPreviewEl.src = item.url;
+            imgNameEl.textContent = item.name;
+
+            const mapped = WorldState.imageMap[item.name];
+            imgSyncedFlagEl.textContent = mapped ? "yes" : "no";
+
+            imgAttachedStateEl.innerHTML = mapped
+                ? [
+                    `<div><b>Scenario:</b> ${LATENT_LIBRARY[mapped.scenarioId]?.title || mapped.scenarioId}</div>`,
+                    `<div><b>Perspective:</b> ${mapped.perspectiveLabel}</div>`,
+                    `<div><b>Vector:</b> ${mapped.vectorLabel}</div>`,
+                    `<div><b>Tick:</b> ${mapped.tick}</div>`,
+                    `<div class="muted"><b>TS:</b> ${mapped.ts}</div>`
+                ].join("")
+                : `<div class="muted">No synced state attached to this frame.</div>`;
+        }
+
+        syncStateToImageBtn.addEventListener("click", () => {
+            if (!Images.selected) return;
+            const sc = currentScenario();
+            const vectorLabel = WorldState.lastVector ? VECTORS[WorldState.lastVector].label : "—";
+
+            WorldState.imageMap[Images.selected] = {
+                ts: nowISO(),
+                scenarioId: WorldState.currentScenarioId,
+                scenarioTitle: sc.title,
+                perspectiveEntityId: WorldState.perspectiveEntityId,
+                perspectiveLabel: entityLabel(WorldState.perspectiveEntityId),
+                lastVector: WorldState.lastVector,
+                vectorLabel,
+                tick: WorldState.tick,
+                readout: locationReadoutEl.textContent
+            };
+
+            audit(`<span class="k">Synced image →</span> <b>${escapeHTML(Images.selected)}</b> <span class="k">(@ tick</span> <b>${WorldState.tick}</b><span class="k">)</span>`);
+            selectImage(Images.selected);
+        });
+
+        recallStateFromImageBtn.addEventListener("click", () => {
+            if (!Images.selected) return;
+            const mapped = WorldState.imageMap[Images.selected];
+            if (!mapped) {
+                audit(`<span class="k">Recall failed:</span> <span class="k">image has no synced state.</span>`);
+                return;
+            }
+
+            // apply scenario + perspective
+            WorldState.currentScenarioId = mapped.scenarioId;
+            const sc = currentScenario();
+            WorldState.entities = [...sc.entities];
+
+            WorldState.perspectiveEntityId = mapped.perspectiveEntityId;
+            WorldState.lastVector = mapped.lastVector;
+
+            renderScenarioList();
+            renderEntityChips();
+            updateLabels();
+
+            // apply readout & rebuild grid based on readout/vector
+            locationReadoutEl.textContent = mapped.readout || sc.baselineReadout;
+            buildAndCrossfadeGrid({ reason: "recall", text: locationReadoutEl.textContent, vector: mapped.lastVector });
+
+            audit(`<span class="k">Recalled state ←</span> <b>${escapeHTML(Images.selected)}</b>`);
+            renderStatePanel();
+        });
+
+        exportImageMapBtn.addEventListener("click", () => {
+            const out = {
+                title: "RIPPLES Image Map",
+                ts: nowISO(),
+                count: Object.keys(WorldState.imageMap).length,
+                imageMap: WorldState.imageMap
+            };
+            downloadJSON(out, `ripples_image_map_${Date.now()}.json`);
+            audit(`<span class="k">Exported image map.</span>`);
+        });
+
+        /* =========================================================
+           Init + resize handling
+           ========================================================= */
+        function init() {
+            renderScenarioList();
+            renderEntityChips();
+            updateLabels();
+
+            const sc = currentScenario();
+            locationReadoutEl.textContent = sc.baselineReadout;
+
+            // baseline grid
+            renderGridModel(buildGridModel({ text: sc.baselineReadout, vector: null }));
+
+            // seed audit
+            audit(`<span class="k">Boot:</span> <b>${LATENT_LIBRARY.cupboard.title}</b> <span class="k">loaded.</span>`);
+            audit(`<span class="k">Constraint:</span> <b>no typing</b> (click-only).</span>`);
+            audit(`<span class="k">Hint:</span> click <span class="e">Ant</span> then <span class="vGoal">GOAL</span> for the sample ripple.</span>`);
+
+            renderStatePanel();
+            renderImageList();
+        }
+
+        // Re-measure and regenerate grid on resize (debounced)
+        let resizeTimer = null;
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const sc = currentScenario();
+                const text = locationReadoutEl.textContent || sc.baselineReadout;
+                buildAndCrossfadeGrid({ reason: "resize", text, vector: WorldState.lastVector });
+            }, 140);
+        });
+
+        // Optional numeric scenario keys (still no typing in UI, but keyboard is allowed)
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "1") setScenario("cupboard");
+            if (e.key === "2") setScenario("abandoned_house");
+            if (e.key === "3") setScenario("forest");
+            if (e.key === "4") setScenario("urban_jungle");
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

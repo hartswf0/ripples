@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES_OS v2.4.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .animate-spin-slow {
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Play = (props) => <IconWrapper {...props}><polygon points="5 3 19 12 5 21 5 3"></polygon></IconWrapper>;
+        const Pause = (props) => <IconWrapper {...props}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></IconWrapper>;
+        const RefreshCw = (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></IconWrapper>;
+        const Plus = (props) => <IconWrapper {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></IconWrapper>;
+        const Wind = (props) => <IconWrapper {...props}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path><path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path><path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path></IconWrapper>;
+        const Target = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></IconWrapper>;
+        const AlertTriangle = (props) => <IconWrapper {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></IconWrapper>;
+        const Disc = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
+        const Box = (props) => <IconWrapper {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></IconWrapper>;
+        const Anchor = (props) => <IconWrapper {...props}><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></IconWrapper>;
+        const Globe = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></IconWrapper>;
+
+        const Terminal = (props) => <IconWrapper {...props}><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></IconWrapper>;
+        const Activity = (props) => <IconWrapper {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></IconWrapper>;
+        const Zap = (props) => <IconWrapper {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconWrapper>;
+        const Layers = (props) => <IconWrapper {...props}><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></IconWrapper>;
+        const Maximize2 = (props) => <IconWrapper {...props}><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></IconWrapper>;
+        const ChevronRight = (props) => <IconWrapper {...props}><polyline points="9 18 15 12 9 6"></polyline></IconWrapper>;
+        const Hexagon = (props) => <IconWrapper {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></IconWrapper>;
+
+        // --- DATA SEEDS ---
+
+        const VECTORS = [
+            { id: 'shift', label: 'SHIFT', icon: <Wind size={18} />, color: 'text-cyan-400', border: 'border-cyan-500/50', bg: 'bg-cyan-950/30' },
+            { id: 'goal', label: 'STRIVE', icon: <Target size={18} />, color: 'text-amber-400', border: 'border-amber-500/50', bg: 'bg-amber-950/30' },
+            { id: 'obstacle', label: 'RESIST', icon: <AlertTriangle size={18} />, color: 'text-rose-400', border: 'border-rose-500/50', bg: 'bg-rose-950/30' },
+        ];
+
+        const PRESET_SCENARIOS = [
+            {
+                id: 'cupboard',
+                title: 'THE CUPBOARD',
+                subtitle: 'Domestic Stasis',
+                description: 'A dust-heavy silence. Objects pressed tight in the dark. Light leaks through cracks.',
+                entities: ['Tall Glass', 'Short Glass', 'Plate Stack', 'Ant', 'Glass Box', 'Plastic Lid', 'Crumb', 'Dust Mote',
+                    'Shadow', 'Wood Grain', 'Ceramic Chip', 'Dead Fly', 'Shelf Liner', 'Saucer', 'Fingerprint', 'Air Bubble', 'Spider Silk',
+                    'Screw Head', 'Vibration', 'Silence']
+            },
+            {
+                id: 'forest',
+                title: 'DEEP MYCELIUM',
+                subtitle: 'Root Network',
+                description: 'Chaotic decay. Everything is eating everything else. Green gold light filters down.',
+                entities: ['Old Oak', 'Mycelium', 'Fern Frond', 'Moss', 'Beetle', 'Dew Drop', 'Decaying Log', 'Pine Needle', 'Lichen',
+                    'Stone', 'Root', 'Squirrel', 'Fallen Leaf', 'Wind Gust', 'Soil Mite', 'Bark', 'Resin', 'Bird Call', 'Shadow', 'Sprout']
+            },
+            {
+                id: 'urban',
+                title: 'URBAN GLITCH',
+                subtitle: 'Concrete Veins',
+                description: 'Hard surfaces reflecting heat. Staccato rhythm. Nature erupting through cracks.',
+                entities: ['Concrete Crack', 'Pigeon', 'Traffic Light', 'Discarded Mask', 'Cigarette Butt', 'Dandelion', 'Siren', 'Glass Shard', 'Rat', 'Graffiti', 'Drain Grate', 'Puddle', 'Neon Sign', 'Exhaust Fume', 'Brick Wall', 'Plastic Bottle', 'Weed',
+                    'Gum', 'Footstep', 'Shadow']
+            },
+            {
+                id: 'space',
+                title: 'NULL GRAVITY',
+                subtitle: 'Vacuum State',
+                description: 'Absolute silence. Harsh starlight. Objects drift endlessly unless acted upon.',
+                entities: ['Asteroid', 'Dust Particle', 'Photon', 'Satellite Debris', 'Gravity Well', 'Solar Wind', 'Ice Crystal',
+                    'Vacuum', 'Radio Wave', 'Micrometeoroid', 'Hull Plate', 'Thruster Gas', 'Darkness', 'Star', 'Magnetic Field', 'Nebula Wisp', 'Comet Tail', 'Silence', 'Time', 'Orbit']
+            }
+        ];
+
+        // --- GENERATIVE LOGIC ---
+
+        const ACTIONS = {
+            shift: [
+                "drifts sideways, altering the local arrangement.",
+                "vibrates with a sudden, unseen energy.",
+                "collapses into itself, changing density.",
+                "rotates slowly, seeking a new orientation.",
+                "fades slightly, becoming less substantial.",
+                "expands, pressing against its neighbors."
+            ],
+            goal: [
+                "reaches out, yearning for connection.",
+                "strives to occupy the center of the space.",
+                "attempts to merge with the nearest surface.",
+                "seeks higher ground, defying gravity.",
+                "pulses with a desire for stasis.",
+                "aims to reflect the environment around it."
+            ],
+            obstacle: [
+                "hardens, refusing to yield space.",
+                "blocks the flow of air and light.",
+                "creates friction against the surrounding stillness.",
+                "absorbs the energy of nearby entities.",
+                "becomes an anchor, heavy and immovable.",
+                "reflects all attempts at connection."
+            ]
+        };
+
+        const REACTIONS = [
+            "The ecosystem shudders.",
+            "Nothing else moves.",
+            "A neighbor is displaced.",
+            "The silence amplifies.",
+            "Dust settles in the void.",
+            "Equilibrium is lost.",
+            "A shadow lengthens.",
+            "Temperature shifts."
+        ];
+
+        const generateRipple = (entity, vector) => {
+            const action = ACTIONS[vector.id][Math.floor(Math.random() * ACTIONS[vector.id].length)];
+            const reaction = REACTIONS[Math.floor(Math.random() * REACTIONS.length)];
+            return `The ${entity} ${action} ${reaction}`;
+        };
+
+        // --- SUB-COMPONENTS ---
+
+        const GlitchText = ({ text }) => (
+            <span className="relative inline-block group">
+                <span className="relative z-10">{text}</span>
+                <span className="absolute top-0 left-0 -z-10 w-full h-full text-red-500 opacity-0 group-hover:opacity-70 group-hover:translate-x-[1px] transition-all duration-75">{text}</span>
+                <span className="absolute top-0 left-0 -z-10 w-full h-full text-blue-500 opacity-0 group-hover:opacity-70 group-hover:-translate-x-[1px] transition-all duration-75">{text}</span>
+            </span>
+        );
+
+        function RipplesApp() {
+            const [phase, setPhase] = useState('SELECT');
+            const [scenario, setScenario] = useState(null);
+            const [log, setLog] = useState([]);
+            const [selectedEntity, setSelectedEntity] = useState(null);
+            const [isAutoPlay, setIsAutoPlay] = useState(false);
+            const [customForm, setCustomForm] = useState({ title: '', description: '', entities: '' });
+
+            const bottomRef = useRef(null);
+
+            // Auto-scroll
+            useEffect(() => {
+                bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [log]);
+
+            // Autoplay Loop
+            useEffect(() => {
+                let interval;
+                if (isAutoPlay && phase === 'PLAY' && scenario) {
+                    interval = setInterval(() => {
+                        const randomEntity = scenario.entities[Math.floor(Math.random() * scenario.entities.length)];
+                        const randomVector = VECTORS[Math.floor(Math.random() * VECTORS.length)];
+                        triggerRipple(randomEntity, randomVector);
+                    }, 3500);
+                }
+                return () => clearInterval(interval);
+            }, [isAutoPlay, phase, scenario]);
+
+            const triggerRipple = (entity, vector) => {
+                const text = generateRipple(entity, vector);
+                const newEntry = {
+                    id: Date.now(),
+                    entity,
+                    vector: vector.label,
+                    text,
+                    type: vector.id,
+                    time: new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })
+                };
+                setLog(prev => [...prev, newEntry]);
+                setSelectedEntity(null);
+            };
+
+            const initScenario = (s) => {
+                setScenario(s);
+                setLog([{
+                    id: 0,
+                    entity: 'SYSTEM',
+                    vector: 'BOOT',
+                    text: `ENVIRONMENT LOADED: ${s.title.toUpperCase()}`,
+                    time: new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })
+                }]);
+                setPhase('PLAY');
+                setIsAutoPlay(false);
+            };
+
+            const handleCustomSubmit = (e) => {
+                e.preventDefault();
+                const entityList = customForm.entities.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                if (entityList.length < 1) return;
+
+                initScenario({
+                    id: 'custom',
+                    title: customForm.title || 'UNKNOWN_ZONE',
+                    subtitle: 'User Generated',
+                    description: customForm.description || 'A void waiting to be filled.',
+                    entities: entityList
+                });
+            };
+
+            const reset = () => {
+                setPhase('SELECT');
+                setIsAutoPlay(false);
+                setSelectedEntity(null);
+                setLog([]);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black text-stone-300 font-mono overflow-hidden flex flex-col">
+                    {/* CRT SCANLINE EFFECT */}
+                    <div className="pointer-events-none fixed inset-0 z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none" />
+
+                    {/* HEADER HUD */}
+                    <header className="h-14 border-b border-stone-800 bg-stone-950 flex justify-between items-center px-4 z-40 select-none">
+                        <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 bg-stone-900 border border-stone-700 flex items-center justify-center">
+                                <Globe size={16} className="text-stone-500 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold tracking-[0.2em] text-stone-100">RIPPLES_OS</span>
+                                <span className="text-[10px] text-stone-600">v2.4.1 [STABLE]</span>
+                            </div>
+                        </div>
+
+                        {phase === 'PLAY' && (
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setIsAutoPlay(!isAutoPlay)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wider border
+                                    transition-all ${isAutoPlay ? 'border-emerald-500/50 bg-emerald-900/20 text-emerald-400' :
+                                            'border-stone-800 bg-stone-900 text-stone-500 hover:text-stone-300 hover:border-stone-600'}`}
+                                >
+                                    {isAutoPlay ? <Activity size={10} className="animate-spin" /> : <Play size={10} />}
+                                    {isAutoPlay ? 'AUTO_SEQ' : 'MANUAL'}
+                                </button>
+                                <button onClick={reset} className="p-2 text-stone-600 hover:text-white transition-colors">
+                                    <RefreshCw size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </header>
+
+                    {/* MAIN VIEWPORT */}
+                    <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+                        {/* PHASE: SELECT */}
+                        {phase === 'SELECT' && (
+                            <div className="flex-1 overflow-y-auto bg-stone-950 p-6 md:p-12 animate-in fade-in duration-500">
+                                <div className="max-w-7xl mx-auto">
+                                    <div className="mb-12 border-l-2 border-stone-800 pl-6">
+                                        <h1 className="text-4xl md:text-6xl font-light text-stone-100 mb-4 tracking-tighter">
+                                            SELECT_CONTEXT</h1>
+                                        <p className="text-stone-500 max-w-xl text-sm md:text-base">Initialize simulation parameters.
+                                            Choose a pre-configured ecology to observe emergent narrative patterns.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {PRESET_SCENARIOS.map(s => (
+                                            <button key={s.id} onClick={() => initScenario(s)}
+                                                className="group relative h-64 bg-stone-900 border border-stone-800 hover:border-stone-500
+                                                transition-all p-6 flex flex-col justify-between text-left overflow-hidden"
+                                            >
+                                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                                    <Hexagon size={64} strokeWidth={1} />
+                                                </div>
+
+                                                <div>
+                                                    <div className="text-[10px] uppercase tracking-widest text-stone-500 mb-2">{s.subtitle}</div>
+                                                    <div className="text-xl text-stone-200 group-hover:text-white font-bold tracking-tight">
+                                                        <GlitchText text={s.title} />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <p className="text-xs text-stone-500 leading-relaxed border-l border-stone-800 pl-3">
+                                                        {s.description}
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {s.entities.slice(0, 4).map((e, i) => (
+                                                            <span key={i} className="text-[9px] px-1 bg-stone-950 text-stone-600 border border-stone-800">{e}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))}
+
+                                        <button onClick={() => setPhase('CUSTOM')}
+                                            className="h-64 border border-dashed border-stone-800 hover:border-stone-600
+                                            hover:bg-stone-900/50 transition-all flex flex-col items-center justify-center gap-4
+                                            text-stone-600 hover:text-stone-300"
+                                        >
+                                            <Plus size={32} />
+                                            <span className="text-xs uppercase tracking-widest">Create New</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PHASE: CUSTOM */}
+                        {phase === 'CUSTOM' && (
+                            <div className="flex-1 flex items-center justify-center bg-stone-950 p-6">
+                                <div className="w-full max-w-md border border-stone-800 bg-stone-900 p-8 shadow-2xl">
+                                    <h2 className="text-lg text-white mb-8 border-b border-stone-800 pb-4 tracking-widest">
+                                        NEW_ECOLOGY_CONFIG</h2>
+                                    <form onSubmit={handleCustomSubmit} className="space-y-6">
+                                        <div>
+                                            <label className="text-[10px] uppercase text-stone-500 block mb-2">Designation</label>
+                                            <input type="text"
+                                                className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-200 focus:border-stone-500 outline-none"
+                                                placeholder="e.g. THE ARCHIVE" value={customForm.title} onChange={e =>
+                                                    setCustomForm({ ...customForm, title: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase text-stone-500 block mb-2">Parameters</label>
+                                            <textarea
+                                                className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-200 focus:border-stone-500 outline-none h-24 resize-none"
+                                                placeholder="Sensory details..." value={customForm.description} onChange={e => setCustomForm({ ...customForm, description: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] uppercase text-stone-500 block mb-2">Entities (CSV)</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-200 focus:border-stone-500 outline-none"
+                                                placeholder="Object 1, Object 2, Object 3..."
+                                                value={customForm.entities}
+                                                onChange={e => setCustomForm({ ...customForm, entities: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 pt-4">
+                                            <button type="button" onClick={() => setPhase('SELECT')} className="px-4 py-2 border border-stone-800 text-stone-500 text-xs hover:text-white">CANCEL</button>
+                                            <button type="submit" className="flex-1 bg-stone-200 text-stone-900 text-xs font-bold hover:bg-white">INITIALIZE</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PHASE: PLAY (GAME VIEW) */}
+                        {phase === 'PLAY' && (
+                            <>
+                                {/* GRID VIEW */}
+                                <div className="flex-1 relative bg-stone-950 flex flex-col">
+                                    {/* Scene Stats */}
+                                    <div className="p-6 border-b border-stone-800 flex justify-between items-start bg-stone-950/80 backdrop-blur z-10">
+                                        <div className="max-w-2xl">
+                                            <h2 className="text-2xl text-stone-100 font-bold tracking-tight mb-1">{scenario.title}</h2>
+                                            <p className="text-stone-500 text-xs md:text-sm font-serif italic">{scenario.description}</p>
+                                        </div>
+                                        <div className="hidden md:block text-right">
+                                            <div className="text-[10px] uppercase text-stone-600">Entities</div>
+                                            <div className="text-xl text-stone-300">{scenario.entities.length}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* The "Board" */}
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pb-24">
+                                            {scenario.entities.map((entity, idx) => {
+                                                const isSelected = selectedEntity === entity;
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        onClick={() => !isAutoPlay && setSelectedEntity(isSelected ? null : entity)}
+                                                        className={`
+                                                            relative group min-h-[100px] p-4 border transition-all duration-300 cursor-pointer
+                                                            flex flex-col justify-between overflow-hidden
+                                                            ${isSelected
+                                                                ? 'bg-stone-900 border-stone-400 z-10 scale-[1.02] shadow-[0_0_20px_rgba(0,0,0,0.5)]'
+                                                                : 'bg-stone-950 border-stone-800 hover:border-stone-600 hover:bg-stone-900/50'}
+                                                            ${isAutoPlay ? 'opacity-50 pointer-events-none grayscale' : ''}
+                                                        `}
+                                                    >
+                                                        {/* Selection Corner */}
+                                                        {isSelected && <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-stone-200" />}
+                                                        {isSelected && <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-stone-200" />}
+
+                                                        <div className="flex justify-between items-start opacity-50 text-[9px] tracking-widest">
+                                                            <span>{(idx + 1).toString().padStart(2, '0')}</span>
+                                                            {isSelected && <Activity size={10} className="animate-pulse text-stone-200" />}
+                                                        </div>
+
+                                                        <div className={`font-medium tracking-wide text-sm ${isSelected ? 'text-stone-100' : 'text-stone-400 group-hover:text-stone-300'}`}>
+                                                            {entity}
+                                                        </div>
+
+                                                        {/* Action Menu Overlay */}
+                                                        {isSelected && !isAutoPlay && (
+                                                            <div className="absolute inset-0 bg-stone-950/90 flex flex-col p-2 gap-1 animate-in fade-in duration-200">
+                                                                {VECTORS.map(v => (
+                                                                    <button
+                                                                        key={v.id}
+                                                                        onClick={(e) => { e.stopPropagation(); triggerRipple(entity, v); }}
+                                                                        className={`flex-1 w-full flex items-center gap-2 px-2 rounded-sm border ${v.border} ${v.bg} hover:brightness-125 transition-all group/btn`}
+                                                                    >
+                                                                        <span className={v.color}>{v.icon}</span>
+                                                                        <span className={`text-[9px] uppercase font-bold tracking-widest ${v.color}`}>{v.label}</span>
+                                                                        <ChevronRight size={10} className={`ml-auto opacity-0 group-hover/btn:opacity-100 ${v.color}`} />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* LOG CONSOLE (Bottom Sheet on Mobile, Side Panel on Desktop) */}
+                                <div className="h-[35vh] md:h-auto md:w-[400px] bg-stone-950 border-t md:border-t-0 md:border-l border-stone-800 flex flex-col z-20 shadow-2xl">
+                                    <div className="p-3 bg-stone-900 border-b border-stone-800 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <Terminal size={12} className="text-stone-500" />
+                                            <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Narrative_Stream</span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <div className="w-1.5 h-1.5 bg-stone-700 rounded-full animate-pulse" />
+                                            <div className="w-1.5 h-1.5 bg-stone-800 rounded-full" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-4 font-serif custom-scrollbar bg-stone-950">
+                                        {log.length === 0 && (
+                                            <div className="h-full flex flex-col items-center justify-center text-stone-700 opacity-50">
+                                                <Box size={32} strokeWidth={1} className="mb-2" />
+                                                <p className="text-xs uppercase tracking-widest font-mono">Awaiting Input...</p>
+                                            </div>
+                                        )}
+
+                                        {log.map((entry) => (
+                                            <div key={entry.id} className="animate-in slide-in-from-right-4 duration-500 group">
+                                                <div className="flex items-center gap-2 mb-1 opacity-60">
+                                                    <span className="text-[9px] font-mono text-stone-500">{entry.time}</span>
+                                                    <span className="text-[9px] uppercase font-bold tracking-wider text-stone-400 border border-stone-800 px-1 rounded">{entry.entity}</span>
+                                                </div>
+
+                                                <div className={`
+                                                    text-sm md:text-base leading-relaxed pl-3 border-l-2 py-1
+                                                    ${entry.type === 'shift' ? 'border-cyan-900 text-stone-300' :
+                                                        entry.type === 'goal' ? 'border-amber-900 text-stone-300' :
+                                                            entry.type === 'obstacle' ? 'border-rose-900 text-stone-300' : 'border-stone-800 text-stone-400'}
+                                                `}>
+                                                    {entry.text}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div ref={bottomRef} />
+                                    </div>
+
+                                    {/* Input Hint */}
+                                    {!isAutoPlay && (
+                                        <div className="p-2 bg-stone-900 border-t border-stone-800 text-center">
+                                            <span className="text-[10px] uppercase text-stone-500 animate-pulse">
+                                                {selectedEntity ? 'Select Vector Protocol' : 'Select Entity to Initiate'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RipplesApp />);
+    </script>
+</body>
+
+</html>

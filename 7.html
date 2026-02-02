@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripples: The Cupboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --term-green: #00ff41;
+            --term-bg: #030303;
+        }
+
+        body,
+        html,
+        #root {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            background-color: var(--term-bg);
+            color: var(--term-green);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Ambient Environment */
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(0, 255, 65, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.08) 1px, transparent 1px);
+            background-size: 60px 60px;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 1);
+        }
+
+        .crt-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .dust-layer {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            opacity: 0.1;
+            pointer-events: none;
+            background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E');
+        }
+
+        /* Force Feedback Animations */
+        @keyframes impulse-flash {
+            0% {
+                filter: brightness(1) drop-shadow(0 0 0px var(--term-green));
+            }
+
+            20% {
+                filter: brightness(3) drop-shadow(0 0 20px cyan);
+                transform: scale(1.2);
+            }
+
+            100% {
+                filter: brightness(1) drop-shadow(0 0 0px var(--term-green));
+            }
+        }
+
+        @keyframes disrupt-glitch {
+            0% {
+                transform: translate(-50%, -50%) skewX(0deg);
+                opacity: 1;
+            }
+
+            20% {
+                transform: translate(calc(-50% + 5px), -50%) skewX(20deg);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: translate(calc(-50% - 5px), -50%) skewX(-20deg);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) skewX(0deg);
+                opacity: 1;
+            }
+        }
+
+        .anim-impulse {
+            animation: impulse-flash 0.5s ease-out;
+        }
+
+        .anim-disrupt {
+            animation: disrupt-glitch 0.2s linear infinite;
+        }
+
+        .anim-attract {
+            transform: translate(-50%, -50%) scale(0.9);
+            transition: all 0.1s ease-in;
+        }
+
+        .vector-overlay {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // --- ICONS ---
+        const Icon = ({ path, color = "currentColor" }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d={path} />
+            </svg>
+        );
+
+        const ICONS = {
+            IMPULSE: "M5 12h14M12 5l7 7-7 7",
+            ATTRACT: "M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83",
+            DISRUPT: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+            PLAY: "M5 3l14 9-14 9V3z",
+            PAUSE: "M6 4h4v16H6zM14 4h4v16h-4z"
+        };
+
+        // --- CONSTANTS ---
+        const ENTITY_TYPES = {
+            GLASS: { icon: '🥛', label: 'Glass', mass: 1.2 },
+            PLATE: { icon: '🍽️', label: 'Plate', mass: 2.5 },
+            ANT: { icon: '🐜', label: 'Ant', mass: 0.1 },
+            LID: { icon: '⭕', label: 'Lid', mass: 0.5 },
+            LIGHT: { icon: '🔦', label: 'Beam', mass: 0 }
+        };
+
+        const INITIAL_STATE = [
+            { id: 1, type: 'PLATE', x: 25, y: 30, scale: 1.8, angle: 0 },
+            { id: 2, type: 'GLASS', x: 48, y: 40, scale: 1.2, angle: 0 },
+            { id: 3, type: 'GLASS', x: 55, y: 35, scale: 1.2, angle: 5 },
+            { id: 4, type: 'ANT', x: 80, y: 80, scale: 0.7, angle: 45 },
+            { id: 5, type: 'LID', x: 15, y: 75, scale: 1.0, angle: -10 },
+            { id: 6, type: 'LIGHT', x: 50, y: 50, scale: 3.0, angle: 0, opacity: 0.2 }
+        ];
+
+        const App = () => {
+            const [entities, setEntities] = useState(INITIAL_STATE);
+            const [selectedId, setSelectedId] = useState(null);
+            const [isAuto, setIsAuto] = useState(false);
+            const [activeForce, setActiveForce] = useState(null); // { id, type }
+            const [systemMsg, setSystemMsg] = useState("SYSTEM READY // AWAITING VECTOR");
+
+            const applyForce = useCallback((forceType) => {
+                const targetId = isAuto ? entities[Math.floor(Math.random() * entities.length)].id : selectedId;
+                if (targetId === null) return;
+
+                const target = entities.find(e => e.id === targetId);
+                setActiveForce({ id: targetId, type: forceType });
+                setSystemMsg(`INJECTING ${forceType} FORCE -> [${target.type}]`);
+
+                setTimeout(() => {
+                    setEntities(prev => prev.map(ent => {
+                        if (ent.id !== targetId) return ent;
+
+                        let { x, y, angle } = ent;
+                        const massMod = ENTITY_TYPES[ent.type].mass || 1;
+
+                        switch (forceType) {
+                            case 'IMPULSE':
+                                x += (Math.random() - 0.5) * (20 / massMod);
+                                y += (Math.random() - 0.5) * (20 / massMod);
+                                angle += (Math.random() - 0.5) * 30;
+                                break;
+                            case 'ATTRACT':
+                                x += (50 - x) * 0.25;
+                                y += (50 - y) * 0.25;
+                                break;
+                            case 'DISRUPT':
+                                x += (Math.random() - 0.5) * 3;
+                                y += (Math.random() - 0.5) * 3;
+                                angle += (Math.random() - 0.5) * 5;
+                                break;
+                        }
+
+                        return {
+                            ...ent,
+                            x: Math.max(5, Math.min(95, x)),
+                            y: Math.max(5, Math.min(95, y)),
+                            angle
+                        };
+                    }));
+
+                    setTimeout(() => {
+                        setActiveForce(null);
+                        setSystemMsg("VECTOR RESOLVED // IDLE");
+                    }, 400);
+                }, 100);
+            }, [selectedId, isAuto, entities]);
+
+            useEffect(() => {
+                if (isAuto) {
+                    const timer = setInterval(() => {
+                        const forces = ['IMPULSE', 'ATTRACT', 'DISRUPT'];
+                        applyForce(forces[Math.floor(Math.random() * forces.length)]);
+                    }, 2000);
+                    return () => clearInterval(timer);
+                }
+            }, [isAuto, applyForce]);
+
+            return (
+                <div className="flex flex-col w-screen h-screen relative bg-black select-none">
+                    <div className="crt-overlay" />
+
+                    {/* Visualizer */}
+                    <div className="flex-1 relative grid-bg overflow-hidden cursor-crosshair">
+                        <div className="dust-layer" />
+
+                        <div className="absolute top-6 left-6 text-[10px] text-green-700 font-mono tracking-tighter opacity-50 uppercase">
+                            Environment: Cupboard Interior<br />
+                            Stability: {activeForce ? "Unstable" : "Nominal"}<br />
+                            Light: 0.12% / Dust: Heavy
+                        </div>
+
+                        {entities.map(ent => {
+                            const isSelected = selectedId === ent.id;
+                            const isBeingForced = activeForce?.id === ent.id;
+                            const forceType = isBeingForced ? activeForce.type : null;
+
+                            return (
+                                <div
+                                    key={ent.id}
+                                    onClick={() => !isAuto && setSelectedId(ent.id)}
+                                    className={`absolute transition-all duration-500 transform -translate-x-1/2 -translate-y-1/2
+                                        ${isSelected ? 'z-50' : 'z-10'}
+                                    `}
+                                    style={{
+                                        left: `${ent.x}%`,
+                                        top: `${ent.y}%`,
+                                        transform: `translate(-50%, -50%) rotate(${ent.angle}deg) scale(${ent.scale})`,
+                                        opacity: ent.opacity || 1
+                                    }}
+                                >
+                                    {/* Force Visuals */}
+                                    {isBeingForced && (
+                                        <div className="vector-overlay">
+                                            {forceType === 'IMPULSE' && <div className="w-12 h-12 border-2 border-cyan-400 rounded-full animate-ping" />}
+                                            {forceType === 'ATTRACT' && <div className="w-20 h-20 border border-purple-500 rounded-full animate-pulse flex items-center justify-center"><div className="w-2 h-2 bg-purple-500 rounded-full" /></div>}
+                                            {forceType === 'DISRUPT' && <div className="w-10 h-10 border border-amber-500 opacity-50 scale-150 rotate-45" />}
+                                        </div>
+                                    )}
+
+                                    {/* Entity Icon */}
+                                    <div className={`text-4xl filter transition-all
+                                        ${isSelected ? 'drop-shadow-[0_0_10px_#00ff41]' : 'grayscale opacity-70'}
+                                        ${forceType === 'IMPULSE' ? 'anim-impulse' : ''}
+                                        ${forceType === 'DISRUPT' ? 'anim-disrupt' : ''}
+                                        ${forceType === 'ATTRACT' ? 'anim-attract' : ''}
+                                    `}>
+                                        {ENTITY_TYPES[ent.type].icon}
+                                    </div>
+
+                                    {/* Selection Bracket */}
+                                    {isSelected && !isAuto && (
+                                        <div className="absolute -inset-4 border border-green-500/30 border-dashed rounded-lg animate-pulse" />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* HUD / Interface */}
+                    <div className="h-48 bg-black border-t border-green-900/50 p-6 flex gap-6 z-50">
+                        {/* Status Panel */}
+                        <div className="w-64 border border-green-900/30 p-4 bg-green-950/5 flex flex-col justify-between">
+                            <div className="text-[10px] text-green-800 uppercase font-bold tracking-widest">Diagnostics</div>
+                            {selectedId ? (
+                                <div className="mt-2">
+                                    <div className="text-xl flex items-center gap-2">
+                                        {entities.find(e => e.id === selectedId).icon}
+                                        <span className="text-sm font-bold tracking-widest">{entities.find(e => e.id === selectedId).type}</span>
+                                    </div>
+                                    <div className="text-[9px] text-green-700 mt-1 uppercase">Mass: {ENTITY_TYPES[entities.find(e => e.id === selectedId).type].mass}u // Relational_id: {selectedId}</div>
+                                </div>
+                            ) : (
+                                <div className="text-[10px] text-green-900 italic mt-2 animate-pulse">NO_ENTITY_SELECTED</div>
+                            )}
+                            <div className="text-[10px] bg-green-900/20 px-2 py-1 mt-auto font-mono text-green-400 overflow-hidden whitespace-nowrap">
+                                {systemMsg}
+                            </div>
+                        </div>
+
+                        {/* Force Controls */}
+                        <div className="flex-1 grid grid-cols-3 gap-4">
+                            {[
+                                { id: 'IMPULSE', color: 'cyan', label: 'Kinetic Impulse', desc: 'Direct Push' },
+                                { id: 'ATTRACT', color: 'purple', label: 'Gravity Well', desc: 'Central Pull' },
+                                { id: 'DISRUPT', color: 'amber', label: 'Entropy Spike', desc: 'Vibration' }
+                            ].map(force => (
+                                <button
+                                    key={force.id}
+                                    onClick={() => applyForce(force.id)}
+                                    disabled={(!selectedId && !isAuto) || !!activeForce}
+                                    className={`relative group border overflow-hidden flex flex-col items-center justify-center transition-all
+                                        ${(!selectedId && !isAuto) || !!activeForce
+                                            ? 'border-gray-900 opacity-20 cursor-not-allowed'
+                                            : `border-${force.color}-900 bg-${force.color}-950/10 hover:bg-${force.color}-900/20 active:scale-95`}
+                                    `}
+                                >
+                                    <div className={`text-${force.color}-400 mb-1 group-hover:scale-125 transition-transform`}>
+                                        <Icon path={ICONS[force.id]} color={force.color === 'cyan' ? '#22d3ee' : force.color === 'purple' ? '#c084fc' : '#fbbf24'} />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-white tracking-widest uppercase">{force.id}</span>
+                                    <span className="text-[8px] text-gray-500 uppercase mt-1">{force.desc}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Mode Toggle */}
+                        <div className="w-24 flex flex-col gap-2">
+                            <button
+                                onClick={() => setIsAuto(!isAuto)}
+                                className={`flex-1 border flex flex-col items-center justify-center transition-all ${isAuto ? 'border-red-500 bg-red-950/20 text-red-500' : 'border-green-900 text-green-800 hover:text-green-400 hover:border-green-400'}`}
+                            >
+                                <Icon path={isAuto ? ICONS.PAUSE : ICONS.PLAY} />
+                                <span className="text-[9px] font-bold mt-1">{isAuto ? 'HALT' : 'AUTO'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

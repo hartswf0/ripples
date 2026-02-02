@@ -1,0 +1,270 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 2%;
+    --foreground: 0 0% 90%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 90%;
+    --primary: 140 60% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 45 90% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 15%;
+    --ring: 140 60% 45%;
+    --radius: 0.25rem;
+    
+    /* Custom RIPPLES colors */
+    --entity-green: 140 70% 55%;
+    --obstacle-red: 0 70% 55%;
+    --goal-gold: 45 90% 55%;
+    --shift-cyan: 180 70% 55%;
+    --text-dim: 0 0% 35%;
+    --text-muted: 0 0% 25%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
+}
+
+/* Custom scrollbar for terminal aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(0 0% 5%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 20%);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 30%);
+}
+
+/* Text jitter animation for active words */
+@keyframes jitter {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-0.5px, 0.5px); }
+  20% { transform: translate(0.5px, -0.5px); }
+  30% { transform: translate(-0.5px, -0.5px); }
+  40% { transform: translate(0.5px, 0.5px); }
+  50% { transform: translate(-0.3px, 0.3px); }
+  60% { transform: translate(0.3px, -0.3px); }
+  70% { transform: translate(-0.3px, -0.3px); }
+  80% { transform: translate(0.3px, 0.3px); }
+  90% { transform: translate(0, 0); }
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    text-shadow: 0 0 5px currentColor;
+    opacity: 0.8;
+  }
+  50% { 
+    text-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ripple-flash {
+  0% { background-color: transparent; }
+  10% { background-color: hsl(140 60% 45% / 0.1); }
+  100% { background-color: transparent; }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-jitter {
+  animation: jitter 0.15s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+.animate-ripple-flash {
+  animation: ripple-flash 0.5s ease-out;
+}
+
+/* Terminal scanline effect */
+.scanline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    hsl(140 60% 45% / 0.1),
+    transparent
+  );
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Entity color classes */
+.text-entity {
+  color: hsl(var(--entity-green));
+}
+
+.text-obstacle {
+  color: hsl(var(--obstacle-red));
+}
+
+.text-goal {
+  color: hsl(var(--goal-gold));
+}
+
+.text-shift {
+  color: hsl(var(--shift-cyan));
+}
+
+.text-dim {
+  color: hsl(var(--text-dim));
+}
+
+.text-muted-override {
+  color: hsl(var(--text-muted));
+}
+
+/* Glow effects */
+.glow-entity {
+  text-shadow: 0 0 8px hsl(var(--entity-green) / 0.6);
+}
+
+.glow-obstacle {
+  text-shadow: 0 0 8px hsl(var(--obstacle-red) / 0.6);
+}
+
+.glow-goal {
+  text-shadow: 0 0 8px hsl(var(--goal-gold) / 0.6);
+}
+
+.glow-shift {
+  text-shadow: 0 0 8px hsl(var(--shift-cyan) / 0.6);
+}
+
+/* Terminal border style */
+.terminal-border {
+  border: 1px solid hsl(0 0% 18%);
+  box-shadow: 
+    inset 0 0 20px hsl(0 0% 0% / 0.5),
+    0 0 20px hsl(0 0% 0% / 0.5);
+}
+
+/* Button styles */
+.btn-vector {
+  @apply px-6 py-3 font-mono text-sm font-medium transition-all duration-150;
+  @apply border border-border bg-secondary/50;
+}
+
+.btn-vector:hover {
+  @apply bg-secondary;
+}
+
+.btn-vector:active {
+  transform: scale(0.98);
+}
+
+.btn-vector-active {
+  @apply ring-2 ring-offset-1 ring-offset-background;
+}
+
+/* Worldtext grid cell */
+.worldtext-cell {
+  @apply inline-block px-1 py-0.5 text-xs leading-tight;
+  transition: all 0.2s ease-out;
+}
+
+.worldtext-cell:hover {
+  background: hsl(0 0% 15% / 0.5);
+}
+
+/* Selected entity highlight */
+.entity-selected {
+  @apply ring-1 ring-entity-green/50 bg-entity-green/10;
+}
+
+/* Audit log entry */
+.audit-entry {
+  @apply text-xs py-1 border-b border-border/30;
+}
+
+/* Grid background pattern */
+.grid-pattern {
+  background-image: 
+    linear-gradient(hsl(0 0% 10%) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(0 0% 10%) 1px, transparent 1px);
+  background-size: 20px 20px;
+}

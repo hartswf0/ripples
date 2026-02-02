@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LATENT_IDE v3.0 // ECO-ARCHITECT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&display=swap');
+
+        :root {
+            --bg-dark: #08080a;
+            --bg-panel: #111114;
+            --border: #222;
+            --accent: #00f2ff;
+            --text-main: #d1d1d1;
+            --text-dim: #555;
+            --sel-bg: rgba(0, 242, 255, 0.1);
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            font-size: 12px;
+            touch-action: none;
+        }
+
+        #ide-container {
+            display: grid;
+            grid-template-columns: 240px 1fr 280px;
+            grid-template-rows: 38px 1fr 140px 22px;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+            #ide-container {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .panel-sidebar,
+            .panel-inspector,
+            .panel-terminal {
+                display: none;
+                position: absolute;
+                z-index: 50;
+                width: 100%;
+                height: 40%;
+                background: rgba(15, 15, 18, 0.98);
+                backdrop-filter: blur(15px);
+                bottom: 50px;
+            }
+
+            .panel-inspector {
+                top: 38px;
+                bottom: auto;
+            }
+
+            #viewport {
+                flex: 1;
+            }
+
+            #mobile-tabs {
+                display: flex !important;
+                height: 50px;
+                background: var(--bg-panel);
+                border-top: 1px solid var(--border);
+                z-index: 100;
+            }
+        }
+
+        header {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .menu-item {
+            position: relative;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .menu-item:hover {
+            color: #fff;
+            background: #222;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #18181b;
+            border: 1px solid var(--border);
+            min-width: 160px;
+            z-index: 100;
+        }
+
+        .dropdown.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            color: #888;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 6px 12px;
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #444;
+            background: #0a0a0c;
+            border-bottom: 1px solid #1a1a1c;
+        }
+
+        #viewport {
+            grid-row: 2 / 3;
+            grid-column: 2;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .tool-btn {
+            width: 100%;
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 11px;
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: #ccc;
+        }
+
+        .tool-btn.active {
+            color: var(--accent);
+            background: var(--sel-bg);
+            border-left: 2px solid var(--accent);
+        }
+
+        .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        #terminal-output {
+            padding: 8px;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #777;
+            overflow-y: auto;
+        }
+
+        .log-info {
+            color: var(--accent);
+        }
+
+        .log-warn {
+            color: #ff9d00;
+        }
+
+        #statusbar {
+            grid-row: 4/5;
+            grid-column: 1/-1;
+            background: #111;
+            color: #444;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 9px;
+            justify-content: space-between;
+        }
+
+        #mobile-tabs {
+            display: none;
+        }
+
+        .mobile-tab-btn {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ide-container">
+        <header>
+            <div class="mr-6 tracking-tighter">LATENT_IDE <span class="text-[8px] opacity-40">v3.0</span></div>
+            <div class="menu-item" onclick="toggleMenu('m-file')">FILE
+                <div id="m-file" class="dropdown">
+                    <div class="dropdown-item" onclick="loadPreset('crystal')">LOAD_PATCH: CRYSTAL_CORE</div>
+                    <div class="dropdown-item" onclick="loadPreset('leak')">LOAD_PATCH: DATA_LEAK</div>
+                    <div class="dropdown-item" onclick="resetSim()">NEW_WORKSPACE</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="toggleMenu('m-view')">VIEW
+                <div id="m-view" class="dropdown">
+                    <div class="dropdown-item" onclick="toggleGrid()">TOGGLE_GRID</div>
+                    <div class="dropdown-item" onclick="view.zoom = 1.0">RESET_CAMERA</div>
+                </div>
+            </div>
+            <div class="ml-auto flex items-center gap-4">
+                <span id="audio-btn"
+                    class="text-[9px] border border-[#333] px-2 py-0.5 rounded cursor-pointer hover:bg-white hover:text-black">INIT_AUDIO</span>
+            </div>
+        </header>
+
+        <!-- TOOLBOX (Left) -->
+        <div id="sidebar" class="panel panel-sidebar">
+            <div class="panel-header">BIOME_PALETTE</div>
+            <div class="flex-1 overflow-y-auto py-2" id="biome-list">
+                <!-- Populated by JS -->
+            </div>
+            <div class="panel-header border-t border-[#222]">VECTORS</div>
+            <div class="py-2" id="vector-list">
+                <button class="tool-btn active" data-type="vector" data-mode="observe">
+                    <div class="swatch bg-white"></div> OBSERVE
+                </button>
+                <button class="tool-btn" data-type="vector" data-mode="growth">
+                    <div class="swatch bg-[#00ff41]"></div> BLOOM_ALGO
+                </button>
+                <button class="tool-btn" data-type="vector" data-mode="rot">
+                    <div class="swatch bg-[#8B4513]"></div> DECAY_VEC
+                </button>
+                <button class="tool-btn" data-type="vector" data-mode="glitch">
+                    <div class="swatch bg-[#ff3333]"></div> KERNEL_PANIC
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEWPORT -->
+        <div id="viewport">
+            <canvas id="world-canvas"></canvas>
+            <div class="absolute bottom-2 left-2 text-[9px] text-[#444] pointer-events-none">
+                GRID_REF: <span id="pos-ref">0, 0</span> | ZOOM: <span id="zoom-ref">100%</span>
+            </div>
+        </div>
+
+        <!-- INSPECTOR (Right) -->
+        <div id="inspector" class="panel panel-inspector">
+            <div class="panel-header">OBJECT_INSPECTOR</div>
+            <div id="inspect-content" class="p-4 text-[10px] leading-relaxed">
+                <div class="opacity-30 italic">No selection</div>
+            </div>
+            <div class="mt-auto panel-header border-t border-[#222]">MODIFICATION_LOG</div>
+            <div id="mod-list" class="flex-1 overflow-y-auto text-[9px] p-2 text-[#555]">
+                <!-- History of changes -->
+            </div>
+        </div>
+
+        <!-- TERMINAL -->
+        <div id="terminal" class="panel panel-terminal">
+            <div class="panel-header">IO_STREAM</div>
+            <div id="terminal-output" class="font-mono">
+                <div class="log-info">> KERNEL_LOADED: SUCCESS</div>
+                <div class="log-info">> MAPPING_LATENT_SPACE...</div>
+            </div>
+        </div>
+
+        <div id="statusbar">
+            <div>MODE: <span id="active-tool" class="text-white">OBSERVE</span></div>
+            <div>LOCAL_TIME: <span id="clock">00:00:00</span></div>
+        </div>
+
+        <div id="mobile-tabs">
+            <div class="mobile-tab-btn" onclick="toggleMobilePanel('sidebar')">🛠️</div>
+            <div class="mobile-tab-btn" onclick="toggleMobilePanel('terminal')">📟</div>
+            <div class="mobile-tab-btn" onclick="toggleMobilePanel('inspector')">🔍</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('world-canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const viewport = document.getElementById('viewport');
+        const terminal = document.getElementById('terminal-output');
+        const inspectEl = document.getElementById('inspect-content');
+
+        // Config
+        const GRID_SIZE = 120;
+        let width, height;
+        let view = { x: 0, y: 0, zoom: 0.8 };
+        let mouse = { x: 0, y: 0, gx: 0, gy: 0, down: false };
+        let lastMouse = { x: 0, y: 0 };
+        let currentMode = 'observe';
+        let currentType = 'vector';
+        let showGrid = true;
+        let audioInit = false;
+        let modifiedCells = new Map();
+
+        const biomes = [
+            { id: 'silicate', name: 'SILICATE_DUNES', color: '#e2e8f0', char: '░', desc: 'Crushed glass foundations.' },
+            { id: 'swamp', name: 'DATA_SWAMP', color: '#2d3748', char: '≈', desc: 'Saturated logic sediment.' },
+            { id: 'forest', name: 'FERROUS_FOREST', color: '#2f855a', char: '↑', desc: 'Crystalline iron growth.' },
+            { id: 'obsidian', name: 'OBSIDIAN_PLATEAU', color: '#1a202c', char: '■', desc: 'Flat void-reflective slab.' },
+            { id: 'null', name: 'NULL_ZONE', color: '#4a5568', char: '?', desc: 'Unassigned memory block.' }
+        ];
+
+        // --- CORE FUNCTIONS ---
+
+        function log(msg, type = '') {
+            const div = document.createElement('div');
+            div.className = type ? `log-${type}` : '';
+            div.innerText = `> ${msg}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function toggleMenu(id) {
+            document.querySelectorAll('.dropdown').forEach(d => d.id === id ? d.classList.toggle('show') : d.classList.remove('show'));
+        }
+
+        function toggleMobilePanel(id) {
+            const el = document.getElementById(id);
+            const isVisible = el.style.display === 'flex';
+            ['sidebar', 'terminal', 'inspector'].forEach(p => document.getElementById(p).style.display = window.innerWidth <= 768 ? 'none' : '');
+            if (!isVisible && window.innerWidth <= 768) el.style.display = 'flex';
+        }
+
+        // --- SIMULATION DATA ---
+
+        function getBaseData(gx, gy) {
+            const seed = Math.abs(Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453) % 1;
+            const b = biomes[Math.floor(seed * biomes.length)];
+            return {
+                id: b.id, name: b.name, color: b.color, char: b.char, desc: b.desc,
+                addr: `0x${Math.abs(gx).toString(16).padStart(4, '0')}${Math.abs(gy).toString(16).padStart(4, '0')}`,
+                modified: false
+            };
+        }
+
+        function getCell(gx, gy) {
+            const key = `${gx},${gy}`;
+            return modifiedCells.get(key) || getBaseData(gx, gy);
+        }
+
+        function applyTool(gx, gy) {
+            const key = `${gx},${gy}`;
+            let data = getCell(gx, gy);
+
+            if (currentType === 'biome') {
+                const b = biomes.find(x => x.id === currentMode);
+                data = { ...data, ...b, modified: true, flash: 1.0 };
+                log(`RE-SEEDED ${gx},${gy} AS ${b.name}`);
+            } else if (currentType === 'vector') {
+                if (currentMode === 'observe') {
+                    updateInspector(gx, gy);
+                    return;
+                }
+                const colors = { growth: '#00ff41', rot: '#8B4513', glitch: '#ff3333' };
+                data.color = colors[currentMode] || '#fff';
+                data.modified = true;
+                data.flash = 1.0;
+                data.name = `MOD_${currentMode.toUpperCase()}`;
+                log(`INJECTED ${currentMode} @ ${gx},${gy}`, currentMode === 'glitch' ? 'warn' : '');
+            }
+
+            modifiedCells.set(key, data);
+            updateInspector(gx, gy);
+        }
+
+        function loadPreset(type) {
+            log(`LOADING PATCH: ${type.toUpperCase()}`, 'info');
+            resetSim();
+            const center = { x: Math.floor(mouse.gx), y: Math.floor(mouse.gy) };
+            for (let i = -3; i <= 3; i++) {
+                for (let j = -3; j <= 3; j++) {
+                    if (Math.random() > 0.4) {
+                        const mode = type === 'crystal' ? 'growth' : 'glitch';
+                        currentType = 'vector';
+                        currentMode = mode;
+                        applyTool(center.x + i, center.y + j);
+                    }
+                }
+            }
+            currentMode = 'observe';
+            currentType = 'vector';
+            updateButtons();
+        }
+
+        function resetSim() {
+            modifiedCells.clear();
+            log("WORKSPACE_CLEARED", 'warn');
+        }
+
+        function updateInspector(gx, gy) {
+            const c = getCell(gx, gy);
+            inspectEl.innerHTML = `
+                <div class="mb-2 text-white font-bold">${c.name}</div>
+                <div class="text-[#666] mb-4">${c.desc}</div>
+                <div class="grid grid-cols-2 gap-y-1 opacity-60">
+                    <div>ADDRESS</div><div class="text-white">${c.addr}</div>
+                    <div>COORD</div><div class="text-white">${gx}, ${gy}</div>
+                    <div>STATE</div><div class="text-white">${c.modified ? 'DIRTY' : 'CLEAN'}</div>
+                </div>
+            `;
+        }
+
+        // --- RENDER ---
+
+        function draw() {
+            ctx.fillStyle = '#08080a';
+            ctx.fillRect(0, 0, width, height);
+
+            const sCol = Math.floor(-view.x / (GRID_SIZE * view.zoom));
+            const eCol = sCol + Math.ceil(width / (GRID_SIZE * view.zoom));
+            const sRow = Math.floor(-view.y / (GRID_SIZE * view.zoom));
+            const eRow = sRow + Math.ceil(height / (GRID_SIZE * view.zoom));
+
+            for (let c = sCol; c <= eCol; c++) {
+                for (let r = sRow; r <= eRow; r++) {
+                    const sx = c * GRID_SIZE * view.zoom + view.x;
+                    const sy = r * GRID_SIZE * view.zoom + view.y;
+                    const size = GRID_SIZE * view.zoom;
+                    const cell = getCell(c, r);
+
+                    if (showGrid && view.zoom > 0.4) {
+                        ctx.strokeStyle = '#111';
+                        ctx.strokeRect(sx, sy, size, size);
+                    }
+
+                    ctx.fillStyle = cell.color;
+                    ctx.globalAlpha = (c === mouse.gx && r === mouse.gy) ? 1.0 : 0.6;
+
+                    if (view.zoom < 0.4) {
+                        ctx.fillRect(sx, sy, size, size);
+                    } else {
+                        ctx.font = `${size * 0.4}px monospace`;
+                        ctx.fillText(cell.char, sx + size * 0.4, sy + size * 0.5);
+                        ctx.font = `${size * 0.08}px monospace`;
+                        ctx.fillText(cell.name, sx + 5, sy + size - 10);
+                    }
+
+                    if (cell.flash > 0) {
+                        ctx.fillStyle = '#fff';
+                        ctx.globalAlpha = cell.flash;
+                        ctx.fillRect(sx, sy, size, size);
+                        cell.flash *= 0.9;
+                    }
+                }
+            }
+
+            ctx.globalAlpha = 1.0;
+            requestAnimationFrame(draw);
+        }
+
+        // --- INTERACTION ---
+
+        function resize() {
+            const r = viewport.getBoundingClientRect();
+            width = canvas.width = r.width;
+            height = canvas.height = r.height;
+        }
+
+        window.addEventListener('resize', resize);
+
+        viewport.addEventListener('mousemove', (e) => {
+            const r = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - r.left;
+            mouse.y = e.clientY - r.top;
+            mouse.gx = Math.floor((mouse.x - view.x) / (GRID_SIZE * view.zoom));
+            mouse.gy = Math.floor((mouse.y - view.y) / (GRID_SIZE * view.zoom));
+
+            if (mouse.down) {
+                if (currentMode === 'observe') {
+                    view.x += mouse.x - lastMouse.x;
+                    view.y += mouse.y - lastMouse.y;
+                } else {
+                    applyTool(mouse.gx, mouse.gy);
+                }
+            }
+            lastMouse.x = mouse.x; lastMouse.y = mouse.y;
+            document.getElementById('pos-ref').innerText = `${mouse.gx}, ${mouse.gy}`;
+        });
+
+        viewport.addEventListener('mousedown', () => {
+            mouse.down = true;
+            applyTool(mouse.gx, mouse.gy);
+        });
+        window.addEventListener('mouseup', () => mouse.down = false);
+
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const speed = 0.001;
+            const nz = Math.max(0.1, Math.min(3, view.zoom - e.deltaY * speed));
+            const s = nz / view.zoom;
+            view.x = mouse.x - (mouse.x - view.x) * s;
+            view.y = mouse.y - (mouse.y - view.y) * s;
+            view.zoom = nz;
+            document.getElementById('zoom-ref').innerText = Math.round(view.zoom * 100) + '%';
+        }, { passive: false });
+
+        // Sidebar Init
+        const biomeList = document.getElementById('biome-list');
+        biomes.forEach(b => {
+            const btn = document.createElement('button');
+            btn.className = 'tool-btn';
+            btn.dataset.type = 'biome';
+            btn.dataset.mode = b.id;
+            btn.innerHTML = `<div class="swatch" style="background:${b.color}"></div> ${b.name}`;
+            btn.onclick = (e) => selectTool(e.currentTarget);
+            biomeList.appendChild(btn);
+        });
+
+        document.querySelectorAll('#vector-list .tool-btn').forEach(b => b.onclick = (e) => selectTool(e.currentTarget));
+
+        function selectTool(btn) {
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMode = btn.dataset.mode;
+            currentType = btn.dataset.type;
+            document.getElementById('active-tool').innerText = currentMode.toUpperCase();
+            log(`TOOL_SELECTED: ${currentMode.toUpperCase()}`);
+        }
+
+        function updateButtons() {
+            document.querySelectorAll('.tool-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === currentMode);
+            });
+            document.getElementById('active-tool').innerText = currentMode.toUpperCase();
+        }
+
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        resize();
+        draw();
+    </script>
+</body>
+
+</html>

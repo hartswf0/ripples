@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES_ENGINE_v4.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --term-bg: #0a0a0a;
+            --term-text: #4af626;
+            --term-dim: #1e5c12;
+            --term-alert: #ff3333;
+            --term-highlight: #ccffcc;
+            --grid-line: rgba(30, 92, 18, 0.3);
+        }
+
+        body {
+            background-color: #000;
+            color: var(--term-text);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* CRT Scanline Effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% {
+                opacity: 0.027906;
+            }
+
+            5% {
+                opacity: 0.048532;
+            }
+
+            10% {
+                opacity: 0.013086;
+            }
+
+            15% {
+                opacity: 0.056094;
+            }
+
+            20% {
+                opacity: 0.018243;
+            }
+
+            25% {
+                opacity: 0.045618;
+            }
+
+            30% {
+                opacity: 0.013234;
+            }
+
+            35% {
+                opacity: 0.019999;
+            }
+
+            40% {
+                opacity: 0.053894;
+            }
+
+            45% {
+                opacity: 0.024564;
+            }
+
+            50% {
+                opacity: 0.054522;
+            }
+
+            55% {
+                opacity: 0.021025;
+            }
+
+            60% {
+                opacity: 0.047521;
+            }
+
+            65% {
+                opacity: 0.019985;
+            }
+
+            70% {
+                opacity: 0.056024;
+            }
+
+            75% {
+                opacity: 0.015252;
+            }
+
+            80% {
+                opacity: 0.052511;
+            }
+
+            85% {
+                opacity: 0.012553;
+            }
+
+            90% {
+                opacity: 0.057531;
+            }
+
+            95% {
+                opacity: 0.018253;
+            }
+
+            100% {
+                opacity: 0.027906;
+            }
+        }
+
+        /* NEW LAYOUT: 3 Columns */
+        .container-frame {
+            width: 95%;
+            height: 95%;
+            border: 2px solid var(--term-dim);
+            background-color: var(--term-bg);
+            box-shadow: 0 0 20px rgba(74, 246, 38, 0.1);
+            position: relative;
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header header header"
+                "sidebar visual logs"
+                "footer footer footer";
+            gap: 2px;
+            background-color: var(--term-dim);
+            /* Gap color */
+        }
+
+        /* Area Backgrounds to cover gap color */
+        .header,
+        .sidebar,
+        .visual-panel,
+        .logs-panel,
+        .footer {
+            background-color: var(--term-bg);
+        }
+
+        .header {
+            grid-area: header;
+            padding: 10px;
+            border-bottom: 1px solid var(--term-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            padding: 15px;
+            border-right: 1px solid var(--term-dim);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .visual-panel {
+            grid-area: visual;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logs-panel {
+            grid-area: logs;
+            padding: 15px;
+            border-left: 1px solid var(--term-dim);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .footer {
+            grid-area: footer;
+            padding: 5px 10px;
+            border-top: 1px solid var(--term-dim);
+            font-size: 0.8rem;
+            text-align: right;
+        }
+
+        .panel-title {
+            background-color: var(--term-bg);
+            color: var(--term-dim);
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: inline-block;
+            border: 1px solid var(--term-dim);
+            padding: 2px 6px;
+        }
+
+        /* Buttons & Controls */
+        .btn {
+            background: transparent;
+            border: 1px solid var(--term-dim);
+            color: var(--term-text);
+            padding: 8px;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: var(--term-dim);
+            color: var(--term-highlight);
+        }
+
+        .btn.active {
+            background: var(--term-text);
+            color: var(--term-bg);
+            border-color: var(--term-text);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .vector-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+        }
+
+        .vector-btn {
+            text-align: center;
+            font-size: 0.8rem;
+            padding: 10px 2px;
+        }
+
+        /* Log Window */
+        .log-window {
+            flex-grow: 1;
+            border: 1px solid var(--term-dim);
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            border-left: 2px solid var(--term-dim);
+            padding-left: 8px;
+            line-height: 1.4;
+        }
+
+        .log-entry.new {
+            animation: fadeIn 0.5s ease-in;
+            border-left-color: var(--term-text);
+        }
+
+        .timestamp {
+            color: var(--term-dim);
+            font-size: 0.75rem;
+            display: inline-block;
+            width: 60px;
+        }
+
+        .system-msg {
+            color: var(--term-dim);
+            font-style: italic;
+        }
+
+        .result-msg {
+            color: var(--term-highlight);
+        }
+
+        /* Visual Matrix Grid */
+        .cupboard-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            flex-grow: 1;
+            border: 1px solid var(--term-dim);
+            background-image:
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 16.66% 16.66%;
+            position: relative;
+        }
+
+        .grid-cell {
+            position: relative;
+            /* border: 1px solid rgba(30, 92, 18, 0.1); */
+        }
+
+        .entity-token {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .entity-token:hover {
+            transform: scale(1.1);
+            z-index: 10;
+            filter: drop-shadow(0 0 5px var(--term-text));
+        }
+
+        .entity-token.active .token-shape {
+            border-color: var(--term-highlight);
+            background: rgba(74, 246, 38, 0.2);
+            box-shadow: 0 0 10px var(--term-dim);
+        }
+
+        /* Token Shapes */
+        .token-shape {
+            border: 2px solid var(--term-text);
+            background: #000;
+        }
+
+        /* Specific Shapes */
+        .shape-rect {
+            width: 30px;
+            height: 50px;
+        }
+
+        /* Glass */
+        .shape-stack {
+            width: 40px;
+            height: 25px;
+            border-radius: 4px;
+            border-style: double;
+        }
+
+        /* Plates */
+        .shape-bug {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--term-text);
+            animation: pulse 2s infinite;
+        }
+
+        /* Ant */
+        .shape-blob {
+            width: 40px;
+            height: 30px;
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            border-style: dashed;
+        }
+
+        /* Lid */
+        .shape-beam {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            border: none;
+            pointer-events: none;
+        }
+
+        /* Light */
+
+        .entity-label {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            white-space: nowrap;
+            background: #000;
+            padding: 0 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .entity-token:hover .entity-label,
+        .entity-token.active .entity-label {
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--term-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--term-dim);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--term-text);
+        }
+    </style>
+</head>
+
+<body class="crt">
+
+    <div class="container-frame">
+        <!-- Header -->
+        <header class="header">
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-[#4af626] animate-pulse mr-3"></div>
+                <div>
+                    <span class="font-bold text-lg tracking-widest">SYS.ROOT // RIPPLES_ENGINE_v4.2</span>
+                    <span class="ml-4 text-xs tracking-wider" style="color:var(--term-dim)">MODE: MANUAL_OVERRIDE</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="tick-counter" class="text-xl font-mono">TICK: 402ms</div>
+                <div class="text-xs text-[var(--term-dim)]">LATENCY: 12ms</div>
+            </div>
+        </header>
+
+        <!-- Sidebar: Controls -->
+        <aside class="sidebar">
+            <!-- 1. World Init -->
+            <div>
+                <div class="panel-title">1. CONTEXT_PARAMS</div>
+                <div class="border border-[var(--term-dim)] p-2 text-xs space-y-1 font-mono">
+                    <p>> <span style="color:var(--term-dim)">PRESET:</span> CUPBOARD_03</p>
+                    <p>> <span style="color:var(--term-dim)">BOUNDARY:</span> Wood/Darkness</p>
+                    <p>> <span style="color:var(--term-dim)">PHYSICS:</span> High Friction</p>
+                    <p>> <span style="color:var(--term-dim)">ENTITIES:</span> 5 Active</p>
+                </div>
+            </div>
+
+            <!-- 2. Entity Hierarchy -->
+            <div class="flex-grow flex flex-col min-h-0">
+                <div class="panel-title">2. ENTITY_SELECT</div>
+                <div id="entity-list" class="overflow-y-auto pr-1 flex-grow">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- 3. Vector Injection -->
+            <div>
+                <div class="panel-title">3. VECTOR_INJECT</div>
+                <div class="border border-[var(--term-dim)] p-2 mb-2">
+                    <div class="text-xs" style="color:var(--term-dim)">TARGET LOCK:</div>
+                    <div id="target-display" class="text-sm font-bold truncate">NO SIGNAL</div>
+                </div>
+
+                <div class="vector-grid mb-2">
+                    <button class="btn vector-btn" onclick="selectVector('SHIFT')">SHIFT</button>
+                    <button class="btn vector-btn" onclick="selectVector('GOAL')">GOAL</button>
+                    <button class="btn vector-btn" onclick="selectVector('OBSTACLE')">OBSTACLE</button>
+                </div>
+                <button id="inject-btn" class="btn text-center font-bold tracking-widest border-2" disabled
+                    onclick="executeInjection()">[ INITIATE ]</button>
+            </div>
+        </aside>
+
+        <!-- Center: Visual Matrix -->
+        <section class="visual-panel">
+            <div class="flex justify-between items-end mb-2">
+                <div class="panel-title">VISUAL_MATRIX // SPATIAL_MAP</div>
+                <div class="text-xs" style="color:var(--term-dim)">GRID: 6x6 UNIT</div>
+            </div>
+
+            <!-- The Grid -->
+            <div id="cupboard-grid" class="cupboard-grid">
+                <!-- Entities injected via JS -->
+
+                <!-- Grid Coordinates Overlay -->
+                <div
+                    class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20 flex flex-col justify-between p-1 text-[8px]">
+                    <div class="flex justify-between"><span>0,0</span><span>0,6</span></div>
+                    <div class="flex justify-between"><span>6,0</span><span>6,6</span></div>
+                </div>
+            </div>
+
+            <div class="mt-2 text-xs font-mono h-16 border border-[var(--term-dim)] p-2 overflow-hidden relative">
+                <div class="absolute top-0 right-0 bg-[var(--term-text)] text-black px-1 text-[9px]">DEBUG_STREAM</div>
+                <div id="debug-stream" class="opacity-70">
+                    > Rendering spatial visualization...<br>
+                    > Z-index sorting applied.<br>
+                    > Lighting model: STATIC
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Logs -->
+        <section class="logs-panel">
+            <div class="panel-title">4. RUNTIME_LOG</div>
+
+            <div id="log-window" class="log-window">
+                <div class="log-entry">
+                    <span class="timestamp">[T-minus 0]</span>
+                    <span class="system-msg">System initialized. Waiting for input...</span>
+                </div>
+                <div class="log-entry">
+                    <span class="timestamp">[STATUS]</span>
+                    The cupboard is dark. A single strip of light hits a stack of plates. 6 Tall Glasses, 6 Short
+                    Glasses, 1 Ant. Silence is heavy.
+                </div>
+            </div>
+
+            <!-- Processing Viz -->
+            <div class="mt-4 border-t border-[var(--term-dim)] pt-2">
+                <div class="flex justify-between text-xs mb-1">
+                    <span>RIPPLE_COMPILER</span>
+                    <span id="proc-percent">IDLE</span>
+                </div>
+                <div class="w-full bg-[#1e5c12] h-2 relative overflow-hidden">
+                    <div id="proc-bar" class="bg-[#4af626] h-full w-0 absolute top-0 left-0"></div>
+                    <!-- Scanline for bar -->
+                    <div
+                        class="absolute top-0 left-0 w-full h-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] opacity-50">
+                    </div>
+                </div>
+                <div id="proc-details" class="text-xs mt-1 h-4" style="color:var(--term-dim)">System Ready.</div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer flex justify-between">
+            <span>SESSION_ID: 0x4F92_A // MEMORY: 64kb</span>
+            <span class="animate-pulse text-[var(--term-alert)] hidden" id="alert-light">● DATA_RIPPLE_DETECTED</span>
+            <span>STATUS: CONNECTED</span>
+        </footer>
+    </div>
+
+    <script>
+        // --- DATA MODEL ---
+        // Added col/row for grid placement (0-5 index)
+        const entities = [
+            { id: 'BIO_01', name: 'Ant_Scout', type: 'bug', state: 'Seeking', col: 1, row: 4, desc: 'A solitary worker moving across the shelf liner.' },
+            { id: 'OBJ_01', name: 'Tall_Glass_A', type: 'rect', state: 'Rigid', col: 2, row: 2, desc: 'Cheap glass. Sitting near the edge.' },
+            { id: 'OBJ_07', name: 'Plate_Stack', type: 'stack', state: 'Heavy', col: 4, row: 3, desc: 'Ceramic. A slight lean to the left.' },
+            { id: 'ENV_02', name: 'Light_Beam', type: 'beam', state: 'Ephemeral', col: 3, row: 0, desc: 'Filtering through a crack in the cabinet door.' }, // Spans multiple in CSS logic
+            { id: 'OBJ_99', name: 'Plastic_Lid', type: 'blob', state: 'Warped', col: 0, row: 5, desc: 'Tupperware. Wedged in the back corner.' }
+        ];
+
+        // The Matrix of "Ripples" (Outcomes)
+        const rippleMatrix = {
+            'BIO_01': { // Ant
+                'SHIFT': "The Ant_Scout loses footing on the smooth liner. It skitters sideways, brushing against a crumb of cracker dust.",
+                'GOAL': "Sensing sugar residue, the Ant_Scout abandons floor safety. It begins the vertical climb up Tall_Glass_A.",
+                'OBSTACLE': "A sudden draft from the door crack blows the Ant_Scout back. It curls into a defensive ball, motionless."
+            },
+            'OBJ_01': { // Tall Glass
+                'SHIFT': "Micro-vibrations cause Tall_Glass_A to slide 1mm. It clinks softly against its neighbor. The sound resonates.",
+                'GOAL': "Gravity asserts dominance. The glass 'wants' to fall. It teeters, finding a new, more dangerous equilibrium.",
+                'OBSTACLE': "The glass is boxed in. Pressure builds on the rim. A hairline fracture expands silently."
+            },
+            'OBJ_07': { // Plate Stack
+                'SHIFT': "The stack settles. Dust rises in a small cloud, visible only in the Light_Beam.",
+                'GOAL': "The top plate slides. It exposes the pattern on the plate below—a faded blue flower.",
+                'OBSTACLE': "Friction locks the plates together. The kinetic energy converts to heat, too subtle to measure."
+            },
+            'ENV_02': { // Light Beam
+                'SHIFT': "The sun outside moves behind a cloud. The cupboard plunges into total darkness for 4 seconds.",
+                'GOAL': "The beam intensifies, striking the rim of Tall_Glass_A. A prism appears on the back wood panel.",
+                'OBSTACLE': "Dust motes dance in the path, scattering the photons. The light becomes diffuse and milky."
+            },
+            'OBJ_99': { // Plastic Lid
+                'SHIFT': "The lid un-wedges. It springs open slightly, creating a new shadow geometry.",
+                'GOAL': "The plastic seeks release from tension. It pops loudly, startling the Ant_Scout.",
+                'OBSTACLE': "Warped by time, the lid snaps under its own tension. It jams against the cupboard door hinge."
+            }
+        };
+
+        // --- STATE ---
+        let selectedEntityId = null;
+        let selectedVector = null;
+        let tick = 402;
+
+        // --- INITIALIZATION ---
+        function init() {
+            const list = document.getElementById('entity-list');
+            const grid = document.getElementById('cupboard-grid');
+
+            entities.forEach(ent => {
+                // 1. Sidebar List Item
+                const btn = document.createElement('button');
+                btn.className = 'btn text-xs font-mono truncate';
+                btn.id = `btn-${ent.id}`;
+                btn.innerHTML = `<span class="opacity-50 mr-2">[${ent.id}]</span>${ent.name}`;
+                btn.onclick = () => selectEntity(ent.id);
+                list.appendChild(btn);
+
+                // 2. Visual Token
+                const token = document.createElement('div');
+                token.className = 'entity-token';
+                token.id = `token-${ent.id}`;
+                token.onclick = () => selectEntity(ent.id);
+
+                // Positioning (Grid 6x6)
+                // Convert row/col to percentage for smoother absolute positioning within cells
+                // Or use grid-area if we strictly want grid snapping. Let's use inline styles for grid positioning.
+                token.style.gridColumn = ent.col + 1;
+                token.style.gridRow = ent.row + 1;
+                // Center in cell
+                token.style.placeSelf = 'center';
+
+                // Special case for light beam to span
+                if (ent.type === 'beam') {
+                    token.style.gridColumn = '3 / span 2';
+                    token.style.gridRow = '1 / span 6';
+                    token.style.zIndex = '0';
+                    token.style.width = '100%';
+                    token.style.height = '100%';
+                } else {
+                    token.style.zIndex = '5';
+                }
+
+                // Inner Shape
+                const shape = document.createElement('div');
+                shape.className = `token-shape shape-${ent.type}`;
+
+                // Label
+                const label = document.createElement('div');
+                label.className = 'entity-label';
+                label.innerText = ent.id;
+
+                token.appendChild(shape);
+                token.appendChild(label);
+                grid.appendChild(token);
+            });
+
+            setInterval(() => {
+                tick += Math.floor(Math.random() * 10);
+                document.getElementById('tick-counter').innerText = `TICK: ${tick}ms`;
+            }, 1000);
+        }
+
+        // --- INTERACTIONS ---
+        function selectEntity(id) {
+            // Clear previous
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.entity-token').forEach(t => t.classList.remove('active'));
+
+            selectedEntityId = id;
+            const ent = entities.find(e => e.id === id);
+
+            // UI Updates
+            document.getElementById(`btn-${id}`).classList.add('active');
+            document.getElementById(`token-${id}`).classList.add('active');
+
+            document.getElementById('target-display').innerText = `[${ent.id}] ${ent.name}`;
+            document.getElementById('target-display').className = "text-sm font-bold text-[#4af626] animate-pulse";
+
+            addLog(`USER_FOCUS: ${ent.name} selected.`, 'sys');
+            updateDebugStream(`> Analyzing ${ent.id} geometry... <br>> Mass: CALCULATING...`);
+
+            checkReady();
+        }
+
+        function selectVector(vec) {
+            document.querySelectorAll('.vector-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            selectedVector = vec;
+            addLog(`VECTOR_PRELOAD: [${vec}] buffered.`, 'sys');
+
+            checkReady();
+        }
+
+        function checkReady() {
+            const btn = document.getElementById('inject-btn');
+            if (selectedEntityId && selectedVector) {
+                btn.disabled = false;
+                btn.style.borderColor = '#4af626';
+                btn.classList.add('animate-pulse');
+            } else {
+                btn.disabled = true;
+                btn.style.borderColor = '#1e5c12';
+                btn.classList.remove('animate-pulse');
+            }
+        }
+
+        function executeInjection() {
+            // UI Lock
+            const btn = document.getElementById('inject-btn');
+            btn.disabled = true;
+            btn.innerText = "CALCULATING...";
+            btn.classList.remove('animate-pulse');
+
+            // Viz
+            const procBar = document.getElementById('proc-bar');
+            const procText = document.getElementById('proc-percent');
+            const procDetails = document.getElementById('proc-details');
+            const debug = document.getElementById('debug-stream');
+
+            let progress = 0;
+            const processSteps = [
+                "Parsing nonhuman physics...",
+                "Calculating relationalities...",
+                `Applying vector [${selectedVector}]...`,
+                "Resolving collisions...",
+                "Generating Ripple..."
+            ];
+
+            const interval = setInterval(() => {
+                progress += 2;
+                procBar.style.width = `${progress}%`;
+
+                if (progress % 10 === 0) {
+                    // Random hex codes in debug
+                    debug.innerHTML = `> MEM_ADDR: 0x${Math.floor(Math.random() * 9999)}<br>> VECTOR_FORCE: ${Math.random().toFixed(4)}N`;
+                }
+
+                if (progress % 20 === 0) {
+                    const stepIdx = (progress / 20) - 1;
+                    if (stepIdx < processSteps.length) {
+                        procDetails.innerText = processSteps[stepIdx];
+                        procText.innerText = `${progress}%`;
+                    }
+                }
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    finalizeRipple();
+                }
+            }, 30);
+        }
+
+        function finalizeRipple() {
+            const resultText = rippleMatrix[selectedEntityId][selectedVector] || "System Error.";
+
+            // Reset UI
+            document.getElementById('proc-bar').style.width = '0%';
+            document.getElementById('proc-percent').innerText = "COMPLETE";
+            document.getElementById('proc-details').innerText = "Ripple Propagated.";
+            document.getElementById('inject-btn').innerText = "[ INITIATE ]";
+            document.getElementById('inject-btn').disabled = true;
+            document.getElementById('inject-btn').style.borderColor = '#1e5c12';
+
+            // Alert Light
+            const alert = document.getElementById('alert-light');
+            alert.classList.remove('hidden');
+            setTimeout(() => alert.classList.add('hidden'), 2000);
+
+            // Visual Shake Effect on Token
+            const token = document.getElementById(`token-${selectedEntityId}`);
+            token.style.transform = "translate(2px, 2px) rotate(5deg)";
+            setTimeout(() => token.style.transform = "none", 300);
+
+            // Log
+            addLog(`OUTPUT GENERATED:`, 'sys');
+            addLog(resultText, 'result');
+
+            selectedVector = null;
+            document.querySelectorAll('.vector-btn').forEach(b => b.classList.remove('active'));
+
+            updateDebugStream("> Simulation paused.<br>> Awaiting input.");
+        }
+
+        function addLog(text, type) {
+            const win = document.getElementById('log-window');
+            const div = document.createElement('div');
+            div.className = 'log-entry new';
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.innerText = `[T+${tick}]`;
+
+            const content = document.createElement('span');
+            content.innerText = text;
+
+            if (type === 'sys') content.className = 'system-msg';
+            if (type === 'result') content.className = 'result-msg';
+
+            div.appendChild(timestamp);
+            div.appendChild(content);
+            win.appendChild(div);
+
+            win.scrollTop = win.scrollHeight;
+        }
+
+        function updateDebugStream(html) {
+            document.getElementById('debug-stream').innerHTML = html;
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+
+</html>

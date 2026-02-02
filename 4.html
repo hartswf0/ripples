@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latent Prompt: Pure Canvas</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Courier New', monospace;
+            /* Fallback if canvas font fails */
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            /* Global cursor */
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="app"></canvas>
+
+    <script>
+        /**
+         * LATENT PROMPT: PURE CANVAS EDITION (v4.0)
+         * * Features:
+         * 1. Active Ripple System: Propagating shockwaves.
+         * 2. Signal Broadcasting: Visual network lines on activation.
+         * 3. Environmental Particles: Biome-specific atmosphere.
+         * 4. IMGUI System: Immediate-mode UI.
+         */
+
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            colors: {
+                bgRoot: '#0a0a0a',
+                bgPanel: '#111111',
+                bgTerm: 'rgba(10, 10, 10, 0.9)',
+                border: '#333333',
+                accent: '#00ff9d',
+                signal: '#ffffff', // Color when hit by ripple
+                textMain: '#e0e0e0',
+                textDim: '#666666',
+                textAlert: '#ff3366',
+                btnBg: '#1a1a1a',
+                btnHover: '#2a2a2a'
+            },
+            layout: {
+                sidebarWidth: 280,
+                termHeight: 150
+            },
+            sim: {
+                entityCount: 70,
+                baseSpeed: 1.5,
+                rippleMin: 300,
+                rippleMax: 600
+            }
+        };
+
+        const BIOMES = {
+            forest: {
+                name: "FOREST",
+                bg: '#051405',
+                palette: ['#2ecc71', '#27ae60', '#e67e22', '#f1c40f'],
+                vectors: ["Wildfire", "Monsoon", "Deforestation", "Overgrowth"],
+                particleType: 'spore',
+                particleColor: 'rgba(46, 204, 113, 0.2)',
+                msg: "The canopy breathes."
+            },
+            ocean: {
+                name: "OCEAN",
+                bg: '#000810',
+                palette: ['#3498db', '#2980b9', '#1abc9c', '#9b59b6'],
+                vectors: ["Tsunami", "Red Tide", "Whale Fall", "Thermal Vent"],
+                particleType: 'bubble',
+                particleColor: 'rgba(52, 152, 219, 0.2)',
+                msg: "Pressure increases."
+            },
+            cosmos: {
+                name: "COSMOS",
+                bg: '#050505',
+                palette: ['#bdc3c7', '#ecf0f1', '#e74c3c', '#8e44ad'],
+                vectors: ["Supernova", "Black Hole", "Solar Wind", "Entropy"],
+                particleType: 'star',
+                particleColor: 'rgba(255, 255, 255, 0.4)',
+                msg: "Silence in the void."
+            },
+            urban: {
+                name: "URBAN",
+                bg: '#111111',
+                palette: ['#95a5a6', '#7f8c8d', '#c0392b', '#34495e'],
+                vectors: ["Gridlock", "Blackout", "Festival", "Riot"],
+                particleType: 'building',
+                particleColor: '#1a1a1a',
+                msg: "The city never sleeps."
+            }
+        };
+
+        // --- STATE ---
+        const State = {
+            frames: 0,
+            mode: 'SIMULATING', // SIMULATING, PROMPTING
+            biomeKey: 'forest',
+            entities: [],
+            ripples: [],
+            particles: [], // Background elements
+            logs: [],
+            autoplay: false,
+            crtEnabled: true,
+            camera: { x: 0, y: 0, z: 1, tx: 0, ty: 0, tz: 1 },
+            nextEventTime: 0,
+            selectedEntity: null,
+
+            // UI State
+            hotItem: null,
+            activeItem: null,
+            clickHandled: false
+        };
+
+        // --- INPUT SYSTEM ---
+        const Mouse = { x: 0, y: 0, down: false, click: false };
+
+        const canvas = document.getElementById('app');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        canvas.addEventListener('mousemove', e => {
+            Mouse.x = e.clientX;
+            Mouse.y = e.clientY;
+        });
+        canvas.addEventListener('mousedown', () => { Mouse.down = true; });
+        canvas.addEventListener('mouseup', () => {
+            Mouse.down = false;
+            Mouse.click = true;
+        });
+
+        // --- LOGGING ---
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
+            State.logs.unshift({ time, msg, type, frame: State.frames });
+            if (State.logs.length > 20) State.logs.pop();
+        }
+
+        // --- VISUAL EFFECTS ---
+
+        class Particle {
+            constructor(viewW, viewH, type) {
+                this.pos = { x: (Math.random() - 0.5) * viewW, y: (Math.random() - 0.5) * viewH };
+                this.z = Math.random() * 0.5 + 0.5; // Parallax depth
+                this.size = Math.random() * 3 + 1;
+                this.type = type;
+
+                // Movement
+                if (type === 'bubble') this.vel = { x: Math.random() * 0.2 - 0.1, y: -Math.random() * 0.5 - 0.2 };
+                else if (type === 'spore') this.vel = { x: Math.random() * 0.4 - 0.2, y: Math.random() * 0.4 - 0.2 };
+                else this.vel = { x: 0, y: 0 }; // Static for stars/buildings
+
+                if (type === 'building') {
+                    this.size = Math.random() * 40 + 20; // Width
+                    this.height = Math.random() * 100 + 50;
+                }
+            }
+
+            update(viewW, viewH) {
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+
+                // Wrap
+                const halfW = viewW / 2;
+                const halfH = viewH / 2;
+                if (this.pos.y < -halfH) this.pos.y = halfH;
+                if (this.pos.y > halfH) this.pos.y = -halfH;
+                if (this.pos.x < -halfW) this.pos.x = halfW;
+                if (this.pos.x > halfW) this.pos.x = -halfW;
+            }
+
+            draw(ctx, color) {
+                ctx.fillStyle = color;
+                if (this.type === 'building') {
+                    // Draw rectangle anchored at bottom? Just floating blocks for abstract city
+                    ctx.fillRect(this.pos.x, this.pos.y, this.size, this.height);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Ripple {
+            constructor(x, y, vectorName) {
+                this.pos = { x, y };
+                this.radius = 1;
+                this.maxRadius = 400;
+                this.speed = 4;
+                this.strength = 1.0;
+                this.name = vectorName;
+                this.life = 1.0;
+                this.hitList = new Set(); // Keep track of entities hit to avoid double hits
+            }
+
+            update() {
+                this.radius += this.speed;
+                this.life = 1 - (this.radius / this.maxRadius);
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                ctx.strokeStyle = `rgba(0, 255, 157, ${this.life})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Inner Echo
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.life * 0.5})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, Math.max(0, this.radius - 20), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // --- ENTITY SYSTEM ---
+        class Entity {
+            constructor(viewW, viewH) {
+                this.reset(viewW, viewH);
+            }
+
+            reset(viewW, viewH) {
+                this.pos = { x: (Math.random() - 0.5) * viewW, y: (Math.random() - 0.5) * viewH };
+                this.vel = { x: Math.random() - 0.5, y: Math.random() - 0.5 };
+                this.acc = { x: 0, y: 0 };
+                this.type = Math.floor(Math.random() * 4);
+                this.id = Math.random().toString(36).substr(2, 4).toUpperCase();
+                this.rad = 3 + Math.random() * 3;
+
+                // Signal State
+                this.pulse = 0; // 0 to 1 intensity
+            }
+
+            update(others) {
+                // Pulse decay
+                if (this.pulse > 0) this.pulse -= 0.02;
+
+                // Flocking Forces
+                let sep = { x: 0, y: 0 }, ali = { x: 0, y: 0 }, coh = { x: 0, y: 0 }, count = 0;
+                const perception = 60;
+
+                for (let o of others) {
+                    if (o === this) continue;
+                    let dx = this.pos.x - o.pos.x;
+                    let dy = this.pos.y - o.pos.y;
+                    let d = Math.sqrt(dx * dx + dy * dy);
+
+                    if (d < perception && d > 0) {
+                        sep.x += (this.pos.x - o.pos.x) / d;
+                        sep.y += (this.pos.y - o.pos.y) / d;
+                        if (this.type === o.type) {
+                            ali.x += o.vel.x; ali.y += o.vel.y;
+                            coh.x += o.pos.x; coh.y += o.pos.y;
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > 0) {
+                    ali.x /= count; ali.y /= count;
+                    coh.x = (coh.x / count) - this.pos.x; coh.y = (coh.y / count) - this.pos.y;
+                }
+
+                this.acc.x += sep.x * 1.5 + ali.x * 0.8 + coh.x * 0.5;
+                this.acc.y += sep.y * 1.5 + ali.y * 0.8 + coh.y * 0.5;
+
+                // Physics
+                this.vel.x += this.acc.x * 0.05;
+                this.vel.y += this.acc.y * 0.05;
+
+                const speed = Math.sqrt(this.vel.x ** 2 + this.vel.y ** 2);
+                const maxSpeed = CONFIG.sim.baseSpeed + (this.pulse * 2); // Move faster when pulsed
+                if (speed > maxSpeed) {
+                    this.vel.x = (this.vel.x / speed) * maxSpeed;
+                    this.vel.y = (this.vel.y / speed) * maxSpeed;
+                }
+
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+                this.acc = { x: 0, y: 0 };
+
+                // Wrap
+                const boundW = (canvas.width - CONFIG.layout.sidebarWidth);
+                const boundH = canvas.height;
+                const halfW = boundW / 2;
+                const halfH = boundH / 2;
+
+                if (this.pos.x < -halfW) this.pos.x = halfW;
+                if (this.pos.x > halfW) this.pos.x = -halfW;
+                if (this.pos.y < -halfH) this.pos.y = halfH;
+                if (this.pos.y > halfH) this.pos.y = -halfH;
+            }
+
+            draw(ctx, palette) {
+                // Draw Connections if active (Broadcasting)
+                if (this.pulse > 0.1) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.pulse * 0.3})`;
+                    ctx.lineWidth = 1;
+                    // Scan for neighbors to connect to
+                    State.entities.forEach(o => {
+                        if (o === this) return;
+                        const dx = this.pos.x - o.pos.x;
+                        const dy = this.pos.y - o.pos.y;
+                        if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
+                            ctx.beginPath();
+                            ctx.moveTo(this.pos.x, this.pos.y);
+                            ctx.lineTo(o.pos.x, o.pos.y);
+                            ctx.stroke();
+                        }
+                    });
+                }
+
+                // Draw Body
+                ctx.fillStyle = this.pulse > 0.1 ? CONFIG.colors.signal : palette[this.type];
+
+                // Glow effect if pulsed
+                if (this.pulse > 0.1) {
+                    ctx.shadowBlur = 10 * this.pulse;
+                    ctx.shadowColor = '#fff';
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.rad + (this.pulse * 2), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset
+
+                // Selection Ring
+                if (State.selectedEntity === this) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, this.rad + 10 + Math.sin(State.frames * 0.2) * 3, 0, Math.PI * 2);
+                    ctx.strokeStyle = CONFIG.colors.accent;
+                    ctx.stroke();
+                }
+            }
+
+            triggerSignal() {
+                this.pulse = 1.0;
+            }
+        }
+
+        // --- IMGUI SYSTEM ---
+        const UI = {
+            hit: false,
+            reset() { this.hit = false; },
+
+            button(id, x, y, w, h, text, onClick, active = false) {
+                const isHover = Mouse.x >= x && Mouse.x <= x + w && Mouse.y >= y && Mouse.y <= y + h;
+                if (isHover) {
+                    this.hit = true;
+                    if (Mouse.click) { onClick(); Mouse.click = false; }
+                }
+                ctx.fillStyle = active ? CONFIG.colors.accent : (isHover ? CONFIG.colors.btnHover : CONFIG.colors.btnBg);
+                ctx.strokeStyle = active ? CONFIG.colors.accent : CONFIG.colors.border;
+                ctx.lineWidth = 1;
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = active ? '#000' : (isHover ? '#fff' : CONFIG.colors.textMain);
+                ctx.font = "12px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(text, x + w / 2, y + h / 2);
+            },
+
+            text(str, x, y, color = CONFIG.colors.textMain, size = 12, align = "left") {
+                ctx.fillStyle = color;
+                ctx.font = `${size}px monospace`;
+                ctx.textAlign = align;
+                ctx.textBaseline = "top";
+                ctx.fillText(str, x, y);
+            },
+
+            panel(x, y, w, h, color = CONFIG.colors.bgPanel, border = true) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                if (border) {
+                    ctx.strokeStyle = CONFIG.colors.border;
+                    ctx.strokeRect(x, y, w, h);
+                }
+            }
+        };
+
+        // --- LOGIC ---
+        function init() {
+            State.entities = [];
+            State.particles = [];
+            State.ripples = [];
+
+            const viewW = canvas.width - CONFIG.layout.sidebarWidth;
+            const halfW = viewW / 2;
+            const halfH = canvas.height / 2;
+
+            // Init Entities
+            for (let i = 0; i < CONFIG.sim.entityCount; i++) {
+                State.entities.push(new Entity(viewW, canvas.height));
+            }
+
+            // Init Particles (Atmospherics)
+            const biome = BIOMES[State.biomeKey];
+            const pCount = 50;
+            for (let i = 0; i < pCount; i++) {
+                State.particles.push(new Particle(viewW, canvas.height, biome.particleType));
+            }
+
+            State.nextEventTime = State.frames + 300;
+            log("System initialized.", "info");
+        }
+
+        function cycleBiome() {
+            const keys = Object.keys(BIOMES);
+            let idx = keys.indexOf(State.biomeKey);
+            idx = (idx + 1) % keys.length;
+            State.biomeKey = keys[idx];
+            init();
+            log(`Dataset Loaded: ${BIOMES[State.biomeKey].name}`, "alert");
+        }
+
+        function triggerPrompt() {
+            State.mode = 'PROMPTING';
+            State.selectedEntity = State.entities[Math.floor(Math.random() * State.entities.length)];
+
+            State.camera.tx = State.selectedEntity.pos.x;
+            State.camera.ty = State.selectedEntity.pos.y;
+            State.camera.tz = 1.8;
+
+            if (State.autoplay) {
+                setTimeout(() => {
+                    const vectors = BIOMES[State.biomeKey].vectors;
+                    spawnRipple(vectors[Math.floor(Math.random() * vectors.length)]);
+                }, 1200);
+            }
+        }
+
+        function spawnRipple(vecName) {
+            log(`Broadcasting: [${vecName}]`, "alert");
+
+            // Create new active ripple
+            const r = new Ripple(State.selectedEntity.pos.x, State.selectedEntity.pos.y, vecName);
+            State.ripples.push(r);
+
+            // Initial impulse at epicenter
+            State.selectedEntity.triggerSignal();
+
+            // Camera Reset
+            State.mode = 'SIMULATING';
+            State.selectedEntity = null;
+            State.camera.tx = 0;
+            State.camera.ty = 0;
+            State.camera.tz = 1;
+            State.nextEventTime = State.frames + Math.floor(Math.random() * 300 + 300);
+        }
+
+        function updateRipples() {
+            for (let i = State.ripples.length - 1; i >= 0; i--) {
+                const r = State.ripples[i];
+                const alive = r.update();
+
+                if (!alive) {
+                    State.ripples.splice(i, 1);
+                    continue;
+                }
+
+                // Collision logic
+                State.entities.forEach(e => {
+                    if (r.hitList.has(e.id)) return;
+
+                    const dx = e.pos.x - r.pos.x;
+                    const dy = e.pos.y - r.pos.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    // If entity is within the ripple band (radius width ~20px)
+                    if (dist < r.radius && dist > r.radius - 30) {
+                        // HIT!
+                        r.hitList.add(e.id);
+                        e.triggerSignal();
+
+                        // Physics push
+                        const force = 10 * r.life;
+                        e.vel.x += (dx / dist) * force;
+                        e.vel.y += (dy / dist) * force;
+                    }
+                });
+            }
+        }
+
+        // --- RENDER LOOP ---
+        function draw() {
+            UI.reset();
+
+            ctx.fillStyle = CONFIG.colors.bgRoot;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // --- 1. SIDEBAR ---
+            const sw = CONFIG.layout.sidebarWidth;
+            UI.panel(0, 0, sw, canvas.height, CONFIG.colors.bgPanel);
+
+            let cy = 20;
+            const pad = 20;
+
+            UI.text("LATENT PROMPT", pad, cy, CONFIG.colors.accent, 16);
+            cy += 30;
+            UI.text(`STATUS: ${State.mode}`, pad, cy, State.mode === 'PROMPTING' ? CONFIG.colors.textAlert : CONFIG.colors.textDim);
+            cy += 20;
+            UI.text(`FRAME:  ${State.frames}`, pad, cy, CONFIG.colors.textDim);
+            cy += 20;
+            UI.text(`ENTITIES: ${State.entities.length}`, pad, cy, CONFIG.colors.textDim);
+            cy += 40;
+
+            UI.text("CONFIGURATION", pad, cy, '#fff');
+            cy += 20;
+            UI.button("biome", pad, cy, sw - pad * 2, 30, `DATASET: ${BIOMES[State.biomeKey].name}`, () => cycleBiome());
+            cy += 40;
+
+            UI.text("RUNTIME", pad, cy, '#fff');
+            cy += 20;
+            UI.button("reset", pad, cy, sw - pad * 2, 30, "RE-INITIALIZE", () => init());
+            cy += 35;
+            UI.button("auto", pad, cy, sw - pad * 2, 30, `AUTOPLAY: ${State.autoplay ? "ON" : "OFF"}`, () => {
+                State.autoplay = !State.autoplay;
+            }, State.autoplay);
+            cy += 35;
+            UI.button("crt", pad, cy, sw - pad * 2, 30, `VISUALS: ${State.crtEnabled ? "CRT" : "RAW"}`, () => {
+                State.crtEnabled = !State.crtEnabled;
+            }, State.crtEnabled);
+
+            UI.text("BRIDGE: [GAM]->[PRM]", pad, canvas.height - 40, CONFIG.colors.textDim, 10);
+            UI.text("VER: 4.0 CANVAS", pad, canvas.height - 25, CONFIG.colors.textDim, 10);
+
+            // --- 2. SIMULATION VIEWPORT ---
+            const vw = canvas.width - sw;
+            const vh = canvas.height;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(sw, 0, vw, vh);
+            ctx.clip();
+
+            // Background
+            ctx.fillStyle = BIOMES[State.biomeKey].bg;
+            ctx.fillRect(sw, 0, vw, vh);
+
+            // Camera
+            const cx = sw + vw / 2;
+            const cy_view = vh / 2;
+            State.camera.x += (State.camera.tx - State.camera.x) * 0.05;
+            State.camera.y += (State.camera.ty - State.camera.y) * 0.05;
+            State.camera.z += (State.camera.tz - State.camera.z) * 0.05;
+
+            ctx.translate(cx, cy_view);
+            ctx.scale(State.camera.z, State.camera.z);
+            ctx.translate(-State.camera.x, -State.camera.y);
+
+            // Layer 1: Particles (Atmosphere)
+            const biomeConfig = BIOMES[State.biomeKey];
+            State.particles.forEach(p => {
+                p.update(vw, vh);
+                p.draw(ctx, biomeConfig.particleColor);
+            });
+
+            // Layer 2: Grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            const gw = vw * 2; const gh = vh * 2;
+            ctx.beginPath();
+            for (let x = -gw; x < gw; x += gridSize) { ctx.moveTo(x, -gh); ctx.lineTo(x, gh); }
+            for (let y = -gh; y < gh; y += gridSize) { ctx.moveTo(-gw, y); ctx.lineTo(gw, y); }
+            ctx.stroke();
+
+            // Layer 3: Ripples (Underlay)
+            if (State.mode === 'SIMULATING') updateRipples();
+            State.ripples.forEach(r => r.draw(ctx));
+
+            // Layer 4: Entities
+            const palette = BIOMES[State.biomeKey].palette;
+            if (State.mode === 'SIMULATING' || State.autoplay) {
+                State.entities.forEach(e => e.update(State.entities));
+            }
+            State.entities.forEach(e => e.draw(ctx, palette));
+
+            // Prompt Indicator
+            if (State.mode === 'PROMPTING' && State.selectedEntity) {
+                ctx.strokeStyle = CONFIG.colors.accent;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const r = (State.frames * 3) % 150;
+                ctx.arc(State.selectedEntity.pos.x, State.selectedEntity.pos.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // --- 3. MODAL OVERLAY ---
+            if (State.mode === 'PROMPTING' && !State.autoplay) {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(sw, 0, vw, vh);
+
+                const mw = 300; const mh = 250;
+                const mx = sw + (vw - mw) / 2;
+                const my = (vh - mh) / 2;
+
+                UI.panel(mx, my, mw, mh, 'rgba(15,15,15,0.95)');
+                UI.text("BROADCAST SIGNAL", mx + 20, my + 20, CONFIG.colors.accent);
+                UI.text("Select frequency to transmit:", mx + 20, my + 45, CONFIG.colors.textDim);
+
+                const vectors = BIOMES[State.biomeKey].vectors;
+                vectors.forEach((v, i) => {
+                    UI.button(`vec_${i}`, mx + 20, my + 70 + (i * 40), mw - 40, 30, `> ${v}`, () => spawnRipple(v));
+                });
+            }
+
+            // --- 4. TERMINAL ---
+            const th = 150; const ty = vh - th;
+            UI.panel(sw, ty, vw, th, CONFIG.colors.bgTerm);
+            let ly = ty + 10;
+            State.logs.forEach(log => {
+                if (ly > vh - 10) return;
+                const color = log.type === 'alert' ? CONFIG.colors.textAlert : CONFIG.colors.textMain;
+                UI.text(`[${log.time}] ${log.msg}`, sw + 20, ly, color, 11);
+                ly += 16;
+            });
+
+            ctx.restore();
+
+            // --- 5. POST PROCESS ---
+            if (State.crtEnabled) {
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                for (let y = 0; y < canvas.height; y += 3) ctx.fillRect(0, y, canvas.width, 1);
+                const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height / 3, canvas.width / 2, canvas.height / 2, canvas.height);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            State.frames++;
+            if (State.mode === 'SIMULATING' && State.frames > State.nextEventTime) triggerPrompt();
+            if (Mouse.click) Mouse.click = false;
+            requestAnimationFrame(draw);
+        }
+
+        init();
+        draw();
+
+    </script>
+</body>
+
+</html>

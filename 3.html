@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripples: Imaginary Ecologies [3D]</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --ui-color: #e0e0e0;
+            --accent-color: #ff3366;
+            --panel-bg: rgba(10, 10, 10, 0.85);
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--ui-color);
+            font-family: var(--font-main);
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: auto;
+        }
+
+        .title-block h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: normal;
+            border-bottom: 1px solid var(--accent-color);
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+
+        .title-block p {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            background: var(--panel-bg);
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        button,
+        select {
+            background: transparent;
+            border: 1px solid #555;
+            color: var(--ui-color);
+            padding: 5px 10px;
+            font-family: var(--font-main);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover,
+        select:hover {
+            border-color: var(--ui-color);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button.active {
+            background: var(--accent-color);
+            color: #000;
+            border-color: var(--accent-color);
+        }
+
+        /* Choice Overlay */
+        #choice-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: auto;
+            display: none;
+            background: var(--panel-bg);
+            padding: 20px;
+            border: 1px solid var(--accent-color);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        #choice-overlay h2 {
+            font-size: 1rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .vector-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .vector-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #444;
+            padding: 12px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            width: 200px;
+        }
+
+        .vector-btn:hover {
+            border-color: var(--accent-color);
+            padding-left: 20px;
+        }
+
+        .vector-btn::before {
+            content: '>';
+            position: absolute;
+            left: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .vector-btn:hover::before {
+            opacity: 1;
+        }
+
+        /* Log */
+        .log-container {
+            width: 300px;
+            height: 150px;
+            overflow-y: auto;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            font-size: 0.75rem;
+            opacity: 0.8;
+            pointer-events: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            border-left: 2px solid #333;
+            padding-left: 8px;
+        }
+
+        .log-entry.new {
+            border-left-color: var(--accent-color);
+            color: #fff;
+        }
+
+        /* Cinema Effects */
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 40%, black 100%);
+            z-index: 5;
+            opacity: 0.5;
+        }
+
+        #scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px);
+            z-index: 6;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* Loading */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 1s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader">initializing_3d_environment...</div>
+
+    <div id="canvas-container"></div>
+    <div id="vignette"></div>
+    <div id="scanlines"></div>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="title-block">
+                <h1>Ripples 3D</h1>
+                <p>Simulating: <span id="current-biome">FOREST</span></p>
+            </div>
+            <div class="controls">
+                <select id="biome-select">
+                    <option value="forest">Forest</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="cosmos">Cosmos</option>
+                    <option value="urban">Urban Jungle</option>
+                </select>
+                <button id="autoplay-btn">Autoplay: OFF</button>
+                <button id="pause-btn">PAUSE</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </div>
+
+        <div id="choice-overlay">
+            <h2>Select Vector</h2>
+            <div class="vector-options" id="vector-list"></div>
+        </div>
+
+        <div class="log-container" id="event-log">
+            <div class="log-entry">System initialized.</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES 3D
+         * Bridge: [GAM] -> [FLM] (Cinema Suture)
+         */
+
+        // --- Configuration ---
+        const config = {
+            entityCount: 100,
+            worldSize: 400,
+            interactionRadius: 60,
+            rippleIntervalMin: 300,
+            rippleIntervalMax: 600,
+            maxSpeed: 0.8,
+            maxForce: 0.03
+        };
+
+        const state = {
+            frames: 0,
+            nextRippleTime: 500,
+            paused: false,
+            autoplay: false,
+            mode: 'simulating', // simulating, choosing, rippling
+            biome: 'forest',
+            selectedEntity: null
+        };
+
+        // --- Three.js Setup ---
+        let scene, camera, renderer;
+        let entities = [];
+        let particles; // Background stars/dust
+        let ambientLight, dirLight;
+
+        const container = document.getElementById('canvas-container');
+
+        // Biome Definitions
+        const biomes = {
+            forest: {
+                bg: 0x051a05,
+                fog: 0x051a05,
+                fogDensity: 0.005,
+                palette: { passive: 0x2ecc71, aggressive: 0xe74c3c, resource: 0xf1c40f },
+                vectors: ["Grow Canopy", "Flee Fire", "Seek Water", "Spores"],
+                particleColor: 0x55ff55
+            },
+            ocean: {
+                bg: 0x000814,
+                fog: 0x000814,
+                fogDensity: 0.008,
+                palette: { passive: 0x3498db, aggressive: 0x8e44ad, resource: 0x1abc9c },
+                vectors: ["Current", "School", "Dive Deep", "Bioluminescence"],
+                particleColor: 0x88ccff
+            },
+            cosmos: {
+                bg: 0x000000,
+                fog: 0x000000,
+                fogDensity: 0.001,
+                palette: { passive: 0xbdc3c7, aggressive: 0xd35400, resource: 0x9b59b6 },
+                vectors: ["Gravity Well", "Solar Flare", "Orbit", "Supernova"],
+                particleColor: 0xffffff
+            },
+            urban: {
+                bg: 0x1a1a1a,
+                fog: 0x1a1a1a,
+                fogDensity: 0.006,
+                palette: { passive: 0x95a5a6, aggressive: 0xc0392b, resource: 0x2980b9 },
+                vectors: ["Traffic", "Data Surge", "Power Out", "Panic"],
+                particleColor: 0xffaa00
+            }
+        };
+
+        // --- Entity Class (Boid) ---
+        class Entity {
+            constructor(id, type) {
+                this.id = id;
+                this.type = type; // 0: Passive, 1: Aggressive, 2: Resource
+
+                // Physics
+                this.pos = new THREE.Vector3(
+                    (Math.random() - 0.5) * config.worldSize,
+                    (Math.random() - 0.5) * config.worldSize,
+                    (Math.random() - 0.5) * config.worldSize
+                );
+                this.vel = new THREE.Vector3(
+                    Math.random() - 0.5,
+                    Math.random() - 0.5,
+                    Math.random() - 0.5
+                ).normalize().multiplyScalar(config.maxSpeed);
+                this.acc = new THREE.Vector3();
+
+                // Mesh
+                const geometry = this.getGeometry();
+                const material = new THREE.MeshPhongMaterial({
+                    color: this.getColor(),
+                    shininess: 80,
+                    flatShading: true
+                });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.position.copy(this.pos);
+                this.mesh.userData = { id: this.id, entity: this }; // Raycasting link
+                scene.add(this.mesh);
+            }
+
+            getGeometry() {
+                if (this.type === 1) return new THREE.TetrahedronGeometry(4); // Aggressive
+                if (this.type === 2) return new THREE.IcosahedronGeometry(3); // Resource
+                return new THREE.DodecahedronGeometry(3); // Passive
+            }
+
+            getColor() {
+                const p = biomes[state.biome].palette;
+                return this.type === 0 ? p.passive : (this.type === 1 ? p.aggressive : p.resource);
+            }
+
+            applyForce(force) {
+                this.acc.add(force);
+            }
+
+            update() {
+                this.vel.add(this.acc);
+                this.vel.clampLength(0, config.maxSpeed);
+                this.pos.add(this.vel);
+                this.acc.set(0, 0, 0);
+
+                // Boundaries (Soft Wrap)
+                const half = config.worldSize / 2;
+                if (this.pos.x > half) this.pos.x = -half;
+                if (this.pos.x < -half) this.pos.x = half;
+                if (this.pos.y > half) this.pos.y = -half;
+                if (this.pos.y < -half) this.pos.y = half;
+                if (this.pos.z > half) this.pos.z = -half;
+                if (this.pos.z < -half) this.pos.z = half;
+
+                // Update Mesh
+                this.mesh.position.copy(this.pos);
+
+                // Rotate towards velocity
+                const lookTarget = this.pos.clone().add(this.vel);
+                this.mesh.lookAt(lookTarget);
+            }
+
+            flock(boids) {
+                let sep = new THREE.Vector3();
+                let ali = new THREE.Vector3();
+                let coh = new THREE.Vector3();
+                let count = 0;
+
+                for (let other of boids) {
+                    if (other === this) continue;
+                    let d = this.pos.distanceTo(other.pos);
+
+                    if (d > 0 && d < config.interactionRadius) {
+                        // Separation
+                        let diff = new THREE.Vector3().subVectors(this.pos, other.pos);
+                        diff.normalize().divideScalar(d);
+                        sep.add(diff);
+
+                        // Alignment & Cohesion (only same type)
+                        if (this.type === other.type) {
+                            ali.add(other.vel);
+                            coh.add(other.pos);
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > 0) {
+                    ali.divideScalar(count).normalize().multiplyScalar(config.maxSpeed).sub(this.vel).clampLength(0, config.maxForce);
+                    coh.divideScalar(count).sub(this.pos).normalize().multiplyScalar(config.maxSpeed).sub(this.vel).clampLength(0, config.maxForce);
+                }
+
+                // Weights
+                sep.multiplyScalar(2.0);
+                ali.multiplyScalar(1.0);
+                coh.multiplyScalar(1.0);
+
+                this.applyForce(sep);
+                this.applyForce(ali);
+                this.applyForce(coh);
+            }
+        }
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.set(0, 0, 300);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(100, 100, 50);
+            scene.add(dirLight);
+
+            // Init World
+            resetWorld();
+
+            // Resize Handler
+            window.addEventListener('resize', onWindowResize, false);
+            // Click Handler
+            document.addEventListener('mousedown', onDocumentMouseDown, false);
+
+            // Start Loop
+            document.getElementById('loader').style.opacity = 0;
+            setTimeout(() => document.getElementById('loader').remove(), 1000);
+            animate();
+        }
+
+        function resetWorld() {
+            // Clear existing
+            entities.forEach(e => scene.remove(e.mesh));
+            if (particles) scene.remove(particles);
+            entities = [];
+
+            // Apply Biome Settings
+            const b = biomes[state.biome];
+            scene.background = new THREE.Color(b.bg);
+            scene.fog = new THREE.FogExp2(b.fog, b.fogDensity);
+
+            // Populate
+            for (let i = 0; i < config.entityCount; i++) {
+                let type = Math.random() > 0.8 ? 1 : (Math.random() > 0.6 ? 2 : 0);
+                entities.push(new Entity(i, type));
+            }
+
+            // Create Dust/Stars
+            const partGeo = new THREE.BufferGeometry();
+            const partCount = 400;
+            const posArray = new Float32Array(partCount * 3);
+            for (let i = 0; i < partCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * config.worldSize * 1.5;
+            }
+            partGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const partMat = new THREE.PointsMaterial({
+                color: b.particleColor,
+                size: 2,
+                transparent: true,
+                opacity: 0.6
+            });
+            particles = new THREE.Points(partGeo, partMat);
+            scene.add(particles);
+
+            log(`Entered ${state.biome.toUpperCase()}`);
+            state.nextRippleTime = state.frames + 300;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Interaction ---
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onDocumentMouseDown(event) {
+            // Only interact if selecting
+            if (state.mode !== 'choosing' || state.autoplay) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            for (let hit of intersects) {
+                if (hit.object.userData.entity) {
+                    selectEntity(hit.object.userData.entity);
+                    break;
+                }
+            }
+        }
+
+        function selectEntity(entity) {
+            state.selectedEntity = entity;
+            showChoices();
+        }
+
+        function triggerRippleMode() {
+            state.mode = 'choosing';
+
+            // Pick a candidate automatically if autoplay, or highlight one
+            const candidate = entities[Math.floor(Math.random() * entities.length)];
+
+            if (state.autoplay) {
+                state.selectedEntity = candidate;
+                // Move camera near candidate to show "Machine Dreaming"
+                moveCameraTo(candidate, 100);
+
+                setTimeout(() => {
+                    const opts = biomes[state.biome].vectors;
+                    const choice = opts[Math.floor(Math.random() * opts.length)];
+                    applyRipple(choice);
+                }, 1500);
+            } else {
+                // User must choose
+                log("CYCLE COMPLETE. Select Entity or Wait.");
+                // We don't force selection, user clicks. 
+                // But we can drift camera to a random cluster.
+            }
+        }
+
+        function showChoices() {
+            const overlay = document.getElementById('choice-overlay');
+            const list = document.getElementById('vector-list');
+            list.innerHTML = '';
+
+            const opts = biomes[state.biome].vectors.slice(0, 3); // Just take first 3 for stability or randomize
+
+            opts.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'vector-btn';
+                btn.innerText = opt;
+                btn.onclick = () => applyRipple(opt);
+                list.appendChild(btn);
+            });
+
+            overlay.style.display = 'block';
+        }
+
+        function applyRipple(vectorName) {
+            document.getElementById('choice-overlay').style.display = 'none';
+            log(`RIPPLE: ${vectorName} applied via Entity #${state.selectedEntity.id}`);
+
+            state.mode = 'rippling';
+
+            // --- CINEMA SUTURE: POV SHOT ---
+            // Switch to POV
+            state.povTarget = state.selectedEntity;
+
+            // Apply Physics Logic
+            const epicenter = state.selectedEntity.pos.clone();
+            entities.forEach(e => {
+                if (e === state.selectedEntity) return;
+                const dist = e.pos.distanceTo(epicenter);
+                if (dist < 150) {
+                    let force = new THREE.Vector3();
+                    let dir = new THREE.Vector3().subVectors(e.pos, epicenter).normalize();
+
+                    if (vectorName.includes('Flee') || vectorName.includes('Panic') || vectorName.includes('Flare')) {
+                        force = dir.multiplyScalar(2.5); // Push
+                    } else if (vectorName.includes('Seek') || vectorName.includes('Gravity')) {
+                        force = dir.multiplyScalar(-2.5); // Pull
+                    } else {
+                        // Random turbulence
+                        force.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(3);
+                    }
+                    e.applyForce(force);
+                }
+            });
+
+            // Return to sim after duration
+            setTimeout(() => {
+                state.mode = 'simulating';
+                state.selectedEntity = null;
+                state.povTarget = null;
+                state.nextRippleTime = state.frames + Math.random() * 400 + 300;
+            }, 2500);
+        }
+
+        // --- Camera Logic ---
+        let theta = 0;
+        function updateCamera() {
+            if (state.mode === 'simulating' || state.mode === 'choosing') {
+                // Orbit
+                theta += 0.002;
+                const r = 300;
+                // Soft drift
+                const tx = r * Math.sin(theta);
+                const tz = r * Math.cos(theta);
+                const ty = 100 * Math.sin(theta * 0.5);
+
+                // Lerp current pos to target
+                camera.position.x += (tx - camera.position.x) * 0.05;
+                camera.position.y += (ty - camera.position.y) * 0.05;
+                camera.position.z += (tz - camera.position.z) * 0.05;
+                camera.lookAt(0, 0, 0);
+            }
+            else if (state.mode === 'rippling' && state.povTarget) {
+                // POV / Over-the-shoulder
+                const targetPos = state.povTarget.pos.clone();
+                const velocity = state.povTarget.vel.clone().normalize();
+
+                // Position camera slightly behind and up
+                const camPos = targetPos.clone().sub(velocity.multiplyScalar(20)).add(new THREE.Vector3(0, 10, 0));
+
+                camera.position.lerp(camPos, 0.1);
+                camera.lookAt(targetPos.add(velocity.multiplyScalar(50))); // Look ahead of entity
+            }
+        }
+
+        function moveCameraTo(entity, speed) {
+            // Helper for specific shots (not used extensively yet)
+        }
+
+        // --- Main Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (state.paused) return;
+            state.frames++;
+
+            // Physics Update
+            entities.forEach(e => {
+                // In choosing mode, slow down physics
+                if (state.mode === 'choosing') {
+                    if (state.frames % 3 === 0) { // 1/3 speed
+                        e.flock(entities);
+                        e.update();
+                    }
+                } else {
+                    e.flock(entities);
+                    e.update();
+                }
+            });
+
+            // Logic Triggers
+            if (state.mode === 'simulating' && state.frames >= state.nextRippleTime) {
+                triggerRippleMode();
+            }
+
+            // Render
+            updateCamera();
+            renderer.render(scene, camera);
+        }
+
+        // --- UI Bindings ---
+        const logEl = document.getElementById('event-log');
+        function log(msg) {
+            const div = document.createElement('div');
+            div.className = 'log-entry new';
+            div.innerText = `[${state.frames}] ${msg}`;
+            logEl.insertBefore(div, logEl.firstChild);
+            if (logEl.children.length > 20) logEl.removeChild(logEl.lastChild);
+            setTimeout(() => div.classList.remove('new'), 2000);
+        }
+
+        document.getElementById('biome-select').addEventListener('change', (e) => {
+            state.biome = e.target.value;
+            document.getElementById('current-biome').innerText = state.biome.toUpperCase();
+            resetWorld();
+        });
+
+        document.getElementById('autoplay-btn').addEventListener('click', (e) => {
+            state.autoplay = !state.autoplay;
+            e.target.innerText = `Autoplay: ${state.autoplay ? 'ON' : 'OFF'}`;
+            e.target.classList.toggle('active');
+            if (state.autoplay && state.mode === 'choosing') triggerRippleMode();
+        });
+
+        document.getElementById('pause-btn').addEventListener('click', (e) => {
+            state.paused = !state.paused;
+            e.target.innerText = state.paused ? "RESUME" : "PAUSE";
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            resetWorld();
+            log("World Reset");
+        });
+
+        // Initialize
+        init();
+
+    </script>
+</body>
+
+</html>

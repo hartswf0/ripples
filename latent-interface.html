@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Latent Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --term-bg: #050a05;
+            --term-text: #4af626;
+            --term-dim: #1e5c12;
+            --term-alert: #ff3333;
+            --term-gold: #ffd700;
+            --term-cyan: #00ffff;
+            --term-purple: #a855f7;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--term-bg);
+            color: var(--term-text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Scanline overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1000;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0.1) 0px,
+                    rgba(0, 0, 0, 0.1) 1px,
+                    transparent 1px,
+                    transparent 2px);
+        }
+
+        /* CRT flicker */
+        @keyframes flicker {
+            0% {
+                opacity: 0.97;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.98;
+            }
+        }
+
+        .crt-flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        /* Glow effect */
+        .glow {
+            text-shadow: 0 0 5px var(--term-text), 0 0 10px var(--term-text);
+        }
+
+        .glow-gold {
+            text-shadow: 0 0 5px var(--term-gold), 0 0 10px var(--term-gold);
+        }
+
+        .glow-red {
+            text-shadow: 0 0 5px var(--term-alert), 0 0 10px var(--term-alert);
+        }
+
+        .glow-cyan {
+            text-shadow: 0 0 5px var(--term-cyan), 0 0 10px var(--term-cyan);
+        }
+
+        /* Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            grid-template-rows: 48px 1fr 200px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--term-dim);
+        }
+
+        .panel {
+            background: var(--term-bg);
+            padding: 16px;
+            overflow: auto;
+        }
+
+        .panel-header {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--term-dim);
+            border-bottom: 1px solid var(--term-dim);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        /* Top bar */
+        .top-bar {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--term-dim);
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 4px;
+        }
+
+        .mode-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--term-alert);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-row: 2 / 4;
+        }
+
+        /* Scenario select */
+        .scenario-select {
+            width: 100%;
+            background: #0a150a;
+            border: 1px solid var(--term-dim);
+            color: var(--term-text);
+            padding: 10px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .scenario-select:focus {
+            outline: none;
+            border-color: var(--term-text);
+        }
+
+        /* Entity pool */
+        .entity-item {
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .entity-item:hover {
+            background: #0a150a;
+            border-color: var(--term-dim);
+        }
+
+        .entity-item.selected {
+            background: #0a150a;
+            border-color: var(--term-text);
+            color: var(--term-text);
+        }
+
+        .entity-type {
+            font-size: 9px;
+            color: var(--term-dim);
+            text-transform: uppercase;
+        }
+
+        /* Vector controls */
+        .vector-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .vector-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid;
+            background: transparent;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            color: var(--term-gold);
+            border-color: var(--term-gold);
+        }
+
+        .vector-btn.goal:hover:not(:disabled) {
+            background: var(--term-gold);
+            color: #000;
+        }
+
+        .vector-btn.obstacle {
+            color: var(--term-alert);
+            border-color: var(--term-alert);
+        }
+
+        .vector-btn.obstacle:hover:not(:disabled) {
+            background: var(--term-alert);
+            color: #000;
+        }
+
+        .vector-btn.shift {
+            color: var(--term-cyan);
+            border-color: var(--term-cyan);
+        }
+
+        .vector-btn.shift:hover:not(:disabled) {
+            background: var(--term-cyan);
+            color: #000;
+        }
+
+        /* Worldtext viewport */
+        .worldtext-viewport {
+            grid-column: 2;
+            grid-row: 2;
+            padding: 24px;
+            font-size: 13px;
+            line-height: 1.8;
+            overflow: auto;
+        }
+
+        .worldtext-word {
+            display: inline;
+            transition: all 0.15s;
+        }
+
+        .worldtext-word.entity {
+            color: var(--term-text);
+            cursor: pointer;
+            border-bottom: 1px dashed var(--term-dim);
+        }
+
+        .worldtext-word.entity:hover {
+            text-shadow: 0 0 5px var(--term-text);
+        }
+
+        .worldtext-word.entity.selected {
+            background: #0a150a;
+            padding: 0 4px;
+            border-bottom: 2px solid var(--term-text);
+        }
+
+        .worldtext-word.goal-effect {
+            color: var(--term-gold);
+        }
+
+        .worldtext-word.obstacle-effect {
+            color: var(--term-alert);
+        }
+
+        .worldtext-word.shift-effect {
+            color: var(--term-cyan);
+        }
+
+        /* Latent library panel */
+        .latent-panel {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .latent-description {
+            font-size: 12px;
+            line-height: 1.7;
+            color: #888;
+            padding: 12px;
+            background: #0a0f0a;
+            border-left: 3px solid var(--term-dim);
+            margin-bottom: 12px;
+        }
+
+        .latent-description.active {
+            color: var(--term-text);
+            border-color: var(--term-text);
+        }
+
+        .latent-meta {
+            font-size: 10px;
+            color: var(--term-dim);
+            margin-bottom: 8px;
+        }
+
+        /* Audit log */
+        .audit-log {
+            grid-column: 2 / 4;
+            grid-row: 3;
+            font-size: 11px;
+        }
+
+        .audit-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #0f1f0f;
+            display: flex;
+            gap: 16px;
+        }
+
+        .audit-tick {
+            color: var(--term-dim);
+            min-width: 60px;
+        }
+
+        .audit-entity {
+            color: var(--term-text);
+            min-width: 120px;
+        }
+
+        .audit-vector {
+            min-width: 80px;
+        }
+
+        .audit-vector.goal {
+            color: var(--term-gold);
+        }
+
+        .audit-vector.obstacle {
+            color: var(--term-alert);
+        }
+
+        .audit-vector.shift {
+            color: var(--term-cyan);
+        }
+
+        .audit-result {
+            color: #666;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Autoplay toggle */
+        .autoplay-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #0a0f0a;
+            border: 1px solid var(--term-dim);
+            margin-top: 16px;
+            cursor: pointer;
+        }
+
+        .autoplay-toggle.active {
+            border-color: var(--term-text);
+        }
+
+        .autoplay-switch {
+            width: 40px;
+            height: 20px;
+            background: #0f1f0f;
+            border-radius: 10px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .autoplay-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--term-dim);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+
+        .autoplay-toggle.active .autoplay-switch {
+            background: var(--term-text);
+        }
+
+        .autoplay-toggle.active .autoplay-switch::after {
+            left: 22px;
+            background: #000;
+        }
+
+        /* Next ripple timer */
+        .next-ripple {
+            margin-top: 12px;
+            padding: 16px;
+            background: #001a00;
+            border: 1px solid var(--term-text);
+            text-align: center;
+            display: none;
+        }
+
+        .next-ripple.visible {
+            display: block;
+        }
+
+        .next-ripple-label {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--term-dim);
+            margin-bottom: 4px;
+        }
+
+        .next-ripple-time {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        /* Status bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: #0a0f0a;
+            border-top: 1px solid var(--term-dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 10px;
+            color: var(--term-dim);
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+
+    <div class="app-container crt-flicker">
+        <!-- Top Bar -->
+        <div class="top-bar panel">
+            <div class="logo glow">RIPPLES</div>
+            <div class="mode-indicator">
+                <span id="mode-label">SUPERVISED</span>
+                <div class="live-dot" id="live-dot" style="display: none;"></div>
+                <span>TICK: <span id="tick-count">0</span></span>
+            </div>
+        </div>
+
+        <!-- Sidebar: Scenario + Entity Pool + Vector Controls -->
+        <div class="sidebar panel">
+            <div class="panel-header">SCENARIO</div>
+            <select class="scenario-select" id="scenario-select">
+                <option value="cupboard">THE_CUPBOARD</option>
+                <option value="abandoned-house">ABANDONED_HOUSE</option>
+                <option value="deep-forest">DEEP_FOREST</option>
+                <option value="urban-jungle">URBAN_JUNGLE</option>
+            </select>
+
+            <div class="panel-header">ENTITY POOL</div>
+            <div id="entity-pool"></div>
+
+            <div class="panel-header" style="margin-top: 16px;">VECTORS</div>
+            <div class="vector-controls">
+                <button class="vector-btn goal" id="btn-goal" disabled>GOAL</button>
+                <button class="vector-btn obstacle" id="btn-obstacle" disabled>OBSTACLE</button>
+                <button class="vector-btn shift" id="btn-shift" disabled>SHIFT</button>
+            </div>
+
+            <div class="autoplay-toggle" id="autoplay-toggle">
+                <div class="autoplay-switch"></div>
+                <span style="font-size: 11px;">AUTOPLAY</span>
+            </div>
+
+            <div class="next-ripple" id="next-ripple">
+                <div class="next-ripple-label">NEXT RIPPLE IN</div>
+                <div class="next-ripple-time glow" id="next-ripple-time">3.0s</div>
+            </div>
+        </div>
+
+        <!-- Worldtext Viewport -->
+        <div class="worldtext-viewport panel" id="worldtext-viewport">
+            <div id="worldtext-content"></div>
+        </div>
+
+        <!-- Latent Library Panel -->
+        <div class="latent-panel panel">
+            <div class="panel-header">LATENT LIBRARY</div>
+            <div id="latent-content">
+                <div class="latent-meta">Select an entity to view descriptions</div>
+            </div>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="audit-log panel">
+            <div class="panel-header">AUDIT LOG</div>
+            <div id="audit-entries"></div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span>RIPPLES: LATENT INTERFACE v1.0</span>
+        <span id="status-text">READY</span>
+    </div>
+
+    <script>
+        // ========== DATA: SCENARIOS + LATENT LIBRARY ==========
+        const scenarios = {
+            'cupboard': {
+                name: 'THE CUPBOARD',
+                baseline: 'The cupboard space is pressurized by stillness. Light seeps through marginal cracks. A single dust mote floats in the narrow shaft of illumination. Six tall glasses delimit the left boundary. A stack of twenty ceramic plates compresses the lower shelf space. The wood grain remembers moisture, remembers weight, remembers the slow accumulation of crumbs. In the back corner, a spiderweb stretches between the hinge and the first shelf. An ant explores the perimeter, tracing invisible chemical maps left by previous scouts.',
+                entities: [
+                    { id: 'ant', name: 'Formicidae Scout', type: 'animate', state: 'foraging' },
+                    { id: 'dust-mote', name: 'Dust Mote', type: 'inanimate', state: 'suspended' },
+                    { id: 'glass-01', name: 'Tall Glass', type: 'inanimate', state: 'stationary' },
+                    { id: 'plates', name: 'Plate Stack', type: 'inanimate', state: 'compressed' },
+                    { id: 'light', name: 'Light Shaft', type: 'abstract', state: 'filtering' },
+                    { id: 'shadow', name: 'Shadow', type: 'abstract', state: 'expanding' }
+                ],
+                latent: {
+                    'ant': {
+                        GOAL: 'The Ant entity abandons the boundary cracks, navigating the ceramic topography of the plate stack. It traces an invisible chemical scent-line toward the tall glasses where a residue of dried liquid remains. The dust text blocks are disturbed in its wake. Antennae process gradients. The world becomes a map of sugar probability.',
+                        OBSTACLE: 'The Ant encounters a vertical cliff of ceramic—the plate stack rises like a geological feature. It probes the edge with mandibles. The surface is too smooth. It retreats, recalculating. The chemical trail fades. Alternative routes emerge in its compound vision. The obstacle becomes information.',
+                        SHIFT: 'The Ant enters a state of torpor. External temperature has dropped below threshold. Its metabolism slows. The chemical map dims. It seeks the warmest microclimate—the gap between plate edges where heat accumulates. Identity shifts from scout to survivor. Movement becomes stillness.'
+                    },
+                    'dust-mote': {
+                        GOAL: 'The Dust Mote drifts toward the light source, drawn by thermal currents rising from the shelf. It seeks the illuminated zone—not by intention but by physics. Each photon that strikes its surface transfers momentum. It moves toward brightness like a thought toward clarity.',
+                        OBSTACLE: 'The Dust Mote encounters a downdraft. The convection current reverses. It spirals downward, away from the light shaft. The air becomes opposition. It settles on the rim of a glass, adhering to residual moisture. Stillness replaces motion.',
+                        SHIFT: 'The Dust Mote absorbs moisture from the air. Its mass increases. Its behavior changes from floating to falling. It is no longer the same entity. The transformation is invisible but absolute. From particle to droplet. From air to surface.'
+                    },
+                    'glass-01': {
+                        GOAL: 'The Glass witnesses. Its transparency is a form of attention. Light passes through its walls, carrying information about the cupboard interior. The dried residue at its base is a memory of liquid. It holds shape. It holds history. It waits for the next filling.',
+                        OBSTACLE: 'The Glass encounters vibration—a distant door closing, a footstep on the floor above. Its molecular structure absorbs the tremor. For a moment, it rings at a frequency below human hearing. The dust on its rim shifts. The obstacle becomes music.',
+                        SHIFT: 'The Glass undergoes thermal stress. Temperature differential between interior and exterior creates tension in its walls. Microscopic fractures propagate. It is becoming something else—not yet broken, but no longer whole. The shift is geological in its slowness.'
+                    },
+                    'plates': {
+                        GOAL: 'The Plate Stack seeks equilibrium. Twenty discs of fired clay, each bearing the weight of those above. The goal is compression—to become a single object through pressure. The spaces between plates narrow. Dust is expelled. Unity approaches.',
+                        OBSTACLE: 'The Plate Stack encounters instability. A micro-tremor shifts the foundation. Plate seven slides 0.3mm eastward. The stack wobbles, then settles. But the memory of motion remains. Each plate now knows it could fall.',
+                        SHIFT: 'The Plate Stack absorbs humidity. Clay is porous. Water molecules infiltrate the ceramic matrix. The plates swell imperceptibly. Weight increases. The shift is chemical—a return to the wet earth from which they were formed.'
+                    },
+                    'light': {
+                        GOAL: 'The Light Shaft seeks expansion. It probes the crack in the cupboard door, widening its presence. Photons scatter off dust motes, revealing their trajectories. The goal is visibility—to make the darkness legible. Each particle it touches becomes witness.',
+                        OBSTACLE: 'The Light Shaft encounters shadow. The plate stack blocks its path. A region of darkness persists behind the ceramic wall. The light cannot penetrate. It bends around edges, creating penumbrae. The obstacle defines its boundaries.',
+                        SHIFT: 'The Light Shaft changes color. The sun outside moves. The angle of entry shifts. What was white becomes gold becomes amber. The cupboard interior transforms. Shadows lengthen. The shift is temporal—time made visible through wavelength.'
+                    },
+                    'shadow': {
+                        GOAL: 'The Shadow seeks territory. As light diminishes, it expands. The corners are its domain. It creeps up the walls of the plate stack, consuming visibility. Its goal is totality—to fill the cupboard with its presence. It moves like water, filling every container.',
+                        OBSTACLE: 'The Shadow encounters the light shaft. At the boundary, it cannot advance. The photons are too dense. It waits at the edge, defining the illuminated zone by negative space. The obstacle is its reason for being.',
+                        SHIFT: 'The Shadow deepens. As external light fades, its character changes from gray to black. It stops being the absence of light and becomes a presence. The shift is perceptual—for anyone who might observe, the shadow has become substance.'
+                    }
+                }
+            },
+            'abandoned-house': {
+                name: 'ABANDONED HOUSE',
+                baseline: 'The house has been empty for years. Wallpaper peels in slow spirals. A raccoon has made its den in the basement. Ivy crawls through a broken window. Rain has warped the floorboards into waves. Mold colonies bloom in the bathroom. A door hangs on one hinge, swinging with every draft. The house is not dying—it is becoming something else.',
+                entities: [
+                    { id: 'raccoon', name: 'Raccoon', type: 'animate', state: 'nocturnal' },
+                    { id: 'mold', name: 'Mold Colony', type: 'animate', state: 'expanding' },
+                    { id: 'ivy', name: 'Ivy', type: 'animate', state: 'climbing' },
+                    { id: 'rain', name: 'Rain', type: 'abstract', state: 'infiltrating' },
+                    { id: 'wallpaper', name: 'Wallpaper', type: 'inanimate', state: 'peeling' },
+                    { id: 'door', name: 'Door', type: 'inanimate', state: 'swinging' }
+                ],
+                latent: {
+                    'raccoon': {
+                        GOAL: 'The Raccoon emerges at dusk. Its paws memorize the floorboard topology—which boards creak, which are stable. It seeks the kitchen, where canned goods might remain. Its hands are tools for opening. The goal is sustenance, but also territory.',
+                        OBSTACLE: 'The Raccoon encounters a collapsed ceiling beam. The path to the upper floors is blocked. It circles the obstacle, testing edges with its nose. The house has changed since last night. Adaptation is required.',
+                        SHIFT: 'The Raccoon enters torpor as winter approaches. Its metabolism slows. The basement den becomes a hibernation chamber. Identity shifts from explorer to sleeper. The house continues around it, but the raccoon has become stationary.'
+                    },
+                    'mold': {
+                        GOAL: 'The Mold Colony extends its mycelium toward the bathroom. Moisture concentrations are highest there. Each hyphal thread is a probe, seeking optimal conditions. The goal is not growth but dissolution—breaking down the house into nutrients.',
+                        OBSTACLE: 'The Mold Colony encounters dry plaster. The humidity is insufficient for expansion. Growth pauses at the boundary. The colony consolidates, thickening where it has already claimed. The obstacle creates a frontier.',
+                        SHIFT: 'The Mold Colony sporulates. Conditions have changed—perhaps a window opened, perhaps the season turned. It releases microscopic seeds into the air. The shift is reproductive—the colony is now plural, seeking new territories throughout the house.'
+                    },
+                    'ivy': {
+                        GOAL: 'The Ivy seeks the light. Its tendrils probe the broken window frame, finding purchase in mortar gaps. It climbs toward the sun. The goal is photosynthesis, but the method is conquest—pulling the house apart brick by brick.',
+                        OBSTACLE: 'The Ivy encounters glass. A windowpane remains intact. It cannot pass through transparency. The tendrils spread horizontally, seeking an alternative route. The obstacle redirects but does not stop.',
+                        SHIFT: 'The Ivy changes color. Autumn has arrived. Chlorophyll breaks down, revealing anthocyanins beneath. The tendrils are now red against gray walls. The shift is chemical—the plant is preparing for dormancy.'
+                    },
+                    'rain': {
+                        GOAL: 'The Rain seeks the interior. Every crack in the roof is an opportunity. It infiltrates, following gravity into unexpected channels. The goal is saturation—to fill every porous surface with water. The house becomes sponge.',
+                        OBSTACLE: 'The Rain encounters the remaining roof tiles. Not all entry points are available. It pools on surfaces it cannot penetrate. The obstacle creates delay, not prevention. Eventually, it will find a way.',
+                        SHIFT: 'The Rain freezes. Temperature has dropped. Water becomes ice. The expansion cracks plaster, widens gaps. The shift is physical—from fluid to solid—but the effect is architectural. The house cracks open.'
+                    },
+                    'wallpaper': {
+                        GOAL: 'The Wallpaper seeks release. Adhesive has weakened over decades. Each curl is a movement toward freedom. The goal is separation—to become distinct from the walls that held it. Independence approaches.',
+                        OBSTACLE: 'The Wallpaper encounters humidity. The moisture reactivates the old glue. Sections that were peeling now stick again. The obstacle is chemistry. Freedom is deferred.',
+                        SHIFT: 'The Wallpaper fades. Sunlight has bleached its pattern. What was floral is now abstract. The shift is memory—the original design exists only in the unexposed patches behind furniture that has long since rotted away.'
+                    },
+                    'door': {
+                        GOAL: 'The Door seeks closure. Each swing is an attempt to return to its frame. Wind pushes, gravity pulls. The goal is to latch, to fulfill its purpose. But the frame has warped. Closure is impossible.',
+                        OBSTACLE: 'The Door encounters friction. The bottom edge drags against buckled floorboards. Each swing is harder than the last. The obstacle is the house itself, fighting against function.',
+                        SHIFT: 'The Door loses its hinge. Metal has rusted through. It falls, becoming floor. The shift is categorical—from door to debris. Its function ends. A new opening persists where it used to close.'
+                    }
+                }
+            },
+            'deep-forest': {
+                name: 'DEEP FOREST',
+                baseline: 'The forest floor is a membrane of decomposition and emergence. Fallen oak bark fragments into substrate. Mycelium threads weave through soil matrices. Light filters through canopy gaps in shifting patterns. A deer pauses at the edge of a clearing. An owl waits in the upper branches. A seedling reaches toward a shaft of sun. Everything is connected underground.',
+                entities: [
+                    { id: 'mycelium', name: 'Mycelium Network', type: 'animate', state: 'networking' },
+                    { id: 'deer', name: 'Deer', type: 'animate', state: 'alert' },
+                    { id: 'owl', name: 'Owl', type: 'animate', state: 'waiting' },
+                    { id: 'seedling', name: 'Seedling', type: 'animate', state: 'growing' },
+                    { id: 'fallen-oak', name: 'Fallen Oak', type: 'inanimate', state: 'decomposing' },
+                    { id: 'moonlight', name: 'Moonlight', type: 'abstract', state: 'filtering' }
+                ],
+                latent: {
+                    'mycelium': {
+                        GOAL: 'The Mycelium Network extends exploratory filaments through soil particles. Chemical sensors detect decomposing oak tissue. Growth vectors orient toward nitrogen-rich zones. The network pulses with nutrient transport. Hyphal tips secrete enzymes. The entity spreads like thought through earth.',
+                        OBSTACLE: 'The Mycelium Network encounters rock. The substrate is impenetrable. It routes around, following the path of least resistance. The obstacle defines the network topology. Stone becomes architecture.',
+                        SHIFT: 'The Mycelium Network fruits. Conditions align—moisture, temperature, chemistry. Mushrooms emerge above ground. The shift is reproductive—the hidden becomes visible. Spores will disperse. The network multiplies.'
+                    },
+                    'deer': {
+                        GOAL: 'The Deer moves toward the stream. Thirst is a vector. Its ears rotate, processing sound for threat. Each step is calculation—weight distribution, noise minimization. The goal is water, but survival is the substrate.',
+                        OBSTACLE: 'The Deer freezes. A branch has cracked. Its muscles lock. Eyes dilate. The forest resolves into threat zones. The obstacle might be predator, might be wind. Stillness is response. Information will come.',
+                        SHIFT: 'The Deer enters rut. Hormones flood its system. The world reorganizes around scent trails of potential mates. Its behavior changes—caution decreases, aggression increases. The shift is seasonal but total.'
+                    },
+                    'owl': {
+                        GOAL: 'The Owl calibrates. Its facial disc channels sound toward ears offset by 15 degrees. A mouse moves in the leaf litter below. Location triangulates. Talons flex. The goal is precision—to strike exactly where the prey will be when it arrives.',
+                        OBSTACLE: 'The Owl encounters wind. Air currents distort sound. The acoustic map blurs. It waits for stillness. The obstacle is atmosphere. Patience is the only response.',
+                        SHIFT: 'The Owl calls. The territory must be announced. Its voice carries through the forest, marking boundaries invisible to other senses. The shift is from hunter to sovereign. The forest answers with silence.'
+                    },
+                    'seedling': {
+                        GOAL: 'The Seedling bends toward the light gap. Phototropism is physics. Cells on the shaded side elongate, curving the stem toward the sun. The goal is photosynthesis, but the method is architecture—building a body that maximizes exposure.',
+                        OBSTACLE: 'The Seedling encounters shade. A larger tree blocks the light. Growth slows. Resources redirect to root development. The obstacle triggers adaptation—if it cannot reach the sun, it will strengthen its grip on earth.',
+                        SHIFT: 'The Seedling loses its cotyledons. The first leaves emerge. It is no longer a seedling but a sapling. The shift is developmental—a threshold crossed. New vulnerabilities, new capabilities.'
+                    },
+                    'fallen-oak': {
+                        GOAL: 'The Fallen Oak seeks dissolution. Every organism that colonizes its bark accelerates the process. Fungi, beetle larvae, bacteria—all are collaborators. The goal is nutrient release, returning to the forest what was borrowed.',
+                        OBSTACLE: 'The Fallen Oak encounters drought. Decomposition slows. Fungi go dormant. The wood hardens, mummifies. The obstacle preserves what should dissolve. Time extends.',
+                        SHIFT: 'The Fallen Oak becomes nurse log. Seedlings root in its decomposing tissue. It is no longer a tree but a substrate for trees. The shift is categorical—from organism to ecosystem. Death becomes cradle.'
+                    },
+                    'moonlight': {
+                        GOAL: 'The Moonlight seeks the forest floor. It descends through canopy gaps, illuminating patches of fern and fungi. The goal is visibility—to make the nighttime forest legible. Nocturnal creatures navigate by its reflected sun.',
+                        OBSTACLE: 'The Moonlight encounters cloud. The sky becomes opaque. The forest darkens absolutely. Creatures that hunt by sight pause. The obstacle is meteorological but the effect is existential.',
+                        SHIFT: 'The Moonlight wanes. The lunar cycle advances. Each night, less reaches the forest floor. The shift is rhythmic—a pulse that organisms have internalized. Behavior changes with brightness.'
+                    }
+                }
+            },
+            'urban-jungle': {
+                name: 'URBAN JUNGLE',
+                baseline: 'The alley between buildings is a canyon of concrete. Pigeons roost on ledges. A rat navigates the storm drain. Graffiti tags mark territories invisible to most. A traffic light cycles through its program. Rain has left puddles that reflect neon. Weeds crack through asphalt. The city is an ecology disguised as infrastructure.',
+                entities: [
+                    { id: 'pigeon', name: 'Pigeon', type: 'animate', state: 'roosting' },
+                    { id: 'rat', name: 'Rat', type: 'animate', state: 'foraging' },
+                    { id: 'graffiti', name: 'Graffiti', type: 'abstract', state: 'marking' },
+                    { id: 'traffic-light', name: 'Traffic Light', type: 'inanimate', state: 'cycling' },
+                    { id: 'puddle', name: 'Rain Puddle', type: 'inanimate', state: 'evaporating' },
+                    { id: 'weed', name: 'Sidewalk Weed', type: 'animate', state: 'persisting' }
+                ],
+                latent: {
+                    'pigeon': {
+                        GOAL: 'The Pigeon descends to the food court remnants. Crumbs are currency. It bobs between trash cans, eyes calculating human proximity. The goal is calories. The method is courage—approaching the threat to access the reward.',
+                        OBSTACLE: 'The Pigeon encounters a hawk. The urban canyon has its own predators. It bursts into flight, seeking the safety of ledges. The obstacle is ancestral—a response written in genes. The city returns to wilderness.',
+                        SHIFT: 'The Pigeon nests. Breeding instincts activate. It gathers cigarette filters, twist ties, human hair. The shift is from individual to parent. New vulnerabilities emerge. New aggression protects.'
+                    },
+                    'rat': {
+                        GOAL: 'The Rat follows the storm drain toward the restaurant district. Water is medium, not obstacle. Its whiskers measure tunnel dimensions. The goal is the garbage staging area. Timing is everything—arrive after closing, before collection.',
+                        OBSTACLE: 'The Rat encounters a grate. The path is blocked. It searches for alternatives—a crack in the foundation, a cable conduit. The obstacle is human design. Adaptation is the only response.',
+                        SHIFT: 'The Rat enters torpor. Poison bait has been distributed. Its metabolism slows, processing toxin. Survival is uncertain. The shift is medical—a battle between chemistry and biology. The colony watches from shadows.'
+                    },
+                    'graffiti': {
+                        GOAL: 'The Graffiti seeks visibility. Each tag is a marker—territory claimed, identity announced. The goal is persistence—to remain visible despite buffing crews. The wall becomes a palimpsest of overwriting.',
+                        OBSTACLE: 'The Graffiti encounters paint. The city has covered it with gray. But the outline persists beneath, bleeding through. The obstacle is temporary. Given time, the mark will resurface.',
+                        SHIFT: 'The Graffiti becomes mural. Legitimacy has been conferred. What was vandalism is now art. The shift is social—the same marks, different meaning. The wall is no longer battlefield but canvas.'
+                    },
+                    'traffic-light': {
+                        GOAL: 'The Traffic Light cycles toward green. Its program is immutable—red, yellow, green. The goal is flow—to regulate movement through intersection. It serves a system larger than any single vehicle.',
+                        OBSTACLE: 'The Traffic Light malfunctions. The sensor fails. It locks on red. Traffic accumulates. Horns sound. The obstacle is self—a system that cannot adapt. Humans must intervene.',
+                        SHIFT: 'The Traffic Light goes dark. Power outage. The intersection becomes anarchic. Drivers negotiate eye contact. The shift reveals what the light was masking—the human coordination beneath the automation.'
+                    },
+                    'puddle': {
+                        GOAL: 'The Puddle reflects. It holds the image of neon signs, passing headlights, the moon. The goal is mirroring—to show the city its own face. Each ripple distorts, then clarifies.',
+                        OBSTACLE: 'The Puddle encounters tire. A car passes through. Its surface shatters, reforms. The obstacle is temporary. Water remembers its shape. Reflection resumes.',
+                        SHIFT: 'The Puddle freezes. Black ice. It becomes hazard. The shift is physical but the effect is social—pedestrians slip, cars slide. Water becomes threat.'
+                    },
+                    'weed': {
+                        GOAL: 'The Weed seeks the crack. Its roots probe the gap in asphalt. Water collects there. Nutrients accumulate. The goal is expansion—to widen the crack, colonize the curb. The city will eventually yield.',
+                        OBSTACLE: 'The Weed encounters herbicide. Chemical warfare. Its leaves yellow. Growth pauses. But the root system persists underground. The obstacle is seasonal. Spring will bring return.',
+                        SHIFT: 'The Weed flowers. Against all odds, in the hostile substrate, it reproduces. Seeds disperse across sidewalk cracks. The shift is generational—this individual may die, but the species advances.'
+                    }
+                }
+            }
+        };
+
+        // ========== STATE ==========
+        let currentScenario = 'cupboard';
+        let selectedEntity = null;
+        let tick = 0;
+        let isAutoplay = false;
+        let autoplayInterval = null;
+        let nextRippleTime = 3.0;
+        let rippleCountdown = null;
+        let auditLog = [];
+
+        // ========== DOM ELEMENTS ==========
+        const scenarioSelect = document.getElementById('scenario-select');
+        const entityPool = document.getElementById('entity-pool');
+        const worldtextContent = document.getElementById('worldtext-content');
+        const latentContent = document.getElementById('latent-content');
+        const auditEntries = document.getElementById('audit-entries');
+        const btnGoal = document.getElementById('btn-goal');
+        const btnObstacle = document.getElementById('btn-obstacle');
+        const btnShift = document.getElementById('btn-shift');
+        const autoplayToggle = document.getElementById('autoplay-toggle');
+        const nextRippleEl = document.getElementById('next-ripple');
+        const nextRippleTimeEl = document.getElementById('next-ripple-time');
+        const tickCount = document.getElementById('tick-count');
+        const modeLabel = document.getElementById('mode-label');
+        const liveDot = document.getElementById('live-dot');
+        const statusText = document.getElementById('status-text');
+
+        // ========== RENDER FUNCTIONS ==========
+        function renderEntityPool() {
+            const scenario = scenarios[currentScenario];
+            entityPool.innerHTML = scenario.entities.map(entity => `
+                <div class="entity-item ${selectedEntity?.id === entity.id ? 'selected' : ''}" 
+                     data-entity-id="${entity.id}">
+                    <div>
+                        <div>${entity.name}</div>
+                        <div class="entity-type">${entity.type} / ${entity.state}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Attach click handlers
+            entityPool.querySelectorAll('.entity-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const entityId = item.dataset.entityId;
+                    const entity = scenario.entities.find(e => e.id === entityId);
+                    selectEntity(entity);
+                });
+            });
+        }
+
+        function renderWorldtext(rippleResult = null, vector = null) {
+            const scenario = scenarios[currentScenario];
+            let text = rippleResult || scenario.baseline;
+
+            // Highlight entity names
+            scenario.entities.forEach(entity => {
+                const names = [entity.name, entity.id.replace(/-/g, ' ')];
+                names.forEach(name => {
+                    const regex = new RegExp(`\\b(${name})\\b`, 'gi');
+                    let className = 'entity';
+                    if (selectedEntity?.id === entity.id) {
+                        className += ' selected';
+                        if (vector) {
+                            className += ` ${vector.toLowerCase()}-effect`;
+                        }
+                    }
+                    text = text.replace(regex, `<span class="worldtext-word ${className}" data-entity="${entity.id}">$1</span>`);
+                });
+            });
+
+            worldtextContent.innerHTML = text;
+
+            // Attach click handlers
+            worldtextContent.querySelectorAll('.worldtext-word.entity').forEach(word => {
+                word.addEventListener('click', () => {
+                    const entityId = word.dataset.entity;
+                    const entity = scenario.entities.find(e => e.id === entityId);
+                    selectEntity(entity);
+                });
+            });
+        }
+
+        function renderLatentLibrary() {
+            if (!selectedEntity) {
+                latentContent.innerHTML = '<div class="latent-meta">Select an entity to view descriptions</div>';
+                return;
+            }
+
+            const scenario = scenarios[currentScenario];
+            const latent = scenario.latent[selectedEntity.id];
+
+            if (!latent) {
+                latentContent.innerHTML = '<div class="latent-meta">No latent descriptions available</div>';
+                return;
+            }
+
+            latentContent.innerHTML = `
+                <div class="latent-meta">ENTITY: ${selectedEntity.name.toUpperCase()}</div>
+                <div class="latent-meta" style="color: var(--term-gold); margin-bottom: 12px;">VECTOR: GOAL</div>
+                <div class="latent-description">${latent.GOAL.substring(0, 150)}...</div>
+                <div class="latent-meta" style="color: var(--term-alert);">VECTOR: OBSTACLE</div>
+                <div class="latent-description">${latent.OBSTACLE.substring(0, 150)}...</div>
+                <div class="latent-meta" style="color: var(--term-cyan);">VECTOR: SHIFT</div>
+                <div class="latent-description">${latent.SHIFT.substring(0, 150)}...</div>
+            `;
+        }
+
+        function renderAuditLog() {
+            auditEntries.innerHTML = auditLog.slice(0, 20).map(entry => `
+                <div class="audit-entry">
+                    <span class="audit-tick">[${String(entry.tick).padStart(4, '0')}]</span>
+                    <span class="audit-entity">${entry.entity}</span>
+                    <span class="audit-vector ${entry.vector.toLowerCase()}">${entry.vector}</span>
+                    <span class="audit-result">${entry.result}</span>
+                </div>
+            `).join('');
+        }
+
+        // ========== ACTIONS ==========
+        function selectEntity(entity) {
+            selectedEntity = entity;
+            renderEntityPool();
+            renderWorldtext();
+            renderLatentLibrary();
+            updateVectorButtons();
+            statusText.textContent = entity ? `ENTITY: ${entity.name.toUpperCase()}` : 'READY';
+        }
+
+        function updateVectorButtons() {
+            const disabled = !selectedEntity;
+            btnGoal.disabled = disabled;
+            btnObstacle.disabled = disabled;
+            btnShift.disabled = disabled;
+        }
+
+        function triggerRipple(vector) {
+            if (!selectedEntity) return;
+
+            const scenario = scenarios[currentScenario];
+            const latent = scenario.latent[selectedEntity.id];
+            const result = latent ? latent[vector] : `${selectedEntity.name} experiences ${vector}.`;
+
+            tick++;
+            tickCount.textContent = tick;
+
+            // Add to audit log
+            auditLog.unshift({
+                tick,
+                entity: selectedEntity.name,
+                vector,
+                result: result.substring(0, 80)
+            });
+
+            renderWorldtext(result, vector);
+            renderAuditLog();
+
+            // Flash effect
+            worldtextContent.style.opacity = '0.5';
+            setTimeout(() => {
+                worldtextContent.style.opacity = '1';
+            }, 100);
+
+            statusText.textContent = `RIPPLE: ${selectedEntity.name.toUpperCase()} → ${vector}`;
+        }
+
+        function toggleAutoplay() {
+            isAutoplay = !isAutoplay;
+            autoplayToggle.classList.toggle('active', isAutoplay);
+            modeLabel.textContent = isAutoplay ? 'AUTOPLAY' : 'SUPERVISED';
+            liveDot.style.display = isAutoplay ? 'block' : 'none';
+            nextRippleEl.classList.toggle('visible', isAutoplay);
+
+            if (isAutoplay) {
+                startAutoplay();
+            } else {
+                stopAutoplay();
+            }
+        }
+
+        function startAutoplay() {
+            nextRippleTime = 3.0;
+            rippleCountdown = setInterval(() => {
+                nextRippleTime -= 0.1;
+                nextRippleTimeEl.textContent = nextRippleTime.toFixed(1) + 's';
+
+                if (nextRippleTime <= 0) {
+                    // Random entity and vector
+                    const scenario = scenarios[currentScenario];
+                    const randomEntity = scenario.entities[Math.floor(Math.random() * scenario.entities.length)];
+                    const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                    const randomVector = vectors[Math.floor(Math.random() * vectors.length)];
+
+                    selectEntity(randomEntity);
+                    setTimeout(() => triggerRipple(randomVector), 200);
+
+                    nextRippleTime = 3.0;
+                }
+            }, 100);
+        }
+
+        function stopAutoplay() {
+            if (rippleCountdown) {
+                clearInterval(rippleCountdown);
+                rippleCountdown = null;
+            }
+        }
+
+        function changeScenario(scenarioId) {
+            currentScenario = scenarioId;
+            selectedEntity = null;
+            auditLog = [];
+            tick = 0;
+            tickCount.textContent = '0';
+            renderEntityPool();
+            renderWorldtext();
+            renderLatentLibrary();
+            renderAuditLog();
+            updateVectorButtons();
+            statusText.textContent = `SCENARIO: ${scenarios[scenarioId].name}`;
+        }
+
+        // ========== EVENT LISTENERS ==========
+        scenarioSelect.addEventListener('change', (e) => changeScenario(e.target.value));
+        btnGoal.addEventListener('click', () => triggerRipple('GOAL'));
+        btnObstacle.addEventListener('click', () => triggerRipple('OBSTACLE'));
+        btnShift.addEventListener('click', () => triggerRipple('SHIFT'));
+        autoplayToggle.addEventListener('click', toggleAutoplay);
+
+        // ========== INIT ==========
+        renderEntityPool();
+        renderWorldtext();
+        renderAuditLog();
+    </script>
+</body>
+
+</html>

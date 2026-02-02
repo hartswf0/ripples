@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripples: Imaginary Ecologies</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --ui-color: #e0e0e0;
+            --ui-bg: rgba(10, 10, 10, 0.9);
+            --accent: #ff4d4d;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Cinematic Bars */
+        .cinematic-bar {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 12vh;
+            background-color: #000;
+            z-index: 10;
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .top-bar {
+            top: 0;
+        }
+
+        .bottom-bar {
+            bottom: 0;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            color: var(--ui-color);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 2px;
+            pointer-events: auto;
+        }
+
+        .hud-bottom {
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            color: var(--ui-color);
+            pointer-events: auto;
+        }
+
+        /* Legend */
+        #legend {
+            background: var(--ui-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            font-size: 9px;
+            width: 180px;
+            backdrop-filter: blur(5px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Buttons & Controls */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--ui-color);
+            color: var(--ui-color);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            pointer-events: auto;
+        }
+
+        .btn:hover {
+            background: var(--ui-color);
+            color: var(--bg-color);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Introduction Overlay */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--ui-color);
+            padding: 40px;
+            text-align: center;
+            transition: opacity 1s;
+        }
+
+        .intro-content {
+            max-width: 600px;
+        }
+
+        .intro-content h1 {
+            letter-spacing: 10px;
+            margin-bottom: 30px;
+            font-weight: normal;
+        }
+
+        .intro-content p {
+            line-height: 1.8;
+            opacity: 0.8;
+            margin-bottom: 40px;
+        }
+
+        /* Choice Vectors */
+        #choice-container {
+            position: absolute;
+            pointer-events: auto;
+            display: none;
+            z-index: 30;
+        }
+
+        .vector-option {
+            position: absolute;
+            width: 180px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid;
+            color: #fff;
+            cursor: pointer;
+            font-size: 11px;
+            animation: fadeIn 0.5s forwards;
+            backdrop-filter: blur(10px);
+        }
+
+        .vector-option:hover {
+            transform: scale(1.05);
+        }
+
+        #simulation-status {
+            position: absolute;
+            bottom: 15vh;
+            left: 30px;
+            color: var(--ui-color);
+            font-size: 10px;
+            max-width: 300px;
+            line-height: 1.6;
+            text-shadow: 0 0 5px black;
+        }
+
+        .typewriter::after {
+            content: '_';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Interaction hint */
+        #sculpt-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--ui-color);
+            opacity: 0;
+            pointer-events: none;
+            font-size: 12px;
+            letter-spacing: 2px;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="intro-overlay">
+        <div class="intro-content">
+            <h1>RIPPLES</h1>
+            <p>
+                Welcome to a world simulator of imaginary nonhuman ecologies.<br><br>
+                The system evolves through emergent interactions. You are the catalyst. <br>
+                Between cycles, use your <b>cursor to sculpt</b> the paths of entities.<br>
+                Every 10 seconds, the simulation frames a <b>Ripple Point</b> where you must choose the vector of the
+                next evolutionary shift.
+            </p>
+            <button class="btn" onclick="closeIntro()">BEGIN OBSERVATION</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <div class="cinematic-bar top-bar"></div>
+        <canvas id="world"></canvas>
+        <div class="cinematic-bar bottom-bar"></div>
+
+        <div id="ui-layer">
+            <div class="hud-top">
+                <div>
+                    <span id="scene-name">FOREST SIMULATOR</span>
+                    <br>
+                    <span style="opacity: 0.5; font-size: 9px;" id="entity-count">ENTITIES: 0</span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" id="scene-btn">CYCLE BIOME</button>
+                    <button class="btn" id="auto-btn">AUTOPLAY: OFF</button>
+                    <button class="btn" id="cam-btn">CAM: AUTO</button>
+                </div>
+            </div>
+
+            <div id="simulation-status" class="typewriter">SYSTEM READY.</div>
+
+            <div class="hud-bottom">
+                <div id="legend">
+                    <div class="legend-item">
+                        <div class="swatch" id="s-p1"></div> PASSIVE / PREY
+                    </div>
+                    <div class="legend-item">
+                        <div class="swatch" id="s-p3"></div> AGGRESSOR / PREDATOR
+                    </div>
+                    <div class="legend-item">
+                        <div class="swatch" id="s-p2"></div> ANOMALY / CATALYST
+                    </div>
+                    <div style="margin-top:10px; opacity:0.6; border-top:1px solid #444; padding-top:5px;">
+                        DRAG TO SCULPT FLOW
+                    </div>
+                </div>
+                <div style="font-size: 9px; opacity: 0.5;">
+                    SUTURE PROTOCOL v2.5 // RIPPLES
+                </div>
+            </div>
+        </div>
+
+        <div id="choice-container"></div>
+        <div id="sculpt-hint">SCULPTING FLOW</div>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES - A Cinematic World Simulator
+         */
+
+        const config = {
+            entityCount: 65,
+            cycleDuration: 600,
+            slowMoFactor: 0.05,
+            cameraSpeed: 0.04,
+            colors: {
+                forest: { bg: '#0b1410', p1: '#4a8c6f', p2: '#c9d99e', p3: '#d95b43', deco: '#1a2e25', label: 'WOODLAND' },
+                underwater: { bg: '#08101a', p1: '#4da6ff', p2: '#00ffff', p3: '#ff00aa', deco: '#102030', label: 'THE ABYSS' },
+                space: { bg: '#020205', p1: '#ffffff', p2: '#888888', p3: '#ffcc00', deco: '#ffffff', label: 'ORBITAL' },
+                urban: { bg: '#101015', p1: '#ff0055', p2: '#00ffaa', p3: '#ffff00', deco: '#2a2a2a', label: 'METROPOLIS' }
+            }
+        };
+
+        const state = {
+            scene: 'forest',
+            autoplay: false,
+            manualCam: false,
+            phase: 'simulating',
+            frame: 0,
+            entities: [],
+            decorations: [],
+            camera: { x: 0, y: 0, zoom: 1, targetX: 0, targetY: 0, targetZoom: 1 },
+            selectedEntity: null,
+            width: 0, height: 0,
+            mouse: { x: 0, y: 0, down: false, lastX: 0, lastY: 0 }
+        };
+
+        // --- CORE UTILS ---
+
+        class Vector2 {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { this.x += v.x; this.y += v.y; return this; }
+            sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+            mult(n) { this.x *= n; this.y *= n; return this; }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() {
+                const m = this.mag();
+                if (m > 0) this.mult(1 / m);
+                return this;
+            }
+            limit(max) {
+                if (this.mag() > max) { this.normalize(); this.mult(max); }
+                return this;
+            }
+            dist(v) { return Math.sqrt(Math.pow(this.x - v.x, 2) + Math.pow(this.y - v.y, 2)); }
+            copy() { return new Vector2(this.x, this.y); }
+            heading() { return Math.atan2(this.y, this.x); }
+        }
+
+        // --- WORLD ELEMENTS ---
+
+        class Entity {
+            constructor(x, y, type) {
+                this.pos = new Vector2(x, y);
+                this.vel = new Vector2(Math.random() - 0.5, Math.random() - 0.5);
+                this.acc = new Vector2(0, 0);
+                this.type = type; // 0: prey, 1: predator, 2: anomaly
+                this.maxSpeed = 2 + Math.random();
+                this.maxForce = 0.08;
+                this.r = 4 + Math.random() * 4;
+                this.history = [];
+                this.id = Math.random().toString(36).substr(2, 5);
+                this.pulse = Math.random() * 10;
+                this.state = 'neutral';
+            }
+
+            applyForce(force) { this.acc.add(force); }
+
+            behaviors(entities) {
+                let separate = this.separate(entities);
+                let align = this.align(entities);
+                let cohesion = this.cohesion(entities);
+
+                if (state.scene === 'forest') { separate.mult(1.5); align.mult(1.0); cohesion.mult(1.0); }
+                else if (state.scene === 'underwater') { separate.mult(1.0); align.mult(1.2); cohesion.mult(1.5); }
+                else if (state.scene === 'space') { separate.mult(2.5); align.mult(0.2); cohesion.mult(0.1); }
+                else { separate.mult(1.2); align.mult(0.8); cohesion.mult(0.5); }
+
+                if (this.type === 1) {
+                    let prey = this.findClosest(entities, 0);
+                    if (prey) this.applyForce(this.seek(prey.pos).mult(0.8));
+                } else if (this.type === 0) {
+                    let pred = this.findClosest(entities, 1);
+                    if (pred && this.pos.dist(pred.pos) < 150) {
+                        this.applyForce(this.seek(pred.pos).mult(-2.2));
+                        this.state = 'agitated';
+                    } else { this.state = 'neutral'; }
+                }
+
+                this.applyForce(separate);
+                this.applyForce(align);
+                this.applyForce(cohesion);
+
+                // --- Sculpting Interaction ---
+                if (state.mouse.down) {
+                    // Convert mouse screen to world
+                    let mx = (state.mouse.x - state.width / 2) / state.camera.zoom + state.camera.x;
+                    let my = (state.mouse.y - state.height / 2) / state.camera.zoom + state.camera.y;
+                    let mPos = new Vector2(mx, my);
+                    let d = this.pos.dist(mPos);
+                    if (d < 150) {
+                        let f = this.pos.copy().sub(mPos).normalize();
+                        f.mult(2 / (d * 0.05 + 1)); // Inverse squared-ish falloff
+                        this.applyForce(f);
+                        this.state = 'flowing';
+                    }
+                }
+            }
+
+            findClosest(entities, type) {
+                let record = Infinity; let closest = null;
+                for (let other of entities) {
+                    if (other !== this && other.type === type) {
+                        let d = this.pos.dist(other.pos);
+                        if (d < record) { record = d; closest = other; }
+                    }
+                }
+                return closest;
+            }
+
+            seek(target) {
+                let desired = target.copy().sub(this.pos);
+                desired.normalize().mult(this.maxSpeed);
+                return desired.sub(this.vel).limit(this.maxForce);
+            }
+
+            separate(entities) {
+                let desiredSeparation = 25;
+                let steer = new Vector2(0, 0);
+                let count = 0;
+                for (let other of entities) {
+                    let d = this.pos.dist(other.pos);
+                    if ((other !== this) && (d < desiredSeparation)) {
+                        let diff = this.pos.copy().sub(other.pos).normalize().mult(1 / d);
+                        steer.add(diff); count++;
+                    }
+                }
+                if (count > 0) steer.mult(1 / count);
+                if (steer.mag() > 0) steer.normalize().mult(this.maxSpeed).sub(this.vel).limit(this.maxForce);
+                return steer;
+            }
+
+            align(entities) {
+                let neighborDist = 50; let sum = new Vector2(0, 0); let count = 0;
+                for (let other of entities) {
+                    let d = this.pos.dist(other.pos);
+                    if ((other !== this) && (d < neighborDist)) { sum.add(other.vel); count++; }
+                }
+                if (count > 0) return sum.mult(1 / count).normalize().mult(this.maxSpeed).sub(this.vel).limit(this.maxForce);
+                return new Vector2(0, 0);
+            }
+
+            cohesion(entities) {
+                let neighborDist = 50; let sum = new Vector2(0, 0); let count = 0;
+                for (let other of entities) {
+                    let d = this.pos.dist(other.pos);
+                    if ((other !== this) && (d < neighborDist)) { sum.add(other.pos); count++; }
+                }
+                if (count > 0) return this.seek(sum.mult(1 / count));
+                return new Vector2(0, 0);
+            }
+
+            update(timeScale = 1.0) {
+                this.vel.add(this.acc);
+                this.vel.limit(this.maxSpeed);
+                this.pos.add(this.vel.copy().mult(timeScale));
+                this.acc.mult(0);
+
+                if (this.pos.x < -state.width) this.pos.x = state.width;
+                if (this.pos.y < -state.height) this.pos.y = state.height;
+                if (this.pos.x > state.width) this.pos.x = -state.width;
+                if (this.pos.y > state.height) this.pos.y = -state.height;
+
+                if (state.frame % 6 === 0) {
+                    this.history.push(this.pos.copy());
+                    if (this.history.length > 12) this.history.shift();
+                }
+                this.pulse += 0.05 * timeScale;
+            }
+
+            draw(ctx, palette) {
+                ctx.fillStyle = this.type === 1 ? palette.p3 : (this.type === 2 ? palette.p2 : palette.p1);
+
+                ctx.beginPath();
+                for (let i = 0; i < this.history.length; i++) ctx.lineTo(this.history[i].x, this.history[i].y);
+                ctx.lineTo(this.pos.x, this.pos.y);
+                ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.globalAlpha = 0.2; ctx.stroke(); ctx.globalAlpha = 1.0;
+
+                ctx.beginPath();
+                let size = this.r + Math.sin(this.pulse) * 1.5;
+                if (this.type === 1) {
+                    let h = this.vel.heading();
+                    ctx.moveTo(this.pos.x + Math.cos(h) * size * 2.5, this.pos.y + Math.sin(h) * size * 2.5);
+                    ctx.lineTo(this.pos.x + Math.cos(h + 2.4) * size, this.pos.y + Math.sin(h + 2.4) * size);
+                    ctx.lineTo(this.pos.x + Math.cos(h - 2.4) * size, this.pos.y + Math.sin(h - 2.4) * size);
+                    ctx.fill();
+                } else if (state.scene === 'urban' && this.type === 0) {
+                    ctx.rect(this.pos.x - size, this.pos.y - size, size * 2, size * 2); ctx.fill();
+                } else {
+                    ctx.arc(this.pos.x, this.pos.y, size, 0, Math.PI * 2); ctx.fill();
+                }
+
+                if (this.state === 'agitated' || this.state === 'flowing') {
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, size + 4, 0, Math.PI * 2); ctx.stroke();
+                }
+            }
+        }
+
+        class Decoration {
+            constructor(x, y, scene) {
+                this.pos = new Vector2(x, y); this.scene = scene;
+                this.size = Math.random(); this.variation = Math.random();
+            }
+            draw(ctx, palette) {
+                ctx.fillStyle = palette.deco;
+                if (this.scene === 'forest') {
+                    let h = 100 + this.size * 150; let w = 15 + this.size * 20;
+                    ctx.globalAlpha = 0.2; ctx.fillRect(this.pos.x - w / 2, this.pos.y - h, w, h);
+                    ctx.beginPath(); ctx.moveTo(this.pos.x - w * 3, this.pos.y - h * 0.2); ctx.lineTo(this.pos.x, this.pos.y - h * 1.1); ctx.lineTo(this.pos.x + w * 3, this.pos.y - h * 0.2); ctx.fill();
+                } else if (this.scene === 'underwater') {
+                    let r = 2 + this.size * 15; let floatY = this.pos.y - ((Date.now() * 0.03 * (this.size + 0.5)) % 1200) + 600;
+                    ctx.globalAlpha = 0.1; ctx.beginPath(); ctx.arc(this.pos.x, floatY, r, 0, Math.PI * 2); ctx.fill();
+                } else if (this.scene === 'space') {
+                    let r = 0.5 + this.size * 2; ctx.globalAlpha = 0.4 + Math.sin(Date.now() * 0.001 + this.variation * 10) * 0.3;
+                    ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, r, 0, Math.PI * 2); ctx.fill();
+                } else if (this.scene === 'urban') {
+                    let h = 50 + this.size * 400; let w = 60 + this.size * 100;
+                    ctx.globalAlpha = 0.1; ctx.strokeStyle = palette.deco; ctx.lineWidth = 1;
+                    ctx.strokeRect(this.pos.x - w / 2, this.pos.y - h / 2, w, h);
+                }
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // --- SYSTEM LOGIC ---
+
+        const canvas = document.getElementById('world');
+        const ctx = canvas.getContext('2d');
+        const uiStatus = document.getElementById('simulation-status');
+        const choiceContainer = document.getElementById('choice-container');
+
+        function resize() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            state.width = window.innerWidth; state.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initWorld(sceneType) {
+            state.scene = sceneType; state.entities = []; state.decorations = [];
+            state.frame = 0; state.phase = 'simulating'; state.selectedEntity = null;
+            hideChoices();
+
+            let palette = config.colors[sceneType];
+            document.documentElement.style.setProperty('--bg-color', palette.bg);
+            document.documentElement.style.setProperty('--accent', palette.p3);
+            document.getElementById('s-p1').style.backgroundColor = palette.p1;
+            document.getElementById('s-p2').style.backgroundColor = palette.p2;
+            document.getElementById('s-p3').style.backgroundColor = palette.p3;
+
+            for (let i = 0; i < config.entityCount; i++) {
+                let x = (Math.random() - 0.5) * state.width * 2;
+                let y = (Math.random() - 0.5) * state.height * 2;
+                state.entities.push(new Entity(x, y, Math.random() < 0.12 ? 1 : 0));
+            }
+
+            for (let i = 0; i < 50; i++) {
+                state.decorations.push(new Decoration((Math.random() - 0.5) * state.width * 3, (Math.random() - 0.5) * state.height * 3, sceneType));
+            }
+
+            document.getElementById('scene-name').innerText = `${palette.label} SIMULATOR`;
+            document.getElementById('entity-count').innerText = `ENTITIES: ${state.entities.length}`;
+            setStatus(`ESTABLISHING ${palette.label} EQUILIBRIUM...`);
+        }
+
+        function setStatus(text) {
+            uiStatus.innerText = text;
+            uiStatus.classList.remove('typewriter');
+            void uiStatus.offsetWidth;
+            uiStatus.classList.add('typewriter');
+        }
+
+        function update() {
+            let timeScale = 1.0;
+
+            if (state.phase === 'simulating') {
+                state.frame++;
+                if (!state.manualCam) {
+                    state.camera.targetX = Math.sin(state.frame * 0.0015) * 400;
+                    state.camera.targetY = Math.cos(state.frame * 0.002) * 300;
+                    state.camera.targetZoom = 0.8 + Math.sin(state.frame * 0.001) * 0.2;
+                }
+                if (state.frame % config.cycleDuration === 0) state.phase = 'slowing';
+            } else if (state.phase === 'slowing') {
+                timeScale = config.slowMoFactor;
+                if (!state.selectedEntity) {
+                    let candidates = state.entities.filter(e => e.type === 1 || e.state === 'agitated');
+                    state.selectedEntity = candidates[Math.floor(Math.random() * candidates.length)] || state.entities[0];
+                    setStatus(`OBSERVED SINGULARITY: SUBJECT ${state.selectedEntity.id.toUpperCase()}`);
+                }
+                state.camera.targetX = state.selectedEntity.pos.x;
+                state.camera.targetY = state.selectedEntity.pos.y;
+                state.camera.targetZoom = 2.8;
+                if (Math.abs(state.camera.zoom - state.camera.targetZoom) < 0.1) {
+                    state.phase = 'decision'; showChoices();
+                }
+            } else if (state.phase === 'decision') {
+                timeScale = 0.005;
+                if (state.autoplay && !state.autoTimer) state.autoTimer = setTimeout(autoSelect, 2000);
+            } else if (state.phase === 'ripple') {
+                timeScale = 0.4;
+                if (!state.rippleTimer) {
+                    state.rippleTimer = setTimeout(() => {
+                        state.phase = 'simulating'; state.rippleTimer = null; state.selectedEntity = null;
+                        setStatus("Divergence mapped. Resuming flow.");
+                    }, 3000);
+                }
+            }
+
+            for (let e of state.entities) { e.behaviors(state.entities); e.update(timeScale); }
+
+            state.camera.x += (state.camera.targetX - state.camera.x) * config.cameraSpeed;
+            state.camera.y += (state.camera.targetY - state.camera.y) * config.cameraSpeed;
+            state.camera.zoom += (state.camera.targetZoom - state.camera.zoom) * config.cameraSpeed;
+        }
+
+        function draw() {
+            let palette = config.colors[state.scene];
+            ctx.fillStyle = palette.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(state.camera.zoom, state.camera.zoom);
+            ctx.translate(-state.camera.x, -state.camera.y);
+
+            for (let d of state.decorations) d.draw(ctx, palette);
+
+            ctx.strokeStyle = palette.p2; ctx.lineWidth = 1; ctx.globalAlpha = 0.03;
+            ctx.beginPath();
+            for (let i = -3000; i < 3000; i += 300) {
+                ctx.moveTo(i, -3000); ctx.lineTo(i, 3000);
+                ctx.moveTo(-3000, i); ctx.lineTo(3000, i);
+            }
+            ctx.stroke(); ctx.globalAlpha = 1.0;
+
+            for (let e of state.entities) e.draw(ctx, palette);
+
+            // Sculpting Feedback
+            if (state.mouse.down) {
+                let mx = (state.mouse.x - state.width / 2) / state.camera.zoom + state.camera.x;
+                let my = (state.mouse.y - state.height / 2) / state.camera.zoom + state.camera.y;
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.2;
+                ctx.beginPath(); ctx.arc(mx, my, 150, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(mx, my, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            ctx.restore();
+            requestAnimationFrame(() => { update(); draw(); });
+        }
+
+        // --- INTERFACE ---
+
+        function closeIntro() {
+            document.getElementById('intro-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('intro-overlay').style.display = 'none', 1000);
+            initWorld('forest');
+            draw();
+        }
+
+        const optionsData = [
+            { label: "INDUCE PANIC", type: 'scatter', color: '#ff4d4d' },
+            { label: "FORCE COHESION", type: 'gather', color: '#4dffaa' },
+            { label: "GENERATE ANOMALY", type: 'spawn', color: '#00ffff' },
+            { label: "ACCELERATE METABOLISM", type: 'rush', color: '#ffff00' }
+        ];
+
+        function showChoices() {
+            let choices = [];
+            while (choices.length < 3) {
+                let opt = optionsData[Math.floor(Math.random() * optionsData.length)];
+                if (!choices.includes(opt)) choices.push(opt);
+            }
+            choiceContainer.innerHTML = '';
+            let sx = (state.selectedEntity.pos.x - state.camera.x) * state.camera.zoom + canvas.width / 2;
+            let sy = (state.selectedEntity.pos.y - state.camera.y) * state.camera.zoom + canvas.height / 2;
+            choiceContainer.style.left = `${sx}px`; choiceContainer.style.top = `${sy}px`; choiceContainer.style.display = 'block';
+
+            choices.forEach((opt, index) => {
+                let el = document.createElement('div'); el.className = 'vector-option';
+                let angle = (index - 1) * 40; el.style.transform = `rotate(${angle}deg) translateX(100px) rotate(${-angle}deg)`;
+                el.style.borderColor = opt.color; el.style.color = opt.color;
+                el.innerHTML = opt.label;
+                el.onclick = () => applyDecision(opt);
+                choiceContainer.appendChild(el);
+            });
+        }
+
+        function hideChoices() { choiceContainer.style.display = 'none'; }
+
+        function applyDecision(option) {
+            if (state.phase !== 'decision') return;
+            setStatus(`RIPPLE EFFECT: ${option.label}`); hideChoices();
+            let e = state.selectedEntity;
+            let neighbors = state.entities.filter(ent => ent.pos.dist(e.pos) < 250);
+
+            if (option.type === 'scatter') {
+                neighbors.forEach(n => n.applyForce(n.pos.copy().sub(e.pos).normalize().mult(8)));
+            } else if (option.type === 'gather') {
+                neighbors.forEach(n => n.applyForce(e.pos.copy().sub(n.pos).normalize().mult(4)));
+            } else if (option.type === 'rush') {
+                neighbors.forEach(n => n.maxSpeed *= 1.8);
+            } else if (option.type === 'spawn') {
+                let anomaly = new Entity(e.pos.x, e.pos.y, 2); anomaly.r = 15; state.entities.push(anomaly);
+            }
+            state.phase = 'ripple';
+            if (state.autoTimer) { clearTimeout(state.autoTimer); state.autoTimer = null; }
+        }
+
+        function autoSelect() {
+            if (state.phase === 'decision') applyDecision(optionsData[Math.floor(Math.random() * optionsData.length)]);
+        }
+
+        // Interaction Listeners
+        canvas.addEventListener('mousedown', (e) => {
+            state.mouse.down = true; state.mouse.x = e.clientX; state.mouse.y = e.clientY;
+            if (state.phase === 'simulating') document.getElementById('sculpt-hint').style.opacity = '0.5';
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            state.mouse.x = e.clientX; state.mouse.y = e.clientY;
+            if (state.manualCam && state.mouse.down) {
+                state.camera.targetX -= (e.clientX - state.mouse.lastX) / state.camera.zoom;
+                state.camera.targetY -= (e.clientY - state.mouse.lastY) / state.camera.zoom;
+            }
+            state.mouse.lastX = e.clientX; state.mouse.lastY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => {
+            state.mouse.down = false;
+            document.getElementById('sculpt-hint').style.opacity = '0';
+        });
+        canvas.addEventListener('wheel', (e) => {
+            if (state.manualCam) {
+                state.camera.targetZoom *= (e.deltaY > 0 ? 0.9 : 1.1);
+                state.camera.targetZoom = Math.max(0.2, Math.min(5, state.camera.targetZoom));
+            }
+        });
+
+        // UI Listeners
+        document.getElementById('scene-btn').addEventListener('click', () => {
+            const s = ['forest', 'underwater', 'space', 'urban'];
+            initWorld(s[(s.indexOf(state.scene) + 1) % s.length]);
+        });
+        document.getElementById('auto-btn').addEventListener('click', (e) => {
+            state.autoplay = !state.autoplay; e.target.innerText = `AUTOPLAY: ${state.autoplay ? 'ON' : 'OFF'}`;
+            e.target.classList.toggle('active');
+        });
+        document.getElementById('cam-btn').addEventListener('click', (e) => {
+            state.manualCam = !state.manualCam; e.target.innerText = `CAM: ${state.manualCam ? 'MANUAL' : 'AUTO'}`;
+            e.target.classList.toggle('active');
+            if (!state.manualCam) setStatus("Cinematic tracking restored.");
+            else setStatus("Camera control decoupled. Drag to pan.");
+        });
+
+    </script>
+</body>
+
+</html>

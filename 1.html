@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripples: Imaginary Ecologies</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --text-color: #e0e6ed;
+            --accent-color: #64ffda;
+            --panel-bg: rgba(15, 17, 21, 0.85);
+            --font-main: 'Courier New', Courier, monospace;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Overlays */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            /* Let clicks pass through to canvas where needed */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        .hud-panel {
+            pointer-events: auto;
+            background: var(--panel-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            max-width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0 0 0.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        label {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-color);
+            padding: 0.5rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        button:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        button.active {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Vector Choice Popup */
+        #vector-menu {
+            position: absolute;
+            pointer-events: auto;
+            background: rgba(15, 17, 21, 0.95);
+            border: 1px solid var(--accent-color);
+            padding: 1rem;
+            border-radius: 4px;
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 200px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #vector-menu h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.3rem;
+        }
+
+        .vector-option {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .vector-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #status-readout {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            line-height: 1.4;
+            min-height: 3em;
+        }
+
+        /* Responsive text */
+        @media (max-width: 600px) {
+            #ui-layer {
+                padding: 1rem;
+            }
+
+            .hud-panel {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container">
+        <canvas id="sim-canvas"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <!-- Top Left: System Stats & Modes -->
+        <div class="hud-panel">
+            <h1>Ripples</h1>
+            <div id="status-readout">Initializing ecology...<br>Waiting for input.</div>
+
+            <div class="controls" style="margin-top: 1rem;">
+                <div class="control-group">
+                    <label>Simulation Mode</label>
+                    <button id="btn-autoplay">Autoplay: OFF</button>
+                    <button id="btn-reset">Reset Ecology</button>
+                </div>
+                <div class="control-group">
+                    <label>Environment</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                        <button class="scene-btn active" data-scene="forest">Forest</button>
+                        <button class="scene-btn" data-scene="underwater">Deep Sea</button>
+                        <button class="scene-btn" data-scene="space">Void</button>
+                        <button class="scene-btn" data-scene="urban">Urban</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Right: Hints -->
+        <div class="hud-panel" style="align-self: flex-end; text-align: right;">
+            <label>Interaction</label>
+            <div style="font-size: 0.8rem; margin-top:0.2rem;">
+                Click an entity to inject a vector.<br>
+                Observe emergent behavior.
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Vectors -->
+    <div id="vector-menu">
+        <h3>Select Vector</h3>
+        <div class="vector-option" id="opt-1">Shift Trajectory</div>
+        <div class="vector-option" id="opt-2">Introduce Obstacle</div>
+        <div class="vector-option" id="opt-3">Set Goal</div>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES: Imaginary Ecologies Engine
+         */
+
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const vectorMenu = document.getElementById('vector-menu');
+        const statusReadout = document.getElementById('status-readout');
+        const btnAutoplay = document.getElementById('btn-autoplay');
+        const sceneBtns = document.querySelectorAll('.scene-btn');
+
+        // State
+        let width, height;
+        let entities = [];
+        let ripples = [];
+        let particles = []; // For visual effects
+        let lastTime = 0;
+        let isAutoplay = false;
+        let selectedEntity = null;
+        let pausedForSelection = false;
+
+        // Scene Configuration
+        const SCENES = {
+            forest: {
+                bg: '#1a2421',
+                entityColor: ['#8fbc8f', '#2e8b57', '#98fb98'],
+                friction: 0.95,
+                connectionDist: 100,
+                behavior: 'flocking',
+                entityCount: 30,
+                name: 'Imaginary Forest'
+            },
+            underwater: {
+                bg: '#001e2b',
+                entityColor: ['#00ced1', '#48d1cc', '#40e0d0'],
+                friction: 0.92,
+                connectionDist: 150,
+                behavior: 'fluid',
+                entityCount: 40,
+                name: 'Deep Sea'
+            },
+            space: {
+                bg: '#050505',
+                entityColor: ['#e6e6fa', '#dda0dd', '#ffffff'],
+                friction: 0.99,
+                connectionDist: 200,
+                behavior: 'orbital',
+                entityCount: 20,
+                name: 'The Void'
+            },
+            urban: {
+                bg: '#2c2c2c',
+                entityColor: ['#ff0055', '#ccff00', '#00ccff'],
+                friction: 0.85,
+                connectionDist: 80,
+                behavior: 'grid',
+                entityCount: 50,
+                name: 'Urban Jungle'
+            }
+        };
+
+        let currentScene = SCENES.forest;
+
+        // --- Classes ---
+
+        class Vector {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { this.x += v.x; this.y += v.y; return this; }
+            sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+            mult(n) { this.x *= n; this.y *= n; return this; }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() {
+                let m = this.mag();
+                if (m !== 0) this.mult(1 / m);
+                return this;
+            }
+            limit(max) {
+                if (this.mag() > max) {
+                    this.normalize().mult(max);
+                }
+                return this;
+            }
+            static dist(v1, v2) {
+                return Math.sqrt(Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2));
+            }
+        }
+
+        class Entity {
+            constructor(x, y) {
+                this.pos = new Vector(x, y);
+                this.vel = new Vector(Math.random() * 2 - 1, Math.random() * 2 - 1);
+                this.acc = new Vector(0, 0);
+                this.maxSpeed = 2 + Math.random();
+                this.maxForce = 0.05;
+                this.radius = 4 + Math.random() * 6;
+                this.color = currentScene.entityColor[Math.floor(Math.random() * currentScene.entityColor.length)];
+                this.id = Math.random().toString(36).substr(2, 9);
+
+                // State
+                this.mode = 'wander'; // wander, flee, seek, interact
+                this.target = null;
+                this.timer = 0;
+            }
+
+            applyForce(force) {
+                this.acc.add(force);
+            }
+
+            update() {
+                // Bounds
+                if (this.pos.x < 0) this.pos.x = width;
+                if (this.pos.x > width) this.pos.x = 0;
+                if (this.pos.y < 0) this.pos.y = height;
+                if (this.pos.y > height) this.pos.y = 0;
+
+                // Physics
+                this.vel.add(this.acc);
+                this.vel.limit(this.maxSpeed);
+                this.vel.mult(currentScene.friction); // Drag
+                this.pos.add(this.vel);
+                this.acc.mult(0); // Reset acc
+
+                // Logic based on scene
+                if (currentScene.behavior === 'flocking') this.flock(entities);
+                else if (currentScene.behavior === 'fluid') this.fluidDynamics();
+                else if (currentScene.behavior === 'orbital') this.gravity(entities);
+                else if (currentScene.behavior === 'grid') this.gridMove();
+
+                // Specific Vector Override
+                if (this.mode === 'seek' && this.target) {
+                    let desired = new Vector(this.target.x, this.target.y).sub(this.pos);
+                    desired.normalize().mult(this.maxSpeed * 1.5);
+                    let steer = desired.sub(this.vel).limit(this.maxForce * 2);
+                    this.applyForce(steer);
+
+                    if (Vector.dist(this.pos, this.target) < 10) {
+                        this.mode = 'wander';
+                        this.target = null;
+                    }
+                }
+
+                if (this.mode === 'flee' && this.target) {
+                    let desired = new Vector(this.pos.x, this.pos.y).sub(new Vector(this.target.x, this.target.y));
+                    desired.normalize().mult(this.maxSpeed * 2);
+                    let steer = desired.sub(this.vel).limit(this.maxForce * 3);
+                    this.applyForce(steer);
+                    this.timer--;
+                    if (this.timer <= 0) this.mode = 'wander';
+                }
+
+                // Interaction jitter
+                if (Math.random() < 0.01) {
+                    this.vel.add(new Vector(Math.random() - 0.5, Math.random() - 0.5));
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                // Highlight if selected
+                if (selectedEntity === this) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, this.radius + 10 + Math.sin(Date.now() / 200) * 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.stroke();
+                }
+            }
+
+            // --- Behaviors ---
+
+            flock(boids) {
+                let sep = new Vector(0, 0);
+                let count = 0;
+                for (let other of boids) {
+                    let d = Vector.dist(this.pos, other.pos);
+                    if (other !== this && d < 40) {
+                        let diff = new Vector(this.pos.x, this.pos.y).sub(other.pos);
+                        diff.normalize().mult(1 / d); // Weight by distance
+                        sep.add(diff);
+                        count++;
+                    }
+                }
+                if (count > 0) {
+                    sep.mult(1 / count).normalize().mult(this.maxSpeed).sub(this.vel).limit(this.maxForce * 1.5);
+                    this.applyForce(sep);
+                }
+            }
+
+            fluidDynamics() {
+                // Sine wave motion
+                let force = new Vector(Math.cos(this.pos.y * 0.01 + Date.now() * 0.001), Math.sin(this.pos.x * 0.01));
+                force.mult(0.05);
+                this.applyForce(force);
+            }
+
+            gravity(bodies) {
+                // Simple attraction to center + mild attraction to others
+                let center = new Vector(width / 2, height / 2);
+                let toCenter = center.sub(this.pos).normalize().mult(0.02);
+                this.applyForce(toCenter);
+            }
+
+            gridMove() {
+                // Snap velocity to 90 degrees occasionally
+                if (Math.random() < 0.05) {
+                    if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
+                        this.vel.y = this.vel.x;
+                        this.vel.x = 0;
+                    } else {
+                        this.vel.x = this.vel.y;
+                        this.vel.y = 0;
+                    }
+                }
+            }
+        }
+
+        class Ripple {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.r = 0;
+                this.maxR = 300;
+                this.opacity = 1;
+                this.life = 100;
+            }
+            update() {
+                this.r += 4;
+                this.life--;
+                this.opacity = this.life / 100;
+            }
+            draw(ctx) {
+                if (this.opacity <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // --- System Functions ---
+
+        function init() {
+            resize();
+            resetEntities();
+            loop();
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        function resetEntities() {
+            entities = [];
+            for (let i = 0; i < currentScene.entityCount; i++) {
+                entities.push(new Entity(Math.random() * width, Math.random() * height));
+            }
+            updateStatus(`System loaded: ${currentScene.name}`);
+        }
+
+        function changeScene(key) {
+            currentScene = SCENES[key];
+            document.body.style.backgroundColor = currentScene.bg;
+
+            // Update UI buttons
+            sceneBtns.forEach(btn => {
+                if (btn.dataset.scene === key) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            resetEntities();
+        }
+
+        function updateStatus(text) {
+            statusReadout.innerHTML = text;
+        }
+
+        // --- Interaction Logic ---
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (pausedForSelection) {
+                // Click elsewhere to cancel selection
+                closeMenu();
+                return;
+            }
+
+            const mouse = new Vector(e.clientX, e.clientY);
+            let clicked = null;
+            let minDist = 30;
+
+            // Find clicked entity
+            for (let ent of entities) {
+                let d = Vector.dist(mouse, ent.pos);
+                if (d < minDist) {
+                    minDist = d;
+                    clicked = ent;
+                }
+            }
+
+            if (clicked) {
+                selectedEntity = clicked;
+                pausedForSelection = true; // Pause physics to make decision
+                showVectorMenu(e.clientX, e.clientY);
+            } else {
+                // Just create a visual ripple if clicked on empty space
+                ripples.push(new Ripple(mouse.x, mouse.y));
+            }
+        });
+
+        function showVectorMenu(x, y) {
+            // Generate context-aware options based on entity and scene
+            const opts = [
+                { label: "Vector: Repulsion", action: "repel" },
+                { label: "Vector: Attraction", action: "attract" },
+                { label: "Vector: Chaos", action: "chaos" },
+                { label: "Goal: Center", action: "center" },
+                { label: "State: Dormant", action: "stop" }
+            ];
+
+            // Shuffle and pick 3
+            const choices = opts.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            const menu = document.getElementById('vector-menu');
+            menu.innerHTML = `<h3>Select Vector for Entity</h3>`;
+
+            choices.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'vector-option';
+                div.innerText = c.label;
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    applyVector(c.action);
+                };
+                menu.appendChild(div);
+            });
+
+            // Positioning logic to keep on screen
+            let menuX = x + 20;
+            let menuY = y;
+            if (menuX + 200 > width) menuX = x - 220;
+            if (menuY + 150 > height) menuY = y - 150;
+
+            menu.style.left = menuX + 'px';
+            menu.style.top = menuY + 'px';
+            menu.style.display = 'flex';
+        }
+
+        function closeMenu() {
+            document.getElementById('vector-menu').style.display = 'none';
+            pausedForSelection = false;
+            selectedEntity = null;
+        }
+
+        function applyVector(action) {
+            if (!selectedEntity) return;
+
+            ripples.push(new Ripple(selectedEntity.pos.x, selectedEntity.pos.y));
+
+            const center = new Vector(width / 2, height / 2);
+
+            switch (action) {
+                case 'repel':
+                    updateStatus(`Vector Applied: Repulsion.<br>Entity pushes others away.`);
+                    // Affect neighbors
+                    entities.forEach(e => {
+                        if (Vector.dist(e.pos, selectedEntity.pos) < 200) {
+                            e.mode = 'flee';
+                            e.target = { x: selectedEntity.pos.x, y: selectedEntity.pos.y };
+                            e.timer = 100;
+                        }
+                    });
+                    break;
+                case 'attract':
+                    updateStatus(`Vector Applied: Attraction.<br>Entity pulls system locally.`);
+                    entities.forEach(e => {
+                        if (Vector.dist(e.pos, selectedEntity.pos) < 300) {
+                            e.mode = 'seek';
+                            e.target = { x: selectedEntity.pos.x, y: selectedEntity.pos.y };
+                        }
+                    });
+                    break;
+                case 'center':
+                    updateStatus(`Vector Applied: Goal.<br>Entity seeks the center.`);
+                    selectedEntity.mode = 'seek';
+                    selectedEntity.target = { x: width / 2, y: height / 2 };
+                    break;
+                case 'stop':
+                    updateStatus(`Vector Applied: Stasis.<br>Entity stops moving.`);
+                    selectedEntity.vel.mult(0);
+                    selectedEntity.acc.mult(0);
+                    break;
+                case 'chaos':
+                    updateStatus(`Vector Applied: Chaos.<br>Local turbulence increased.`);
+                    entities.forEach(e => {
+                        if (Vector.dist(e.pos, selectedEntity.pos) < 200) {
+                            e.vel = new Vector(Math.random() * 10 - 5, Math.random() * 10 - 5);
+                        }
+                    });
+                    break;
+            }
+
+            closeMenu();
+        }
+
+        // --- Autoplay Logic ---
+
+        let autoPlayTimer = 0;
+        function handleAutoplay() {
+            if (!isAutoplay || pausedForSelection) return;
+
+            autoPlayTimer++;
+            if (autoPlayTimer > 120) { // Every 2 seconds approx
+                autoPlayTimer = 0;
+                // Pick random entity
+                let ent = entities[Math.floor(Math.random() * entities.length)];
+                if (ent) {
+                    selectedEntity = ent; // Temporarily select for logic
+                    const actions = ['repel', 'attract', 'chaos', 'center'];
+                    const action = actions[Math.floor(Math.random() * actions.length)];
+                    applyVector(action);
+                    selectedEntity = null; // Deselect immediately
+                }
+            }
+        }
+
+        // --- Main Loop ---
+
+        function drawConnections() {
+            ctx.lineWidth = 1;
+            for (let i = 0; i < entities.length; i++) {
+                for (let j = i + 1; j < entities.length; j++) {
+                    let d = Vector.dist(entities[i].pos, entities[j].pos);
+                    if (d < currentScene.connectionDist) {
+                        let alpha = 1 - (d / currentScene.connectionDist);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.15})`;
+                        ctx.beginPath();
+                        ctx.moveTo(entities[i].pos.x, entities[i].pos.y);
+                        ctx.lineTo(entities[j].pos.x, entities[j].pos.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function loop() {
+            requestAnimationFrame(loop);
+
+            // Clear with trail effect
+            ctx.fillStyle = currentScene.bg + '40'; // Hex + alpha for trail
+            ctx.fillRect(0, 0, width, height);
+
+            handleAutoplay();
+
+            // Draw Ripples
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                ripples[i].update();
+                ripples[i].draw(ctx);
+                if (ripples[i].life <= 0) ripples.splice(i, 1);
+            }
+
+            // Draw Connections
+            drawConnections();
+
+            // Update & Draw Entities
+            for (let ent of entities) {
+                if (!pausedForSelection) ent.update();
+                ent.draw(ctx);
+            }
+        }
+
+        // --- Event Listeners UI ---
+
+        window.addEventListener('resize', resize);
+
+        btnAutoplay.addEventListener('click', () => {
+            isAutoplay = !isAutoplay;
+            btnAutoplay.innerText = isAutoplay ? "Autoplay: ON" : "Autoplay: OFF";
+            btnAutoplay.classList.toggle('active');
+            updateStatus(isAutoplay ? "System taking control.<br>Observing emergent patterns." : "Manual Control.<br>Waiting for human vector input.");
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            ripples = [];
+            resetEntities();
+        });
+
+        sceneBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                changeScene(e.target.dataset.scene);
+            });
+        });
+
+        // Initialize
+        init();
+
+    </script>
+</body>
+
+</html>

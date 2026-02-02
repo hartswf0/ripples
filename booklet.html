@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Operative Ecologies in the Worldtext — Booklet</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fefefe;
+            --text: #111;
+            --accent: #000;
+            --dim: #666;
+            --light: #ccc;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .page {
+                page-break-after: always;
+                box-shadow: none;
+                border: none;
+            }
+
+            .page:last-child {
+                page-break-after: auto;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #e8e8e8;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .booklet {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page {
+            background: var(--bg);
+            padding: 48px 56px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            min-height: 900px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin: 2rem 0 0.8rem;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 4px;
+        }
+
+        h3 {
+            font-size: 1rem;
+            margin: 1.5rem 0 0.5rem;
+            color: var(--dim);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--dim);
+            font-style: italic;
+            margin-bottom: 2rem;
+        }
+
+        ul {
+            margin: 1rem 0 1rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .box {
+            background: #f4f4f4;
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            margin: 1.5rem 0;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 1.5rem 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin: 1.5rem 0;
+        }
+
+        .img-frame {
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .img-frame img {
+            width: 100%;
+            display: block;
+        }
+
+        .caption {
+            font-size: 0.75rem;
+            color: var(--dim);
+            text-align: center;
+            padding: 8px;
+            background: #f9f9f9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f4f4f4;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .toc-item span:last-child {
+            color: var(--dim);
+        }
+
+        .footer-meta {
+            margin-top: 4rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+            font-size: 0.75rem;
+            color: var(--dim);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .cover-meta {
+            position: absolute;
+            bottom: 48px;
+            left: 56px;
+            right: 56px;
+            font-size: 0.8rem;
+            color: var(--dim);
+        }
+
+        .page.cover {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .highlight {
+            background: #fffde7;
+            padding: 2px 4px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #f4f4f4;
+            padding: 2px 6px;
+            font-size: 0.85em;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="booklet">
+
+        <!-- COVER PAGE -->
+        <div class="page cover">
+            <h1>RIPPLES: OPERATIVE ECOLOGIES IN THE WORLDTEXT</h1>
+            <p class="subtitle">
+                Imaginary Relationalities<br>
+                Forest Simulator<br>
+                Imaginary Ecologies
+            </p>
+
+            <h2>Abstract</h2>
+            <p>
+                A world simulator that creates emergent interactions between entities in imaginary, nonhuman ecologies.
+                The system lets humans imagine and hallucinate. Auto play interfaces the humans imagine and hallucinate.
+                Auto play mode nopuls on; otherwise and lets the simulation play out, or human selects entities and
+                vector for next ripple.
+            </p>
+
+            <h2>What is Important?</h2>
+            <ul>
+                <li><strong>Creating movement...</strong> three possible vectors (shift, goal, obstacle)</li>
+                <li><strong>Entity perspective...</strong> agency in this cycle</li>
+                <li><strong>Human selects...</strong> vector/factor/force</li>
+                <li><strong>Autoplay mode...</strong> system selects</li>
+                <li><strong>Narrative is NOT important...</strong> goals are short term</li>
+            </ul>
+
+            <div class="cover-meta">
+                ELO 2026 — Atlanta, GA &nbsp;&nbsp;|&nbsp;&nbsp; Performance Documentation &nbsp;&nbsp;|&nbsp;&nbsp;
+                v1.2
+            </div>
+        </div>
+
+        <!-- TABLE OF CONTENTS -->
+        <div class="page">
+            <h2>Table of Contents</h2>
+            <div class="toc-item"><span>1. Introduction: The Worldtext</span><span>3</span></div>
+            <div class="toc-item"><span>2. Core Concepts</span><span>4</span></div>
+            <div class="toc-item"><span>3. The Cupboard Scenario</span><span>5</span></div>
+            <div class="toc-item"><span>4. Supervised Mode (Human-in-the-Loop)</span><span>6</span></div>
+            <div class="toc-item"><span>5. Unsupervised Mode (Autoplay)</span><span>7</span></div>
+            <div class="toc-item"><span>6. Live Performance (ELO 2026)</span><span>8</span></div>
+            <div class="toc-item"><span>7. Expanded Ecologies</span><span>9</span></div>
+            <div class="toc-item"><span>8. System Architecture</span><span>10</span></div>
+            <div class="toc-item"><span>9. UI Pattern Library</span><span>11</span></div>
+            <div class="toc-item"><span>10. CSS Conventions</span><span>12</span></div>
+            <div class="toc-item"><span>Appendix A: Image-to-Prompt Catalog</span><span>13</span></div>
+
+            <h2>About This Document</h2>
+            <p>
+                This booklet accompanies the live performance of <strong>RIPPLES: Operative Ecologies in the
+                    Worldtext</strong>, presented at ELO 2026 in Atlanta, GA. It documents the system's architecture,
+                its core concepts, and the patterns used to build its interfaces.
+            </p>
+            <p>
+                The project explores <em>imaginary relationalities</em>—the ways entities in nonhuman ecologies might
+                perceive, interact with, and be affected by their environment. Rather than simulating "realistic"
+                ecologies, RIPPLES creates a space for speculation and hallucination.
+            </p>
+        </div>
+
+        <!-- PAGE 3: INTRODUCTION -->
+        <div class="page">
+            <h2>1. Introduction: The Worldtext</h2>
+            <p>
+                The <strong>Worldtext</strong> is the core of RIPPLES. It is a text-based representation of an imaginary
+                ecology, where each entity is a word or phrase, and each interaction is a change in the text.
+            </p>
+            <div class="box mono">
+                <strong>WORLDTEXT_GENERATOR:</strong> ACTIVE<br>
+                <strong>ENTITY:</strong> FORMICIDAE_SCOUT (PERSPECTIVE_LOCKED)<br>
+                <strong>VECTOR:</strong> GOAL (SUSTENANCE/SUGAR_TRACE)<br>
+                <strong>RIPPLE_EFFECT:</strong> INITIATED
+            </div>
+            <p>
+                The Worldtext is not a narrative. It is a <em>state readout</em>—a snapshot of the ecology at a given
+                moment. The user does not write the story; the user <em>injects vectors</em> that shift the state.
+            </p>
+
+            <h3>Perspective: Formicidae Scout</h3>
+            <p>
+                The stillness is broken by micro-vibrations. The Ant entity abandons the boundary cracks, navigating the
+                ceramic topography of the 'twenty plates'. It traces an invisible chemical scent-line toward the 'six
+                short glasses' where a residue of dried liquid remains. The 'dust' text blocks are disturbed in its
+                wake.
+            </p>
+            <p class="mono" style="color:#666;">// This is the Operative Ripple.</p>
+        </div>
+
+        <!-- PAGE 4: CORE CONCEPTS -->
+        <div class="page">
+            <h2>2. Core Concepts</h2>
+
+            <h3>Entities</h3>
+            <p>
+                An <strong>Entity</strong> is any object, organism, or force in the ecology. Entities have properties
+                like <code>mass</code>, <code>position</code>, and <code>state</code>. They can be selected as the
+                <em>perspective</em> for a ripple.
+            </p>
+            <table>
+                <tr>
+                    <th>Entity</th>
+                    <th>Icon</th>
+                    <th>Mass</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Ant</td>
+                    <td>🐜</td>
+                    <td>0.1</td>
+                    <td>Formicidae scout, driven by chemical trails</td>
+                </tr>
+                <tr>
+                    <td>Dust_Mote</td>
+                    <td>✨</td>
+                    <td>0.01</td>
+                    <td>A particle suspended in stagnant air</td>
+                </tr>
+                <tr>
+                    <td>Tall_Glass_1</td>
+                    <td>🥛</td>
+                    <td>5.0</td>
+                    <td>A stationary object with dried residue</td>
+                </tr>
+                <tr>
+                    <td>Plates_Stack</td>
+                    <td>🍽️</td>
+                    <td>20.0</td>
+                    <td>Ceramic topography, immovable</td>
+                </tr>
+            </table>
+
+            <h3>Vectors</h3>
+            <p>
+                A <strong>Vector</strong> is a force or direction applied to an entity. There are three core vectors:
+            </p>
+            <div class="grid-3">
+                <div class="box" style="border-color:#a855f7;">
+                    <strong style="color:#a855f7;">SHIFT</strong><br>
+                    <span style="font-size:0.85rem;">Change direction or state. A perturbation.</span>
+                </div>
+                <div class="box" style="border-color:#f59e0b;">
+                    <strong style="color:#f59e0b;">GOAL</strong><br>
+                    <span style="font-size:0.85rem;">Move toward a resource or target.</span>
+                </div>
+                <div class="box" style="border-color:#ef4444;">
+                    <strong style="color:#ef4444;">OBSTACLE</strong><br>
+                    <span style="font-size:0.85rem;">Encounter a barrier or threat.</span>
+                </div>
+            </div>
+
+            <h3>The Ripple</h3>
+            <p>
+                When a vector is injected into an entity, it creates a <strong>Ripple</strong>—a cascade of state
+                changes that propagate through the ecology. The Ripple updates the Worldtext.
+            </p>
+        </div>
+
+        <!-- PAGE 5: THE CUPBOARD -->
+        <div class="page">
+            <h2>3. The Cupboard Scenario</h2>
+            <p>
+                The <strong>Cupboard</strong> is the default scenario for RIPPLES. It is a closed, dark environment with
+                a small set of entities—a microcosm of nonhuman agency.
+            </p>
+
+            <div class="grid-2">
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41.png" alt="Title">
+                    <div class="caption">FRAME 000: Title Card</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_ekh8wtekh8wtekh8.png" alt="Deep Forest">
+                    <div class="caption">FRAME 005: Expanded Ecology (Forest)</div>
+                </div>
+            </div>
+
+            <h3>Scenario Properties</h3>
+            <table>
+                <tr>
+                    <th>Property</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>BOUNDARY</td>
+                    <td>Wood/Darkness</td>
+                </tr>
+                <tr>
+                    <td>PHYSICS</td>
+                    <td>High Friction</td>
+                </tr>
+                <tr>
+                    <td>SILENCE</td>
+                    <td>Absolute</td>
+                </tr>
+            </table>
+
+            <h3>Entity Pool</h3>
+            <ul class="mono" style="font-size:0.85rem;">
+                <li>Tall_Glass_1, Tall_Glass_2, Tall_Glass_3</li>
+                <li>Short_Glass_1, Short_Glass_2, Short_Glass_3</li>
+                <li>Plates_Stack (20 units)</li>
+                <li>Ant (Formicidae Scout)</li>
+                <li>Dust_Mote (suspended)</li>
+                <li>Spiderweb (hinge to shelf)</li>
+            </ul>
+        </div>
+
+        <!-- PAGE 6: SUPERVISED MODE -->
+        <div class="page">
+            <h2>4. Supervised Mode (Human-in-the-Loop)</h2>
+            <p>
+                In <strong>Supervised Mode</strong>, the human operator manually selects an entity and injects a vector.
+                The system waits for input before triggering a ripple.
+            </p>
+
+            <div class="grid-3">
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (1).png" alt="Supervised 1">
+                    <div class="caption">Step 1: Select Entity</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk.png" alt="Supervised 2">
+                    <div class="caption">Step 2: Choose Vector</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e (1).png" alt="Supervised 3">
+                    <div class="caption">Step 3: Observe Ripple</div>
+                </div>
+            </div>
+
+            <h3>Workflow</h3>
+            <ol>
+                <li><strong>SELECT ENTITY</strong> — Click an entity in the Entity Pool to set the perspective.</li>
+                <li><strong>INJECT VECTOR</strong> — Click SHIFT, GOAL, or OBSTACLE to apply a force.</li>
+                <li><strong>TRIGGER RIPPLE</strong> — The Worldtext updates. Observe the result in the Audit Log.</li>
+            </ol>
+        </div>
+
+        <!-- PAGE 7: UNSUPERVISED MODE -->
+        <div class="page">
+            <h2>5. Unsupervised Mode (Autoplay)</h2>
+            <p>
+                In <strong>Unsupervised Mode</strong>, the system autonomously selects entities and vectors. The ecology
+                drifts without human intent.
+            </p>
+
+            <div class="grid-2">
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (2).png" alt="Autoplay 1">
+                    <div class="caption">Autoplay Engaged</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk (1).png" alt="Autoplay 2">
+                    <div class="caption">System Selects Vector</div>
+                </div>
+            </div>
+
+            <h3>Autoplay Parameters</h3>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Default</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>INTERVAL</td>
+                    <td>3000ms</td>
+                    <td>Time between ripples</td>
+                </tr>
+                <tr>
+                    <td>ENTITY_SELECTION</td>
+                    <td>Random</td>
+                    <td>How the system picks the next entity</td>
+                </tr>
+                <tr>
+                    <td>VECTOR_SELECTION</td>
+                    <td>Weighted</td>
+                    <td>Vectors are weighted by entity state</td>
+                </tr>
+            </table>
+
+            <div class="box mono">
+                NEXT_RIPPLE_IN: 00:02.4<br>
+                ENTITY: DUST_MOTE<br>
+                VECTOR: SHIFT (AUTO_SELECTED)
+            </div>
+        </div>
+
+        <!-- PAGE 8: LIVE PERFORMANCE -->
+        <div class="page">
+            <h2>6. Live Performance (ELO 2026)</h2>
+            <p>
+                RIPPLES was presented as a live performance at the Electronic Literature Organization conference in
+                Atlanta, GA, 2026.
+            </p>
+
+            <div class="grid-2">
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (3).png" alt="Projection">
+                    <div class="caption">Main Stage Projection</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_3zb61t3zb61t3zb6.png" alt="Performance Build">
+                    <div class="caption">Performance Build v1.2</div>
+                </div>
+            </div>
+
+            <h3>Audience Participation (Zoom)</h3>
+            <p>
+                Remote audience members joined via Zoom. Their chat messages appeared alongside the simulation.
+            </p>
+            <div class="grid-2" style="grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                <div class="img-frame"><img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r.png" alt="Zoom 1">
+                </div>
+                <div class="img-frame"><img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (1).png" alt="Zoom 2">
+                </div>
+                <div class="img-frame"><img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (2).png" alt="Zoom 3">
+                </div>
+                <div class="img-frame"><img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (3).png" alt="Zoom 4">
+                </div>
+            </div>
+            <p class="mono" style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
+                "The text is the terrain... fascinating!" — Audience member, Zoom chat
+            </p>
+        </div>
+
+        <!-- PAGE 9: EXPANDED ECOLOGIES -->
+        <div class="page">
+            <h2>7. Expanded Ecologies</h2>
+            <p>
+                Beyond the Cupboard, RIPPLES can model other nonhuman ecologies. Each scenario has its own entities,
+                vectors, and physics.
+            </p>
+
+            <div class="img-frame" style="margin:1.5rem 0;">
+                <img src="./IMAGES/Gemini_Generated_Image_ekh8wtekh8wtekh8.png" alt="Deep Forest">
+                <div class="caption">ECO-SYSTEM: DEEP_FOREST</div>
+            </div>
+
+            <h3>Available Scenarios</h3>
+            <table>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Entities</th>
+                    <th>Physics</th>
+                </tr>
+                <tr>
+                    <td>The Cupboard</td>
+                    <td>Glasses, Plates, Ant, Dust</td>
+                    <td>High Friction</td>
+                </tr>
+                <tr>
+                    <td>Deep Forest</td>
+                    <td>Fungal Network, Owl, Moonlight, Wind</td>
+                    <td>Low Friction, Low Light</td>
+                </tr>
+                <tr>
+                    <td>Urban Jungle</td>
+                    <td>Rat, Pigeon, Streetlight, Trash</td>
+                    <td>High Noise, Medium Friction</td>
+                </tr>
+                <tr>
+                    <td>Abandoned House</td>
+                    <td>Cobweb, Moth, Draft, Decay</td>
+                    <td>Very Low Friction</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- PAGE 10: SYSTEM ARCHITECTURE -->
+        <div class="page">
+            <h2>8. System Architecture</h2>
+
+            <div class="grid-2">
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk (3).png" alt="System Overview">
+                    <div class="caption">System Overview Diagram</div>
+                </div>
+                <div class="img-frame">
+                    <img src="./IMAGES/Gemini_Generated_Image_jhlrcgjhlrcgjhlr.png" alt="Entity Pool">
+                    <div class="caption">Entity Pool & Control Panel</div>
+                </div>
+            </div>
+
+            <h3>Key Components</h3>
+            <ul>
+                <li><strong>SCENARIO_SELECT</strong> — Choose from preset ecologies or create a custom world.</li>
+                <li><strong>ENTITY_POOL</strong> — A clickable list of entities. Sets <code>selectedEntity</code> state.
+                </li>
+                <li><strong>VECTOR_CONTROLS</strong> — Three buttons: SHIFT (purple), GOAL (gold), OBSTACLE (red).</li>
+                <li><strong>WORLDTEXT_READOUT</strong> — A syntax-highlighted text area displaying the current state.
+                </li>
+                <li><strong>AUDIT_LOG</strong> — A scrolling list of timestamped events.</li>
+                <li><strong>AUTOPLAY_TOGGLE</strong> — Enables/disables autonomous mode.</li>
+            </ul>
+        </div>
+
+        <!-- PAGE 11: UI PATTERN LIBRARY -->
+        <div class="page">
+            <h2>9. UI Pattern Library</h2>
+            <p>
+                The following patterns are used across all RIPPLES interfaces:
+            </p>
+
+            <table>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Files</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>CRT Terminal Aesthetic</td>
+                    <td>6, 7, 8, 13, 16</td>
+                    <td>Flicker, scanlines, green-on-black</td>
+                </tr>
+                <tr>
+                    <td>Three-Column Layout</td>
+                    <td>5, 6, 8, 14</td>
+                    <td>Sidebar + Viewport + Inspector</td>
+                </tr>
+                <tr>
+                    <td>Entity Pool Select</td>
+                    <td>6, 7, 8, 10-16</td>
+                    <td>Clickable list sets <code>selectedEntity</code></td>
+                </tr>
+                <tr>
+                    <td>Vector Buttons</td>
+                    <td>All</td>
+                    <td>SHIFT/GOAL/OBSTACLE, color-coded</td>
+                </tr>
+                <tr>
+                    <td>Audit Log Panel</td>
+                    <td>6, 8, 13-16</td>
+                    <td>Timestamped event log</td>
+                </tr>
+                <tr>
+                    <td>Autoplay Toggle</td>
+                    <td>10-16</td>
+                    <td>Button to enable autonomous mode</td>
+                </tr>
+                <tr>
+                    <td>Scenario Presets</td>
+                    <td>1-8, 10-16</td>
+                    <td>Array of <code>id</code>, <code>label</code>, <code>entities[]</code></td>
+                </tr>
+            </table>
+
+            <h3>Key Differences Across Versions</h3>
+            <table>
+                <tr>
+                    <th>Axis</th>
+                    <th>Low End</th>
+                    <th>High End</th>
+                </tr>
+                <tr>
+                    <td>Rendering</td>
+                    <td>Canvas 2D (1, 2, 4)</td>
+                    <td>React Virtual DOM (6-16)</td>
+                </tr>
+                <tr>
+                    <td>Dimensionality</td>
+                    <td>2D Text/Canvas</td>
+                    <td>3D Three.js (3)</td>
+                </tr>
+                <tr>
+                    <td>LLM Integration</td>
+                    <td>None (hardcoded)</td>
+                    <td>Gemini API (6, 9, 12)</td>
+                </tr>
+                <tr>
+                    <td>Aesthetics</td>
+                    <td>Clean Tailwind</td>
+                    <td>CRT/Glitch Terminal</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- PAGE 12: CSS CONVENTIONS -->
+        <div class="page">
+            <h2>10. CSS Conventions</h2>
+
+            <h3>Core Terminal Palette</h3>
+            <div class="box mono" style="font-size:0.8rem;">
+                :root {<br>
+                &nbsp;&nbsp;--term-bg: #050a05;<br>
+                &nbsp;&nbsp;--term-text: #4af626;<br>
+                &nbsp;&nbsp;--term-dim: #1e5c12;<br>
+                &nbsp;&nbsp;--term-alert: #ff3333;<br>
+                &nbsp;&nbsp;--term-gold: #ffd700;<br>
+                }
+            </div>
+
+            <h3>Scanline Effect</h3>
+            <div class="box mono" style="font-size:0.8rem;">
+                .scanline {<br>
+                &nbsp;&nbsp;background: repeating-linear-gradient(<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;0deg,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;rgba(0,0,0,0.1) 0px,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;rgba(0,0,0,0.1) 1px,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;transparent 1px,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;transparent 2px<br>
+                &nbsp;&nbsp;);<br>
+                }
+            </div>
+
+            <h3>CRT Flicker Animation</h3>
+            <div class="box mono" style="font-size:0.8rem;">
+                @keyframes flicker {<br>
+                &nbsp;&nbsp;0% { opacity: 0.02; }<br>
+                &nbsp;&nbsp;50% { opacity: 0.05; }<br>
+                &nbsp;&nbsp;100% { opacity: 0.02; }<br>
+                }
+            </div>
+
+            <div class="footer-meta">
+                <span>RIPPLES: Operative Ecologies in the Worldtext</span>
+                <span>ELO 2026 — Atlanta, GA</span>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="no-print" style="text-align:center; padding: 20px 0 40px; color:#888; font-size:0.9rem;">
+        <button onclick="window.print()"
+            style="padding: 12px 24px; font-size: 1rem; cursor: pointer; background:#111; color:#fff; border:none; border-radius: 4px;">
+            🖨️ Print Booklet
+        </button>
+        <p style="margin-top:1rem;">Use "Save as PDF" for a digital copy.</p>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Formicidae Scout // ELO 2026 Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #030303;
+            color: #a3a3a3;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse-border {
+            animation: pulseBorder 2s infinite;
+        }
+
+        @keyframes pulseBorder {
+
+            0%,
+            100% {
+                border-color: #166534;
+            }
+
+            50% {
+                border-color: #22c55e;
+            }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(to right, transparent, rgba(0, 255, 65, 0.3), transparent);
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        .narrative-block {
+            border-left: 3px solid #22c55e;
+        }
+
+        .narrative-block.obstacle {
+            border-left-color: #ef4444;
+        }
+
+        .narrative-block.shift {
+            border-left-color: #a855f7;
+        }
+
+        .narrative-block.goal {
+            border-left-color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div class="scanline"></div>
+
+    <!-- HEADER -->
+    <header class="border-b border-neutral-800 bg-black sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-8 py-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-green-500 tracking-tighter">RIPPLES: FORMICIDAE SCOUT</h1>
+                <p class="text-xs text-neutral-600 mt-1">Operative Ecologies in the Worldtext // ELO 2026 Performance
+                    Archive</p>
+            </div>
+            <div class="text-right text-[10px] text-neutral-700 uppercase tracking-widest">
+                <div>LOCATION: THE CUPBOARD</div>
+                <div>VECTOR: GOAL (SUSTENANCE/SUGAR TRACE)</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-8 py-12 space-y-24">
+
+        <!-- SECTION 0: INTRO -->
+        <section class="fade-in">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-neutral-300 mb-4">Perspective: Formicidae Scout</h2>
+                    <p class="text-neutral-500 leading-relaxed mb-6">
+                        The stillness is broken by micro-vibrations. The Ant entity abandons the boundary cracks,
+                        navigating the ceramic topography of the 'twenty plates'. It traces an invisible chemical
+                        scent-line toward the 'six short glasses' where a residue of dried liquid remains. The 'dust'
+                        text blocks are disturbed in its wake.
+                    </p>
+                    <div class="text-xs text-green-800 uppercase tracking-widest">// This is the Operative Ripple.</div>
+                </div>
+                <div class="relative group">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41.png" alt="Title Slide"
+                        class="w-full rounded-lg border border-neutral-800 shadow-2xl group-hover:border-green-900 transition-colors">
+                    <div
+                        class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent text-[10px] text-neutral-500">
+                        FRAME 000 // TITLE_CARD // ELO 2026 - ATLANTA, GA
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 1: SUPERVISED MODE -->
+        <section class="fade-in" style="animation-delay: 0.1s;">
+            <h3 class="text-lg font-bold text-amber-500 mb-8 border-b border-neutral-800 pb-4">PHASE 01: SUPERVISED MODE
+                (HUMAN-IN-THE-LOOP)</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (1).png" alt="Supervised Mode Interface"
+                        class="w-full rounded border border-neutral-800 hover:border-amber-900 transition-colors">
+                    <div class="narrative-block goal pl-4 py-2">
+                        <div class="text-xs text-amber-500 font-bold mb-1">INTERFACE: DUST MOTE SELECTED</div>
+                        <p class="text-[11px] text-neutral-500">The operator has chosen the <span
+                                class="text-green-500">Dust_Mote</span> entity as the perspective. Awaiting vector
+                            injection.</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk.png" alt="Supervised Mode with Hand"
+                        class="w-full rounded border border-neutral-800 hover:border-amber-900 transition-colors">
+                    <div class="narrative-block goal pl-4 py-2">
+                        <div class="text-xs text-amber-500 font-bold mb-1">ACTION: GOAL VECTOR SELECTED</div>
+                        <p class="text-[11px] text-neutral-500">The human operator clicks <span
+                                class="text-amber-400 font-bold">[GOAL]</span>. The system interprets: The Ant seeks a
+                            resource (Sustenance/Sugar trace).</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e (1).png" alt="Post Ripple State"
+                        class="w-full rounded border border-neutral-800 hover:border-amber-900 transition-colors">
+                    <div class="narrative-block goal pl-4 py-2">
+                        <div class="text-xs text-amber-500 font-bold mb-1">RESULT: WORLDTEXT UPDATED</div>
+                        <p class="text-[11px] text-neutral-500">The ant scout, driven by an unseen goal, leaves the
+                            safety of the shadows. Its sensory input shifts to chemical trails leading towards the pile
+                            of plates.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: UNSUPERVISED MODE -->
+        <section class="fade-in" style="animation-delay: 0.2s;">
+            <h3 class="text-lg font-bold text-purple-500 mb-8 border-b border-neutral-800 pb-4">PHASE 02: UNSUPERVISED
+                (AUTOPLAY) MODE</h3>
+            <div class="grid md:grid-cols-2 gap-12 items-start">
+                <div>
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (2).png" alt="Autoplay Mode"
+                        class="w-full rounded-lg border border-neutral-800 hover:border-purple-900 transition-colors mb-6">
+                    <div class="narrative-block shift pl-4 py-2">
+                        <div class="text-xs text-purple-500 font-bold mb-1">AUTOPLAY ENGAGED</div>
+                        <p class="text-[11px] text-neutral-500">The system autonomously selects entity perspectives and
+                            vectors. The ecology drifts without human intent. The "NEXT RIPPLE IN" timer counts down.
+                        </p>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk (1).png" alt="Autoplay Detail"
+                        class="w-full rounded-lg border border-neutral-800 hover:border-purple-900 transition-colors">
+                    <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk (2).png" alt="Autoplay Narrative"
+                        class="w-full rounded-lg border border-neutral-800 hover:border-purple-900 transition-colors">
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: LIVE PERFORMANCE -->
+        <section class="fade-in" style="animation-delay: 0.3s;">
+            <h3 class="text-lg font-bold text-cyan-500 mb-8 border-b border-neutral-800 pb-4">PHASE 03: LIVE PERFORMANCE
+                (ELO 2026)</h3>
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (3).png" alt="Live projection"
+                        class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors">
+                    <p class="text-[11px] text-neutral-600">Worldtext projected onto the main screen. Audience observes
+                        the emergent narrative.</p>
+                </div>
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_3zb61t3zb61t3zb6.png" alt="Performance Build"
+                        class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors">
+                    <p class="text-[11px] text-neutral-600">Performance Build v1.2: Syntax-highlighted Worldtext grid
+                        with operator controls.</p>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-4 gap-4">
+                <img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r.png" alt="Zoom 1"
+                    class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors aspect-video object-cover">
+                <img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (1).png" alt="Zoom 2"
+                    class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors aspect-video object-cover">
+                <img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (2).png" alt="Zoom 3"
+                    class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors aspect-video object-cover">
+                <img src="./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r (3).png" alt="Zoom 4"
+                    class="w-full rounded border border-neutral-800 hover:border-cyan-900 transition-colors aspect-video object-cover">
+            </div>
+            <p class="text-xs text-neutral-700 mt-4 text-center">Remote audience participation via Zoom. Chat window
+                shows real-time reactions to the Worldtext narrative.</p>
+        </section>
+
+        <!-- SECTION 4: EXPANDED ECOLOGIES -->
+        <section class="fade-in" style="animation-delay: 0.4s;">
+            <h3 class="text-lg font-bold text-green-500 mb-8 border-b border-neutral-800 pb-4">PHASE 04: EXPANDED
+                ECOLOGIES</h3>
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-4">
+                    <img src="./IMAGES/Gemini_Generated_Image_ekh8wtekh8wtekh8.png" alt="Deep Forest"
+                        class="w-full rounded-lg border border-green-900 pulse-border shadow-2xl">
+                </div>
+                <div>
+                    <h4 class="text-md font-bold text-neutral-300 mb-4">ECO-SYSTEM: DEEP_FOREST</h4>
+                    <div class="text-[11px] text-neutral-500 space-y-2 leading-relaxed">
+                        <p><span class="text-green-600">WORLDTEXT_GENERATOR:</span> ACTIVE</p>
+                        <p><span class="text-green-600">ENTITY:</span> FUNGAL_NETWORK (PERSPECTIVE_LOCKED)</p>
+                        <p><span class="text-amber-600">VECTOR:</span> GOAL (NUTRIENT_SEEK)</p>
+                        <p><span class="text-green-600">RIPPLE_EFFECT:</span> INITIATED</p>
+                    </div>
+                    <p class="text-neutral-500 leading-relaxed mt-6">
+                        Beyond the cupboard, the system expands to model other nonhuman ecologies. Here, a fungal
+                        network in a deep forest traces nutrient pathways through the rhizosphere.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: SYSTEM OVERVIEW -->
+        <section class="fade-in" style="animation-delay: 0.5s;">
+            <h3 class="text-lg font-bold text-neutral-400 mb-8 border-b border-neutral-800 pb-4">SYSTEM OVERVIEW:
+                DATABASE VIEW</h3>
+            <div class="grid md:grid-cols-2 gap-8 items-start">
+                <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk (3).png" alt="System Overview"
+                    class="w-full rounded-lg border border-neutral-800">
+                <div>
+                    <img src="./IMAGES/Gemini_Generated_Image_jhlrcgjhlrcgjhlr.png" alt="Entity Pool"
+                        class="w-full rounded-lg border border-neutral-800 mb-6">
+                    <div class="text-[10px] text-neutral-600 space-y-1">
+                        <p><span class="text-neutral-400">PRESET SCENARIOS:</span> Abandoned House, Forest, The Cupboard
+                        </p>
+                        <p><span class="text-neutral-400">ENTITIES:</span> Ant, Dust_Mote, Tall_Glass_1, Plates_Stack...
+                        </p>
+                        <p><span class="text-neutral-400">VECTORS:</span> Shift, Goal, Obstacle</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: DOCUMENTATION -->
+        <section class="fade-in" style="animation-delay: 0.6s;">
+            <h3 class="text-lg font-bold text-neutral-400 mb-8 border-b border-neutral-800 pb-4">DOCUMENTATION</h3>
+            <div class="grid md:grid-cols-3 gap-8 items-center">
+                <img src="./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e.png" alt="Documentation 1"
+                    class="w-full rounded-lg border border-neutral-800">
+                <img src="./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e (2).png" alt="Documentation 2"
+                    class="w-full rounded-lg border border-neutral-800">
+                <img src="./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e (3).png" alt="Documentation 3"
+                    class="w-full rounded-lg border border-neutral-800">
+            </div>
+            <div class="mt-8 p-6 border border-neutral-800 rounded-lg bg-neutral-950">
+                <img src="./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk.png" alt="Abstract Paper"
+                    class="w-full max-w-md mx-auto rounded border border-neutral-700">
+                <p class="text-center text-xs text-neutral-600 mt-4">Research abstract and project documentation.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-neutral-800 mt-24 py-8 text-center text-[10px] text-neutral-700">
+        RIPPLES: OPERATIVE ECOLOGIES // ELO 2026 // ARCHIVE_END
+    </footer>
+
+</body>
+
+</html>

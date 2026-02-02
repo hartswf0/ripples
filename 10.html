@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES - Imaginary Ecologies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            background: #0c0a09;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #44403c;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #57534e;
+        }
+
+        .animate-spin-slow {
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Play = (props) => <IconWrapper {...props}><polygon points="5 3 19 12 5 21 5 3"></polygon></IconWrapper>;
+        const Pause = (props) => <IconWrapper {...props}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></IconWrapper>;
+        const RefreshCw = (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></IconWrapper>;
+        const Plus = (props) => <IconWrapper {...props}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></IconWrapper>;
+        const Wind = (props) => <IconWrapper {...props}><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path><path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path><path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path></IconWrapper>;
+        const Target = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></IconWrapper>;
+        const AlertTriangle = (props) => <IconWrapper {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></IconWrapper>;
+        const Disc = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
+        const Box = (props) => <IconWrapper {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></IconWrapper>;
+        const Anchor = (props) => <IconWrapper {...props}><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></IconWrapper>;
+        const Globe = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></IconWrapper>;
+
+        // --- DATA SEEDS ---
+
+        const VECTORS = [
+            { id: 'shift', label: 'Shift', icon: <Wind size={16} />, description: 'A change in position or state' },
+            { id: 'goal', label: 'Goal', icon: <Target size={16} />, description: 'A striving towards an objective' },
+            { id: 'obstacle', label: 'Obstacle', icon: <AlertTriangle size={16} />, description: 'A resistance or blockage' },
+        ];
+
+        const PRESET_SCENARIOS = [
+            {
+                id: 'cupboard',
+                title: 'Cupboard',
+                description: 'The cupboard is spacious, yet somewhat dusty, especially towards the back. The surfaces are protected with plastic. It is dark, but some light seeps in through the cracks between door and frame. Objects are placed tightly next to one another. Objects do not move. Insects may go in and out.',
+                entities: ['Tall Glass', 'Short Glass', 'Plate Stack', 'Ant', 'Glass Box', 'Plastic Lid', 'Crumb', 'Dust Mote',
+                    'Shadow', 'Wood Grain', 'Ceramic Chip', 'Dead Fly', 'Shelf Liner', 'Saucer', 'Fingerprint', 'Air Bubble', 'Spider Silk',
+                    'Screw Head', 'Vibration', 'Silence']
+            },
+            {
+                id: 'abandoned_house',
+                title: 'Abandoned House',
+                description: 'The air is stagnant and smells of damp rot and old paper. Wallpaper peels like sunburned skin, revealing lath and plaster beneath. Sunlight cuts through grime-caked windows in sharp, solid beams. The silence has a weight to it, broken only by the settling of the foundation.',
+                entities: ['Peeling Wallpaper', 'Floorboard', 'Dust Sheet', 'Broken Chair', 'Moth Wing', 'Sunbeam', 'Draft', 'Rusted Nail', 'Mouse Skeleton', 'Old Newspaper', 'Mold Spore', 'Shattered Glass', 'Door Hinge', 'Cobweb', 'Echo', 'Water Stain', 'Ceramic Doll', 'Dry Rot', 'Memory', 'Draft']
+            },
+            {
+                id: 'shopping_cart',
+                title: 'Shopping Cart',
+                description: 'A wire grid suspended over asphalt. The structure is rigid, cold metal, battered by collisions. One wheel spins freely, refusing to touch the ground. It rests in a corral of others, metallic limbs entangled. Raindrops cling to the handle. It smells of iron and oxidized zinc.',
+                entities: ['Wonky Wheel', 'Red Handle', 'Wire Grid', 'Forgotten Receipt', 'Rust Spot', 'Raindrop', 'Coin Lock',
+                    'Bacteria', 'Asphalt Pebble', 'Plastic Bumper', 'Bent Wire', 'Child Seat Flap', 'Advertising Panel', 'Zinc Coating',
+                    'Friction', 'Vibration', 'Discarded Wrapper', 'Hair', 'Static', 'Gravity']
+            },
+            {
+                id: 'forest',
+                title: 'Forest',
+                description: 'A chaotic network of roots and decay. The canopy filters light into shifting patterns of green and gold. The ground is soft, spongy with generations of fallen matter. The air is humid and rich with the scent of pine needles and wet earth. Everything is slowly eating everything else.',
+                entities: ['Old Oak', 'Mycelium', 'Fern Frond', 'Moss', 'Beetle', 'Dew Drop', 'Decaying Log', 'Pine Needle', 'Lichen',
+                    'Stone', 'Root', 'Squirrel', 'Fallen Leaf', 'Wind Gust', 'Soil Mite', 'Bark', 'Resin', 'Bird Call', 'Shadow', 'Sprout']
+            },
+            {
+                id: 'underwater',
+                title: 'Underwater World',
+                description: 'The pressure is constant and hugging. Light refracts and dances, losing color as depth increases. Sound travels faster here, a dull thrum of currents and distant clicks. Suspension is the natural state. Gravity pulls gently, but buoyancy resists.',
+                entities: ['Sand Grain', 'Bubble', 'Current', 'Kelp Strand', 'Crab', 'Plastic Bag', 'Ray of Light', 'Silt', 'Shell Fragment', 'Fish Scale', 'Anchor', 'Coral', 'Plankton', 'Driftwood', 'Salt', 'Pressure', 'Wave', 'Rock', 'Algae', 'Silence']
+            },
+            {
+                id: 'outer_space',
+                title: 'Outer Space',
+                description: 'Absolute vacuum. The silence is absolute. Distances are incomprehensible. Starlight is harsh and unfiltered. Temperature fluctuates wildly between shadow and light. Objects drift endlessly unless acted upon. There is no up or down, only relative velocity.',
+                entities: ['Asteroid', 'Dust Particle', 'Photon', 'Satellite Debris', 'Gravity Well', 'Solar Wind', 'Ice Crystal',
+                    'Vacuum', 'Radio Wave', 'Micrometeoroid', 'Hull Plate', 'Thruster Gas', 'Darkness', 'Star', 'Magnetic Field', 'Nebula Wisp', 'Comet Tail', 'Silence', 'Time', 'Orbit']
+            },
+            {
+                id: 'closet',
+                title: 'Closet',
+                description: 'A vertical confinement of textiles and memories. It smells of cedar, mothballs, and fabric softener. It is a space of dormancy, where objects wait to be chosen. Darkness is the default state. The air is still and insulated by layers of wool and cotton.',
+                entities: ['Winter Coat', 'Wire Hanger', 'Shoebox', 'Mothball', 'Dust Bunny', 'Loose Button', 'Scarf', 'Cedar Block',
+                    'Zipper', 'Silk Tie', 'Lint', 'Darkness', 'Suitcase', 'Leather Belt', 'Polyester', 'Sock', 'Hemline', 'Pocket Lint',
+                    'Old Receipt', 'Secret']
+            },
+            {
+                id: 'urban_jungle',
+                title: 'Urban Jungle',
+                description: 'Hard surfaces of concrete and glass reflecting heat. The rhythm is staccato—stop and go. Nature erupts through cracks in the pavement. The air tastes of exhaust and hot tar. Neon lights blink in the twilight. Everything is owned, marked, or discarded.',
+                entities: ['Concrete Crack', 'Pigeon', 'Traffic Light', 'Discarded Mask', 'Cigarette Butt', 'Dandelion', 'Siren', 'Glass Shard', 'Rat', 'Graffiti', 'Drain Grate', 'Puddle', 'Neon Sign', 'Exhaust Fume', 'Brick Wall', 'Plastic Bottle', 'Weed', 'Gum', 'Footstep', 'Shadow']
+            }
+        ];
+
+        // --- GENERATIVE LOGIC ---
+
+        const ACTIONS = {
+            shift: [
+                "drifts sideways, altering the local arrangement.",
+                "vibrates with a sudden, unseen energy.",
+                "collapses into itself, changing density.",
+                "rotates slowly, seeking a new orientation.",
+                "fades slightly, becoming less substantial.",
+                "expands, pressing against its neighbors.",
+                "tilts, catching the light in a new way."
+            ],
+            goal: [
+                "reaches out, yearning for connection.",
+                "strives to occupy the center of the space.",
+                "attempts to merge with the nearest surface.",
+                "seeks higher ground, defying gravity.",
+                "tries to replicate itself.",
+                "pulses with a desire for stasis.",
+                "aims to reflect the environment around it."
+            ],
+            obstacle: [
+                "hardens, refusing to yield space.",
+                "blocks the flow of air and light.",
+                "creates friction against the surrounding stillness.",
+                "absorbs the energy of nearby entities.",
+                "becomes an anchor, heavy and immovable.",
+                "reflects all attempts at connection.",
+                "disrupts the established order of the pile."
+            ]
+        };
+
+        const REACTIONS = [
+            "The ecosystem shudders in response.",
+            "Nothing else moves.",
+            "A neighbor is displaced by the motion.",
+            "The silence amplifies the action.",
+            "Dust settles in the new void.",
+            "The equilibrium is momentarily lost.",
+            "A shadow lengthens.",
+            "The temperature shifts imperceptibly."
+        ];
+
+        const generateRipple = (entity, vector) => {
+            const action = ACTIONS[vector.id][Math.floor(Math.random() * ACTIONS[vector.id].length)];
+            const reaction = REACTIONS[Math.floor(Math.random() * REACTIONS.length)];
+            return `The ${entity} ${action} ${reaction}`;
+        };
+
+        // --- COMPONENTS ---
+
+        const TerminalText = ({ children, className = "" }) => (
+            <span className={`font-mono text-xs md:text-sm tracking-wide ${className}`}>
+                {children}
+            </span>
+        );
+
+        function RipplesApp() {
+            const [phase, setPhase] = useState('SELECT'); // SELECT, PLAY, CUSTOM
+            const [currentScenario, setCurrentScenario] = useState(null);
+            const [log, setLog] = useState([]);
+            const [selectedEntity, setSelectedEntity] = useState(null);
+            const [isAutoPlay, setIsAutoPlay] = useState(false);
+            const [customForm, setCustomForm] = useState({ title: '', description: '', entities: '' });
+
+            const bottomRef = useRef(null);
+
+            // Auto-scroll log
+            useEffect(() => {
+                bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [log]);
+
+            // Autoplay Logic
+            useEffect(() => {
+                let interval;
+                if (isAutoPlay && phase === 'PLAY' && currentScenario) {
+                    interval = setInterval(() => {
+                        const randomEntity = currentScenario.entities[Math.floor(Math.random() * currentScenario.entities.length)];
+                        const randomVector = VECTORS[Math.floor(Math.random() * VECTORS.length)];
+                        triggerRipple(randomEntity, randomVector);
+                    }, 3000);
+                }
+                return () => clearInterval(interval);
+            }, [isAutoPlay, phase, currentScenario]);
+
+            const triggerRipple = (entity, vector) => {
+                const text = generateRipple(entity, vector);
+                const newEntry = {
+                    id: Date.now(),
+                    entity,
+                    vector: vector.label,
+                    text,
+                    time: new Date().toLocaleTimeString([], { hour12: false })
+                };
+                setLog(prev => [...prev, newEntry]);
+                setSelectedEntity(null);
+            };
+
+            const handleStartScenario = (scenario) => {
+                setCurrentScenario(scenario);
+                setLog([{
+                    id: 0,
+                    entity: 'SYSTEM',
+                    vector: 'INIT',
+                    text: `Simulation initialized: ${scenario.title}. ${scenario.description}`,
+                    time: new Date().toLocaleTimeString([], { hour12: false })
+                }]);
+                setPhase('PLAY');
+                setIsAutoPlay(false);
+            };
+
+            const handleCustomSubmit = (e) => {
+                e.preventDefault();
+                const entityList = customForm.entities.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                if (entityList.length < 1) return;
+
+                const newScenario = {
+                    id: 'custom',
+                    title: customForm.title || 'Unknown Zone',
+                    description: customForm.description || 'A void waiting to be filled.',
+                    entities: entityList
+                };
+
+                handleStartScenario(newScenario);
+            };
+
+            const reset = () => {
+                setPhase('SELECT');
+                setIsAutoPlay(false);
+                setSelectedEntity(null);
+            };
+
+            return (
+                <div className="min-h-screen bg-stone-950 text-stone-300 font-sans selection:bg-stone-700 selection:text-white flex flex-col overflow-hidden">
+
+                    {/* HEADER */}
+                    <header className="border-b border-stone-800 p-4 flex justify-between items-center bg-stone-950/90 backdrop-blur z-10">
+                        <div className="flex items-center gap-2">
+                            <Globe size={20} className="text-stone-500" />
+                            <h1 className="text-xl font-serif tracking-wider text-stone-100">RIPPLES</h1>
+                            <span className="text-xs text-stone-600 uppercase tracking-widest ml-2 hidden sm:inline">Imaginary Ecologies</span>
+                        </div>
+
+                        {phase === 'PLAY' && (
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setIsAutoPlay(!isAutoPlay)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded border text-xs tracking-wider
+                                    transition-colors ${isAutoPlay ? 'border-emerald-800 text-emerald-400 bg-emerald-950/30' :
+                                            'border-stone-700 hover:bg-stone-800'}`}
+                                >
+                                    {isAutoPlay ? <Pause size={12} /> : <Play size={12} />}
+                                    {isAutoPlay ? 'DRIFTING...' : 'AUTOPLAY'}
+                                </button>
+                                <button onClick={reset} className="p-2 hover:text-white transition-colors">
+                                    <RefreshCw size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </header>
+
+                    {/* MAIN CONTENT AREA */}
+                    <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+                        {/* PHASE: SELECT SCENE */}
+                        {phase === 'SELECT' && (
+                            <div className="flex-1 overflow-y-auto p-6 md:p-12">
+                                <div className="max-w-6xl mx-auto">
+                                    <h2 className="text-3xl font-serif mb-8 text-stone-100">Select an Environment</h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                                        {PRESET_SCENARIOS.map(scene => (
+                                            <button key={scene.id} onClick={() => handleStartScenario(scene)}
+                                                className="group text-left p-6 border border-stone-800 rounded-lg hover:border-stone-500 hover:bg-stone-900 transition-all duration-300 flex flex-col h-full"
+                                            >
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="font-serif text-lg text-stone-200 group-hover:text-white">{scene.title}</span>
+                                                    <Box size={16} className="text-stone-600 group-hover:text-stone-400" />
+                                                </div>
+                                                <p className="text-sm text-stone-500 leading-relaxed line-clamp-4">{scene.description}</p>
+                                                <div className="mt-auto pt-4 flex gap-2">
+                                                    {scene.entities.slice(0, 3).map((e, i) => (
+                                                        <span key={i} className="text-[10px] uppercase tracking-wider border border-stone-800 px-2 py-1 rounded text-stone-600">{e}</span>
+                                                    ))}
+                                                </div>
+                                            </button>
+                                        ))}
+
+                                        {/* Custom Scenario Card */}
+                                        <button onClick={() => setPhase('CUSTOM')}
+                                            className="group text-left p-6 border border-stone-800 border-dashed rounded-lg hover:border-stone-500 hover:bg-stone-900 transition-all duration-300 flex flex-col justify-center items-center h-full text-stone-600 hover:text-stone-300"
+                                        >
+                                            <Plus size={32} className="mb-2" />
+                                            <span className="font-serif text-lg">New Ecology</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PHASE: CUSTOM FORM */}
+                        {phase === 'CUSTOM' && (
+                            <div className="flex-1 flex items-center justify-center p-6">
+                                <div className="w-full max-w-lg p-8 border border-stone-800 rounded-lg bg-stone-900/50">
+                                    <h2 className="text-2xl font-serif mb-6 text-stone-100">Seed a New World</h2>
+                                    <form onSubmit={handleCustomSubmit} className="space-y-6">
+                                        <div>
+                                            <label className="block text-xs uppercase tracking-widest text-stone-500 mb-2">Location Name</label>
+                                            <input type="text"
+                                                className="w-full bg-stone-950 border border-stone-700 rounded p-3 text-stone-200 focus:outline-none focus:border-stone-400"
+                                                placeholder="e.g., The Old Library" value={customForm.title} onChange={e =>
+                                                    setCustomForm({ ...customForm, title: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs uppercase tracking-widest text-stone-500 mb-2">Description (100w)</label>
+                                            <textarea
+                                                className="w-full bg-stone-950 border border-stone-700 rounded p-3 text-stone-200 focus:outline-none focus:border-stone-400 h-32"
+                                                placeholder="Describe the atmosphere, lighting, and smell..."
+                                                value={customForm.description} onChange={e => setCustomForm({ ...customForm, description: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs uppercase tracking-widest text-stone-500 mb-2">Entities (Comma separated)</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-stone-950 border border-stone-700 rounded p-3 text-stone-200 focus:outline-none focus:border-stone-400"
+                                                placeholder="Book, dust, silence, librarian..."
+                                                value={customForm.entities}
+                                                onChange={e => setCustomForm({ ...customForm, entities: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex gap-4 pt-4">
+                                            <button type="button" onClick={() => setPhase('SELECT')} className="flex-1 py-3 text-sm text-stone-500 hover:text-white transition">Cancel</button>
+                                            <button type="submit" className="flex-1 bg-stone-100 text-stone-900 py-3 rounded font-bold tracking-wide hover:bg-white transition">Initialize</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PHASE: PLAY */}
+                        {phase === 'PLAY' && (
+                            <>
+                                {/* LEFT: ENTITY CANVAS */}
+                                <div className="flex-1 md:w-2/3 p-6 md:p-10 overflow-y-auto bg-stone-950 relative">
+
+                                    {/* Scene Info */}
+                                    <div className="mb-10 max-w-3xl">
+                                        <h2 className="text-4xl font-serif text-stone-100 mb-4">{currentScenario.title}</h2>
+                                        <p className="text-stone-500 text-lg leading-relaxed font-serif italic border-l-2 border-stone-800 pl-4">
+                                            {currentScenario.description}
+                                        </p>
+                                    </div>
+
+                                    {/* Entity Grid */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {currentScenario.entities.map((entity, idx) => (
+                                            <div
+                                                key={idx}
+                                                onClick={() => !isAutoPlay && setSelectedEntity(entity === selectedEntity ? null : entity)}
+                                                className={`
+                                                    relative p-4 rounded-lg border transition-all duration-300 text-left h-32 flex flex-col justify-between
+                                                    ${selectedEntity === entity
+                                                        ? 'bg-stone-800 border-stone-400 text-white shadow-lg scale-105 z-10'
+                                                        : 'bg-stone-900/50 border-stone-800 text-stone-400 hover:border-stone-600 hover:bg-stone-900'}
+                                                    ${isAutoPlay ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                                                `}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <Disc size={12} className={selectedEntity === entity ? "animate-spin-slow" : "opacity-0"} />
+                                                    <span className="text-[10px] text-stone-600">{idx + 1}</span>
+                                                </div>
+                                                <span className="font-serif text-lg tracking-wide">{entity}</span>
+
+                                                {/* Vector Overlay (Only visible when selected) */}
+                                                {selectedEntity === entity && !isAutoPlay && (
+                                                    <div className="absolute -bottom-16 left-0 right-0 flex justify-between gap-1 p-1 bg-stone-950 border border-stone-700 rounded-lg shadow-xl animate-in fade-in slide-in-from-top-2 z-20">
+                                                        {VECTORS.map(vector => (
+                                                            <button
+                                                                key={vector.id}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    triggerRipple(entity, vector);
+                                                                }}
+                                                                className="flex-1 flex flex-col items-center gap-1 p-2 rounded hover:bg-stone-800 transition text-stone-400 hover:text-white group"
+                                                                title={vector.description}
+                                                            >
+                                                                <span className="group-hover:scale-110 transition-transform">{vector.icon}</span>
+                                                                <span className="text-[10px] uppercase">{vector.label}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {isAutoPlay && (
+                                        <div className="absolute inset-0 z-0 pointer-events-none bg-stone-950/20 flex items-center justify-center">
+                                            <div className="text-stone-800 text-9xl font-serif opacity-20 animate-pulse">DRIFT</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* RIGHT: RIPPLE LOG */}
+                                <div className="w-full md:w-1/3 border-t md:border-t-0 md:border-l border-stone-800 bg-stone-900 flex flex-col h-[40vh] md:h-auto">
+                                    <div className="p-4 border-b border-stone-800 bg-stone-900 z-10">
+                                        <h3 className="text-xs uppercase tracking-widest text-stone-500 font-bold flex items-center gap-2">
+                                            <Anchor size={12} />
+                                            Simulation Log
+                                        </h3>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-8 font-serif">
+                                        {log.length === 0 && (
+                                            <div className="text-center text-stone-700 mt-20 italic">
+                                                Select an entity to begin the simulation...
+                                            </div>
+                                        )}
+
+                                        {log.map((entry) => (
+                                            <div key={entry.id} className="animate-in slide-in-from-bottom-2 fade-in duration-500">
+                                                <div className="flex items-baseline gap-3 mb-1">
+                                                    <TerminalText className="text-stone-600">{entry.time}</TerminalText>
+                                                    <TerminalText className="text-stone-500 uppercase">[{entry.entity}]</TerminalText>
+                                                    <TerminalText className="text-stone-500 uppercase">-{'>'} {entry.vector}</TerminalText>
+                                                </div>
+                                                <p className="text-lg text-stone-300 leading-relaxed pl-4 border-l border-stone-700">
+                                                    {entry.text}
+                                                </p>
+                                            </div>
+                                        ))}
+                                        <div ref={bottomRef} />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RipplesApp />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripples: Professional Engine Studio v2.1</title>
+    <style>
+        :root {
+            --bg-darker: #0d0d0d;
+            --bg-dark: #1e1e1e;
+            --bg-panel: #252526;
+            --bg-header: #2d2d2d;
+            --bg-input: #3c3c3c;
+            --text-main: #cccccc;
+            --text-muted: #858585;
+            --accent: #007acc;
+            --accent-hover: #0098ff;
+            --border: #474747;
+            --success: #4ec9b0;
+            --error: #f14c4c;
+            --warning: #cca700;
+            --keyword: #569cd6;
+            --variable: #9cdcfe;
+            --string: #ce9178;
+            --font-mono: 'Fira Code', 'Consolas', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-darker);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            display: flex;
+            height: 100vh;
+            font-size: 12px;
+        }
+
+        /* --- SVG Icon System --- */
+        .icon {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* --- Activity Bar --- */
+        #activity-bar {
+            width: 48px;
+            background-color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 12px;
+            border-right: 1px solid #111;
+            flex-shrink: 0;
+            z-index: 200;
+        }
+
+        .icon-btn {
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0.4;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .icon-btn:hover {
+            opacity: 0.8;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .icon-btn.active {
+            opacity: 1;
+            border-left: 2px solid white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 280px;
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-view {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .sidebar-view.active {
+            display: flex;
+        }
+
+        .section-header {
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 10px;
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-header:hover {
+            background-color: #383838;
+        }
+
+        .section-content {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            background: #252526;
+        }
+
+        /* --- Properties & Inputs --- */
+        .prop-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .prop-label {
+            flex: 1;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .prop-input {
+            background: var(--bg-input);
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 3px 6px;
+            font-family: var(--font-mono);
+            border-radius: 2px;
+            width: 60px;
+            text-align: right;
+            outline: none;
+        }
+
+        .prop-input:focus {
+            border-color: var(--accent);
+        }
+
+        input[type="range"] {
+            flex: 2;
+            height: 3px;
+            background: #444;
+            appearance: none;
+            border-radius: 2px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 10px;
+            height: 10px;
+            background: #888;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* --- Explorer List --- */
+        #explorer-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .explorer-item {
+            padding: 4px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            color: var(--variable);
+            font-family: var(--font-mono);
+        }
+
+        .explorer-item:hover {
+            background: #2a2d2e;
+        }
+
+        .explorer-item.selected {
+            background: #37373d;
+            outline: 1px solid var(--accent);
+        }
+
+        /* --- Viewport & Toolbar --- */
+        #viewport {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+
+        #toolbar {
+            height: 35px;
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 6px;
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-btn:hover {
+            background-color: #444;
+        }
+
+        .tool-btn.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        #canvas-wrapper {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* --- Documentation Styling --- */
+        .docs-container {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .docs-container h2 {
+            font-size: 13px;
+            color: var(--accent-hover);
+            margin-bottom: 8px;
+            margin-top: 16px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .docs-container p {
+            line-height: 1.5;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .docs-container code {
+            background: #1a1a1a;
+            color: var(--success);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+        }
+
+        .docs-item {
+            margin-bottom: 20px;
+        }
+
+        .docs-subtitle {
+            font-weight: bold;
+            color: var(--variable);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* --- Bottom Panel --- */
+        #bottom-panel {
+            height: 220px;
+            background-color: var(--bg-dark);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            display: flex;
+            background: var(--bg-header);
+            height: 30px;
+        }
+
+        .panel-tab {
+            padding: 0 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-right: 1px solid #444;
+        }
+
+        .panel-tab.active {
+            color: white;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+            flex-grow: 1;
+            padding: 10px;
+            overflow: auto;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Console --- */
+        #console-output {
+            flex-grow: 1;
+            font-family: var(--font-mono);
+            line-height: 1.5;
+            font-size: 12px;
+        }
+
+        #console-input-line {
+            display: flex;
+            gap: 8px;
+            color: var(--accent);
+            margin-top: 4px;
+            border-top: 1px solid #333;
+            padding-top: 4px;
+            font-family: var(--font-mono);
+        }
+
+        #cli-input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--success);
+            font-family: var(--font-mono);
+            flex: 1;
+        }
+
+        /* --- Script Editor --- */
+        #script-editor {
+            background: #1a1a1a;
+            color: var(--success);
+            border: 1px solid #444;
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            flex-grow: 1;
+            resize: none;
+            outline: none;
+        }
+
+        /* --- Telemetry --- */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .tel-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+
+        .tel-stat-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+        }
+
+        .tel-graph-box {
+            background: #000;
+            border: 1px solid #444;
+            position: relative;
+            flex: 1;
+        }
+
+        .log-sys {
+            color: var(--accent-hover);
+        }
+
+        .log-err {
+            color: var(--error);
+        }
+
+        .log-warn {
+            color: var(--warning);
+        }
+
+        .log-user {
+            color: var(--variable);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SVG Definitions -->
+    <svg style="display:none;">
+        <symbol id="icon-folder" viewBox="0 0 24 24">
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+        </symbol>
+        <symbol id="icon-atom" viewBox="0 0 24 24">
+            <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" />
+        </symbol>
+        <symbol id="icon-bug" viewBox="0 0 24 24">
+            <path
+                d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5c-.49 0-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z" />
+        </symbol>
+        <symbol id="icon-help" viewBox="0 0 24 24">
+            <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" />
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <path
+                d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+        </symbol>
+        <symbol id="icon-play" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+        </symbol>
+        <symbol id="icon-pause" viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        </symbol>
+        <symbol id="icon-reset" viewBox="0 0 24 24">
+            <path
+                d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+        </symbol>
+        <symbol id="icon-close" viewBox="0 0 24 24">
+            <path
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </symbol>
+        <symbol id="icon-chevron" viewBox="0 0 24 24">
+            <path d="M7 10l5 5 5-5z" />
+        </symbol>
+    </svg>
+
+    <!-- Activity Bar -->
+    <div id="activity-bar">
+        <div class="icon-btn active" data-view="view-explorer" title="Explorer">
+            <svg class="icon">
+                <use href="#icon-folder"></use>
+            </svg>
+        </div>
+        <div class="icon-btn" data-view="view-physics" title="Physics Engine">
+            <svg class="icon">
+                <use href="#icon-atom"></use>
+            </svg>
+        </div>
+        <div class="icon-btn" data-view="view-debug" title="Visual Debug">
+            <svg class="icon">
+                <use href="#icon-bug"></use>
+            </svg>
+        </div>
+        <div class="icon-btn" data-view="view-docs" title="Documentation">
+            <svg class="icon">
+                <use href="#icon-help"></use>
+            </svg>
+        </div>
+        <div style="margin-top:auto;"></div>
+        <div class="icon-btn" data-view="view-settings" title="System Settings">
+            <svg class="icon">
+                <use href="#icon-settings"></use>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <!-- Explorer View -->
+        <div id="view-explorer" class="sidebar-view active">
+            <div class="section-header">
+                <span>Explorer: Active Entities</span>
+                <svg class="icon" style="width:14px;">
+                    <use href="#icon-chevron"></use>
+                </svg>
+            </div>
+            <div id="explorer-list"></div>
+            <div class="section-header"><span>Entity Inspector</span></div>
+            <div class="section-content" id="inspector-content">
+                <div style="color:var(--text-muted);text-align:center;">Select an entity in explorer</div>
+            </div>
+        </div>
+
+        <!-- Physics View -->
+        <div id="view-physics" class="sidebar-view">
+            <div class="section-header"><span>Physics Kernel</span></div>
+            <div class="section-content">
+                <div class="prop-row"><span class="prop-label">Time Scale</span><input type="range" min="0" max="3"
+                        step="0.1" value="1.0" id="in-timescale"></div>
+                <div class="prop-row"><span class="prop-label">Drag Coeff</span><input type="range" min="0.8" max="1"
+                        step="0.001" value="0.98" id="in-drag"></div>
+            </div>
+            <div class="section-header"><span>Emergent Behavior</span></div>
+            <div class="section-content">
+                <div class="prop-row"><span class="prop-label">Cohesion</span><input type="range" min="0" max="0.1"
+                        step="0.001" value="0.005" id="in-cohesion"></div>
+                <div class="prop-row"><span class="prop-label">Alignment</span><input type="range" min="0" max="0.5"
+                        step="0.01" value="0.05" id="in-alignment"></div>
+                <div class="prop-row"><span class="prop-label">Separation</span><input type="range" min="0" max="1.0"
+                        step="0.01" value="0.2" id="in-separation"></div>
+            </div>
+        </div>
+
+        <!-- Debug View -->
+        <div id="view-debug" class="sidebar-view">
+            <div class="section-header"><span>Rendering Layers</span></div>
+            <div class="section-content">
+                <div class="prop-row"><span class="prop-label">Show Quadtree</span><input type="checkbox"
+                        id="dbg-quadtree"></div>
+                <div class="prop-row"><span class="prop-label">Show Vectors</span><input type="checkbox"
+                        id="dbg-vectors"></div>
+                <div class="prop-row"><span class="prop-label">Show Bloom</span><input type="checkbox" id="dbg-bloom"
+                        checked></div>
+            </div>
+            <div class="section-header"><span>Tool Configuration</span></div>
+            <div class="section-content">
+                <div class="prop-row">
+                    <span class="prop-label">Active Tool</span>
+                    <select class="prop-input" id="in-tool" style="width:100px;">
+                        <option value="inspect">Inspect</option>
+                        <option value="attract">Attract</option>
+                        <option value="repel">Repel</option>
+                        <option value="emit">Emitter</option>
+                    </select>
+                </div>
+                <div class="prop-row"><span class="prop-label">Radius</span><input type="range" min="50" max="500"
+                        value="150" id="in-radius"></div>
+            </div>
+        </div>
+
+        <!-- Documentation View -->
+        <div id="view-docs" class="sidebar-view">
+            <div class="section-header"><span>Documentation</span></div>
+            <div class="docs-container">
+                <div class="docs-item">
+                    <h2>Engine Core</h2>
+                    <p>The Ripples Engine utilizes a <code>Quadtree</code> spatial partitioner to optimize neighbor
+                        lookup from <code>O(N²)</code> to <code>O(N log N)</code> complexity.</p>
+                </div>
+                <div class="docs-item">
+                    <h2>Boids Behavior</h2>
+                    <span class="docs-subtitle">Cohesion</span>
+                    <p>Forces entities to steer toward the average position of neighbors.</p>
+                    <span class="docs-subtitle">Alignment</span>
+                    <p>Steers entities to match the average velocity of the group.</p>
+                    <span class="docs-subtitle">Separation</span>
+                    <p>Prevents crowding by pushing entities away from neighbors.</p>
+                </div>
+                <div class="docs-item">
+                    <h2>Live Scripting</h2>
+                    <p>The <code>Script</code> tab allows kernel-level behavior modification. Context variables:</p>
+                    <p><code>this.pos</code> - Position Vector<br><code>this.vel</code> - Velocity
+                        Vector<br><code>neighbors</code> - Array of nearby entities</p>
+                </div>
+                <div class="docs-item">
+                    <h2>CLI Commands</h2>
+                    <p><code>spawn [n]</code>: Create particles<br><code>clear</code>: Purge
+                        world<br><code>reset</code>: Reboot kernel</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Viewport -->
+    <div id="viewport">
+        <div id="toolbar">
+            <button class="tool-btn active" id="btn-play">
+                <svg class="icon" style="width:12px;">
+                    <use href="#icon-play"></use>
+                </svg> Run
+            </button>
+            <button class="tool-btn" id="btn-pause">
+                <svg class="icon" style="width:12px;">
+                    <use href="#icon-pause"></use>
+                </svg> Pause
+            </button>
+            <div style="width:1px; height:18px; background:var(--border);"></div>
+            <button class="tool-btn" id="btn-reset">
+                <svg class="icon" style="width:12px;">
+                    <use href="#icon-reset"></use>
+                </svg> Reset
+            </button>
+            <button class="tool-btn" id="btn-clear">
+                <svg class="icon" style="width:12px;">
+                    <use href="#icon-close"></use>
+                </svg> Purge
+            </button>
+            <div style="flex-grow: 1;"></div>
+            <div id="stat-fps" style="color:var(--success);font-family:var(--font-mono);">60.0 FPS</div>
+        </div>
+
+        <div id="canvas-wrapper">
+            <canvas id="main-canvas"></canvas>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div id="bottom-panel">
+            <div class="panel-tabs">
+                <div class="panel-tab active" data-tab="tab-console">CONSOLE</div>
+                <div class="panel-tab" data-tab="tab-telemetry">TELEMETRY</div>
+                <div class="panel-tab" data-tab="tab-script">SCRIPT (LIVE)</div>
+            </div>
+
+            <div id="tab-console" class="tab-content active">
+                <div id="console-output"></div>
+                <div id="console-input-line">
+                    <span>></span>
+                    <input type="text" id="cli-input" placeholder="Execute kernel command..." autocomplete="off">
+                </div>
+            </div>
+
+            <div id="tab-telemetry" class="tab-content">
+                <div class="telemetry-grid">
+                    <div class="tel-stats">
+                        <div class="tel-stat-row"><span>ALLOCATED_OBJECTS</span> <span id="tel-count">0</span></div>
+                        <div class="tel-stat-row"><span>AVG_VELOCITY</span> <span id="tel-vel">0.00</span></div>
+                        <div class="tel-stat-row"><span>HEAP_ESTIMATE</span> <span id="tel-heap">2.4MB</span></div>
+                    </div>
+                    <div class="tel-graph-box">
+                        <canvas id="perf-graph"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-script" class="tab-content">
+                <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--text-muted)">Kernel Overload Hook</span>
+                    <button class="tool-btn active" id="btn-compile">Compile & Inject</button>
+                </div>
+                <textarea id="script-editor">// Override kernel loop
+// Context: this (Entity), neighbors (Array)
+this.pos.x += Math.sin(Date.now() * 0.001) * 0.2;</textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES ENGINE STUDIO v2.1
+         * Clean Architecture: No Emojis, Enhanced Documentation
+         */
+
+        const config = {
+            timeScale: 1.0, drag: 0.98, cohesion: 0.005, alignment: 0.05, separation: 0.2,
+            tool: 'inspect', toolRadius: 150, toolStrength: 5.0,
+            showQuadtree: false, showVectors: false, bloom: true,
+            customLogic: null
+        };
+
+        const state = {
+            running: true, width: 0, height: 0,
+            entities: [], selectedId: null, frame: 0,
+            mouse: { x: 0, y: 0, down: false },
+            perfHistory: [], quadtree: null
+        };
+
+        class Vec2 {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
+            sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
+            mult(n) { return new Vec2(this.x * n, this.y * n); }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            norm() { let m = this.mag(); return m === 0 ? new Vec2(0, 0) : new Vec2(this.x / m, this.y / m); }
+            static dist(v1, v2) { return Math.hypot(v1.x - v2.x, v1.y - v2.y); }
+        }
+
+        class Quadtree {
+            constructor(boundary, capacity) {
+                this.boundary = boundary; this.capacity = capacity;
+                this.points = []; this.divided = false;
+            }
+            subdivide() {
+                let { x, y, w, h } = this.boundary;
+                this.nw = new Quadtree({ x: x - w / 2, y: y - h / 2, w: w / 2, h: h / 2 }, this.capacity);
+                this.ne = new Quadtree({ x: x + w / 2, y: y - h / 2, w: w / 2, h: h / 2 }, this.capacity);
+                this.sw = new Quadtree({ x: x - w / 2, y: y + h / 2, w: w / 2, h: h / 2 }, this.capacity);
+                this.se = new Quadtree({ x: x + w / 2, y: y + h / 2, w: w / 2, h: h / 2 }, this.capacity);
+                this.divided = true;
+            }
+            insert(entity) {
+                if (!this.contains(entity.pos)) return false;
+                if (this.points.length < this.capacity) { this.points.push(entity); return true; }
+                if (!this.divided) this.subdivide();
+                return (this.nw.insert(entity) || this.ne.insert(entity) || this.sw.insert(entity) || this.se.insert(entity));
+            }
+            contains(pos) { return (pos.x >= this.boundary.x - this.boundary.w && pos.x <= this.boundary.x + this.boundary.w && pos.y >= this.boundary.y - this.boundary.h && pos.y <= this.boundary.y + this.boundary.h); }
+            query(range, found = []) {
+                if (!(range.x - range.w > this.boundary.x + this.boundary.w || range.x + range.w < this.boundary.x - this.boundary.w || range.y - range.h > this.boundary.y + this.boundary.h || range.y + range.h < this.boundary.y - this.boundary.h)) {
+                    for (let p of this.points) { if (Vec2.dist(p.pos, { x: range.x, y: range.y }) <= range.w) found.push(p); }
+                    if (this.divided) { this.nw.query(range, found); this.ne.query(range, found); this.sw.query(range, found); this.se.query(range, found); }
+                }
+                return found;
+            }
+            draw(ctx) {
+                if (!config.showQuadtree) return;
+                ctx.strokeStyle = 'rgba(0, 122, 204, 0.2)';
+                ctx.strokeRect(this.boundary.x - this.boundary.w, this.boundary.y - this.boundary.h, this.boundary.w * 2, this.boundary.h * 2);
+                if (this.divided) { this.nw.draw(ctx); this.ne.draw(ctx); this.sw.draw(ctx); this.se.draw(ctx); }
+            }
+        }
+
+        class Entity {
+            constructor(x, y) {
+                this.id = Math.random().toString(16).slice(2, 6).toUpperCase();
+                this.pos = new Vec2(x, y);
+                this.vel = new Vec2((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+                this.acc = new Vec2(0, 0);
+                this.size = 2 + Math.random() * 4;
+                this.baseColor = `hsl(${200 + Math.random() * 40}, 80%, 60%)`;
+                this.color = this.baseColor;
+            }
+            applyForce(f) { this.acc = this.acc.add(f.mult(1 / this.size)); }
+            update(neighbors) {
+                if (config.customLogic) { try { config.customLogic.call(this, neighbors); } catch (e) { } }
+                if (neighbors.length > 1) {
+                    let sep = new Vec2(0, 0), ali = new Vec2(0, 0), coh = new Vec2(0, 0), count = 0;
+                    for (let n of neighbors) {
+                        if (n === this) continue;
+                        let d = Vec2.dist(this.pos, n.pos);
+                        if (d < 40) {
+                            sep = sep.add(this.pos.sub(n.pos).norm().mult(1 / d));
+                            ali = ali.add(n.vel);
+                            coh = coh.add(n.pos);
+                            count++;
+                        }
+                    }
+                    if (count > 0) {
+                        this.applyForce(sep.mult(1 / count).norm().mult(4).sub(this.vel).mult(config.separation));
+                        this.applyForce(ali.mult(1 / count).norm().mult(4).sub(this.vel).mult(config.alignment));
+                        this.applyForce(coh.mult(1 / count).sub(this.pos).norm().mult(4).sub(this.vel).mult(config.cohesion));
+                    }
+                }
+                this.vel = this.vel.add(this.acc).mult(config.drag);
+                this.pos = this.pos.add(this.vel.mult(config.timeScale));
+                this.acc = new Vec2(0, 0);
+                if (this.pos.x < 0) this.pos.x = state.width; else if (this.pos.x > state.width) this.pos.x = 0;
+                if (this.pos.y < 0) this.pos.y = state.height; else if (this.pos.y > state.height) this.pos.y = 0;
+            }
+            draw(ctx, isSelected) {
+                ctx.fillStyle = this.color;
+                if (isSelected) { ctx.shadowBlur = 12; ctx.shadowColor = '#fff'; }
+                else if (config.bloom) { ctx.shadowBlur = 8; ctx.shadowColor = this.color; }
+                else ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, isSelected ? this.size + 2 : this.size, 0, Math.PI * 2); ctx.fill();
+                if (config.showVectors) {
+                    ctx.shadowBlur = 0; ctx.strokeStyle = '#f00'; ctx.beginPath();
+                    ctx.moveTo(this.pos.x, this.pos.y); ctx.lineTo(this.pos.x + this.vel.x * 8, this.pos.y + this.vel.y * 8); ctx.stroke();
+                }
+            }
+        }
+
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const perfCanvas = document.getElementById('perf-graph');
+        const pctx = perfCanvas.getContext('2d');
+
+        function init() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            state.width = wrapper.clientWidth; state.height = wrapper.clientHeight;
+            canvas.width = state.width; canvas.height = state.height;
+            perfCanvas.width = 150; perfCanvas.height = 80;
+            resetSim();
+            log("Engine Context: v2.1.0-STABLE Pro loaded.", "sys");
+        }
+
+        function resetSim() {
+            state.entities = [];
+            for (let i = 0; i < 120; i++) state.entities.push(new Entity(Math.random() * state.width, Math.random() * state.height));
+            refreshExplorer();
+        }
+
+        function refreshExplorer() {
+            const list = document.getElementById('explorer-list');
+            list.innerHTML = state.entities.map(e => `
+                <div class="explorer-item ${state.selectedId === e.id ? 'selected' : ''}" data-id="${e.id}">
+                    <span>Entity</span> <span>${e.id}</span>
+                </div>
+            `).join('');
+            document.querySelectorAll('.explorer-item').forEach(el => {
+                el.onclick = () => { state.selectedId = el.dataset.id; refreshExplorer(); updateInspector(); };
+            });
+        }
+
+        function updateInspector() {
+            const container = document.getElementById('inspector-content');
+            const e = state.entities.find(ent => ent.id === state.selectedId);
+            if (!e) { container.innerHTML = '<div style="color:var(--text-muted);text-align:center;">Select an entity in explorer</div>'; return; }
+            container.innerHTML = `
+                <div class="prop-row"><span class="prop-label">UID</span> <span style="color:var(--keyword)">0x${e.id}</span></div>
+                <div class="prop-row"><span class="prop-label">Velocity</span> <span>${e.vel.mag().toFixed(2)}</span></div>
+                <div class="prop-row"><span class="prop-label">Radius</span> <input type="number" class="prop-input" value="${e.size.toFixed(1)}" id="edit-size"></div>
+                <button class="tool-btn" style="width:100%;justify-content:center;margin-top:10px;border-color:var(--error);color:var(--error);" id="btn-kill">TERMINATE</button>
+            `;
+            document.getElementById('edit-size').oninput = (ev) => e.size = parseFloat(ev.target.value) || 1;
+            document.getElementById('btn-kill').onclick = () => {
+                state.entities = state.entities.filter(ent => ent.id !== e.id);
+                state.selectedId = null; updateInspector(); refreshExplorer(); log(`Purged entity ${e.id}`, "warn");
+            };
+        }
+
+        function log(msg, type = 'info') {
+            const out = document.getElementById('console-output');
+            const div = document.createElement('div'); div.className = `log-sys log-${type}`;
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            out.appendChild(div); out.scrollTop = out.scrollHeight;
+        }
+
+        let lastTime = performance.now();
+        function loop(time) {
+            const dt = time - lastTime; lastTime = time;
+            if (state.running) {
+                const start = performance.now();
+                state.quadtree = new Quadtree({ x: state.width / 2, y: state.height / 2, w: state.width / 2, h: state.height / 2 }, 4);
+                state.entities.forEach(e => state.quadtree.insert(e));
+                state.entities.forEach(e => {
+                    const neighbors = state.quadtree.query({ x: e.pos.x, y: e.pos.y, w: 50, h: 50 });
+                    e.update(neighbors);
+                });
+                if (state.mouse.down && config.tool !== 'inspect') {
+                    const m = { x: state.mouse.x, y: state.mouse.y };
+                    if (config.tool === 'emit' && state.frame % 4 === 0) {
+                        state.entities.push(new Entity(m.x, m.y)); refreshExplorer();
+                    } else {
+                        state.quadtree.query({ x: m.x, y: m.y, w: config.toolRadius, h: config.toolRadius }).forEach(e => {
+                            const d = Vec2.dist(e.pos, m); const dir = e.pos.sub(m).norm();
+                            if (config.tool === 'attract') e.applyForce(dir.mult(-5 * (1 - d / config.toolRadius)));
+                            if (config.tool === 'repel') e.applyForce(dir.mult(5 * (1 - d / config.toolRadius)));
+                        });
+                    }
+                }
+                state.frame++;
+                const end = performance.now();
+                state.perfHistory.push(end - start); if (state.perfHistory.length > 50) state.perfHistory.shift();
+                document.getElementById('tel-count').innerText = state.entities.length;
+                document.getElementById('tel-vel').innerText = (state.entities.reduce((a, b) => a + b.vel.mag(), 0) / state.entities.length || 0).toFixed(2);
+                document.getElementById('stat-fps').innerText = (1000 / dt).toFixed(1) + " FPS";
+            }
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, state.width, state.height);
+            state.quadtree.draw(ctx);
+            state.entities.forEach(e => e.draw(ctx, e.id === state.selectedId));
+            pctx.clearRect(0, 0, 150, 80); pctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); pctx.beginPath();
+            state.perfHistory.forEach((p, i) => { const x = (i / 50) * 150; const y = 80 - (p * 4); if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y); });
+            pctx.stroke();
+            requestAnimationFrame(loop);
+        }
+
+        // --- Interaction ---
+        document.querySelectorAll('.icon-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.icon-btn, .sidebar-view').forEach(el => el.classList.remove('active'));
+                btn.classList.add('active'); document.getElementById(btn.dataset.view).classList.add('active');
+            };
+        });
+        document.querySelectorAll('.panel-tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.panel-tab, .tab-content').forEach(el => el.classList.remove('active'));
+                tab.classList.add('active'); document.getElementById(tab.dataset.tab).classList.add('active');
+            };
+        });
+        document.getElementById('btn-compile').onclick = () => {
+            try { config.customLogic = new Function('neighbors', document.getElementById('script-editor').value); log("Inject: Loop overload successful.", "success"); }
+            catch (e) { log("Compile Error: " + e.message, "err"); }
+        };
+
+        // Inputs
+        document.getElementById('in-timescale').oninput = e => config.timeScale = parseFloat(e.target.value);
+        document.getElementById('in-drag').oninput = e => config.drag = parseFloat(e.target.value);
+        document.getElementById('in-cohesion').oninput = e => config.cohesion = parseFloat(e.target.value);
+        document.getElementById('in-alignment').oninput = e => config.alignment = parseFloat(e.target.value);
+        document.getElementById('in-separation').oninput = e => config.separation = parseFloat(e.target.value);
+        document.getElementById('in-tool').onchange = e => config.tool = e.target.value;
+        document.getElementById('in-radius').oninput = e => config.toolRadius = parseInt(e.target.value);
+        document.getElementById('dbg-quadtree').onchange = e => config.showQuadtree = e.target.checked;
+        document.getElementById('dbg-vectors').onchange = e => config.showVectors = e.target.checked;
+        document.getElementById('dbg-bloom').onchange = e => config.bloom = e.target.checked;
+        document.getElementById('btn-play').onclick = () => { state.running = true; document.getElementById('btn-play').classList.add('active'); document.getElementById('btn-pause').classList.remove('active'); };
+        document.getElementById('btn-pause').onclick = () => { state.running = false; document.getElementById('btn-pause').classList.add('active'); document.getElementById('btn-play').classList.remove('active'); };
+        document.getElementById('btn-reset').onclick = resetSim;
+        document.getElementById('btn-clear').onclick = () => { state.entities = []; refreshExplorer(); log("Purged all world objects.", "warn"); };
+        canvas.onmousedown = (e) => {
+            state.mouse.down = true;
+            if (config.tool === 'inspect') {
+                const found = state.quadtree.query({ x: e.offsetX, y: e.offsetY, w: 20, h: 20 });
+                state.selectedId = found.length > 0 ? found[0].id : null;
+                updateInspector(); refreshExplorer();
+            }
+        };
+        window.onmouseup = () => state.mouse.down = false;
+        canvas.onmousemove = (e) => { state.mouse.x = e.offsetX; state.mouse.y = e.offsetY; };
+        document.getElementById('cli-input').onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                const val = e.target.value; e.target.value = ''; log(`> ${val}`, "user");
+                if (val === 'help') log("Core: spawn [n], clear, reset, help", "sys");
+                else if (val.startsWith('spawn')) {
+                    const n = parseInt(val.split(' ')[1]) || 1;
+                    for (let i = 0; i < n; i++) state.entities.push(new Entity(Math.random() * state.width, Math.random() * state.height));
+                    refreshExplorer(); log(`Allocated ${n} objects.`, "sys");
+                } else if (val === 'clear') { state.entities = []; refreshExplorer(); log("Buffer purged.", "warn"); }
+                else log("Invalid command.", "err");
+            }
+        };
+        window.onresize = init;
+        window.onload = () => { init(); requestAnimationFrame(loop); };
+    </script>
+</body>
+
+</html>

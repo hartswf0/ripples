@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Operative Ecologies</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --term-green: #00ff41;
+            --term-red: #ff3333;
+            --term-gold: #ffd700;
+            --term-bg: #050505;
+        }
+
+        body {
+            background-color: var(--term-bg);
+            color: #444;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Animations */
+        @keyframes shiver {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(1px, 1px);
+            }
+
+            50% {
+                transform: translate(-1px, 0);
+            }
+
+            75% {
+                transform: translate(0, -1px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
+
+        @keyframes flash-green {
+            0% {
+                color: var(--term-green);
+                text-shadow: 0 0 10px var(--term-green);
+            }
+
+            100% {
+                color: inherit;
+                text-shadow: none;
+            }
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        .shiver {
+            animation: shiver 0.2s infinite;
+            display: inline-block;
+        }
+
+        .flash {
+            animation: flash-green 1s ease-out;
+        }
+
+        .active-entity {
+            color: var(--term-green);
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            cursor: pointer;
+        }
+
+        .active-obstacle {
+            color: var(--term-red);
+            font-weight: bold;
+        }
+
+        .active-goal {
+            color: var(--term-gold);
+            font-weight: bold;
+        }
+
+        .crt-overlay {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            z-index: 50;
+        }
+
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 255, 65, 0.1), transparent);
+            animation: scanline 6s linear infinite;
+            pointer-events: none;
+            z-index: 51;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ASSETS: IMAGES (Latent Visualizations) ---
+        const VISUAL_ARCHIVE = [
+            "./IMAGES/Gemini_Generated_Image_1roa41roa41roa41.png",
+            "./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (1).png",
+            "./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (2).png",
+            "./IMAGES/Gemini_Generated_Image_1roa41roa41roa41 (3).png",
+            "./IMAGES/Gemini_Generated_Image_3zb61t3zb61t3zb6.png",
+            "./IMAGES/Gemini_Generated_Image_ekh8wtekh8wtekh8.png",
+            "./IMAGES/Gemini_Generated_Image_jhlrcgjhlrcgjhlr.png",
+            "./IMAGES/Gemini_Generated_Image_qd9r1dqd9r1dqd9r.png",
+            "./IMAGES/Gemini_Generated_Image_w9pk6dw9pk6dw9pk.png",
+            "./IMAGES/Gemini_Generated_Image_yh7emyyh7emyyh7e.png"
+        ];
+
+        // --- LATENT LIBRARY (Generative Text) ---
+        // Provides the "Worldtext" for different states
+        const LATENT_LIBRARY = {
+            CUPBOARD: {
+                base: [
+                    "The cupboard space is pressurized by stillness.",
+                    "Light seeps only through marginal cracks between door and frame.",
+                    "Objects maintain rigid proximity.",
+                    "Six tall glasses (silica/dust coated) delimit the left boundary.",
+                    "A stack of twenty ceramic plates compresses the lower shelf space.",
+                    "The air is stagnant.",
+                    "Dust motes suspend in micro-gravity fields.",
+                    "A spiderweb connects the hinge to the shelf lip (dormant)."
+                ],
+                entities: [
+                    {
+                        id: 'ANT', name: 'Ant', type: 'biological', desc: 'Formicidae scout', vector_responses: {
+                            GOAL: "The Ant entity abandons the boundary cracks, navigating the ceramic topography of the 'twenty plates'. It traces an invisible chemical scent-line toward the 'six short glasses' where a residue of dried liquid remains.",
+                            OBSTACLE: "The Ant encounters a 'sticky_residue_barrier'. Antennae recoil. The entity enters a loop state, vibrating to signal colony distress before rerouting along the Y-axis.",
+                            SHIFT: "The Ant molts its objective. It ceases foraging and becomes a static observer, merging its sensory input with the shelf dust."
+                        }
+                    },
+                    {
+                        id: 'DUST', name: 'Dust_Mote', type: 'particulate', desc: 'Silica fragment', vector_responses: {
+                            GOAL: "Thermal updraft caught. The Dust_Mote ascends, seeking the photon stream at the door crack. It becomes a glowing pixel in the darkness.",
+                            OBSTACLE: "Collision with 'Glass_Surface'. The Dust_Mote adheres via electrostatic force. It becomes surface texture, losing independent trajectory.",
+                            SHIFT: "Entropy spike. The Dust_Mote divides into micro-particulates, increasing the localized haze density."
+                        }
+                    },
+                    {
+                        id: 'GLASS', name: 'Tall_Glass', type: 'object', desc: 'Silicate vessel', vector_responses: {
+                            GOAL: "Internal stress fracture seeks release. The molecular bonds yearn for equilibrium. A 'ping' sound registers as a crack propagates 2mm.",
+                            OBSTACLE: "The 'Ceramic_Stack' presses against the glass rim. Tension vibrates through the silicate lattice. The object hums a sub-audible tone.",
+                            SHIFT: "Light refraction angle shifts. The Glass distorts the reflection of the 'Spider', projecting a monstrous shadow onto the back wall."
+                        }
+                    }
+                ]
+            },
+            FOREST: {
+                base: [
+                    "A dense network of organic data.",
+                    "Canopy filters lumen input to 12%.",
+                    "Mycelial threads network the sub-floor.",
+                    "Damp logs exhale spore-clouds.",
+                    "Silence is heavy, punctuated by avian signals.",
+                    "Ferns execute fractals in slow-time.",
+                    "A stream cuts the data-field with white noise."
+                ],
+                entities: [
+                    {
+                        id: 'FUNGUS', name: 'Mycelium', type: 'network', desc: 'Fungal root system', vector_responses: {
+                            GOAL: "Nutrient packet detected in 'Decaying_Log'. The Mycelium accelerates growth vectors, digesting the cellulose structure.",
+                            OBSTACLE: "'Rock_Layer' impenetrable. The network executes a wrap-around algorithm, encasing the obstacle in a slow embrace.",
+                            SHIFT: "Spore release trigger. The Mycelium shifts from consumption to reproduction. The air fills with 'biological_data_packets'."
+                        }
+                    },
+                    {
+                        id: 'FOX', name: 'Red_Fox', type: 'biological', desc: 'Vulpes vulpes', vector_responses: {
+                            GOAL: "Prey signature: Vole. The Fox calculates a pounce trajectory. Muscles tense in kinetic anticipation.",
+                            OBSTACLE: "'Thorn_Bush' barrier. The Fox halts, ears swiveling. It re-routes through the 'Stream_Bed' node.",
+                            SHIFT: "The Fox freezes. It ceases to be a predator and becomes part of the landscape, a statue of russet fur waiting for the observer to pass."
+                        }
+                    }
+                ]
+            },
+            CITY: {
+                base: [
+                    "Concrete canyons channel wind turbulence.",
+                    "Neon recursion loops on wet asphalt.",
+                    "Traffic drone provides a steady noise floor.",
+                    "Gridlock prevents agent movement.",
+                    "Steam vents hiss from subterranean pressure valves.",
+                    "Glass towers reflect the grey sky."
+                ],
+                entities: [
+                    {
+                        id: 'SIGNAL', name: 'Traffic_Light', type: 'infrastructure', desc: 'Control signal', vector_responses: {
+                            GOAL: "Throughput optimization. The Signal switches to GREEN, flushing the queue of waiting metal.",
+                            OBSTACLE: "Power fluctuation. The Signal flickers RED/AMBER. Confusion ripples through the traffic grid.",
+                            SHIFT: "Mode error. The Signal displays ALL_COLORS. It becomes a festive object, useless for control."
+                        }
+                    }
+                ]
+            }
+        };
+
+        const PRESETS = [
+            { id: 'CUPBOARD', label: 'The Cupboard', date: '2026-02-02', imgIndex: 0 },
+            { id: 'FOREST', label: 'Deep Forest', date: '2026-02-02', imgIndex: 5 },
+            { id: 'CITY', label: 'Urban Jungle', date: '2026-02-02', imgIndex: 8 }
+        ];
+
+        // --- COMPONENTS ---
+
+        const ShiverText = ({ text }) => {
+            const shouldShiver = Math.random() > 0.95;
+            return <span className={shouldShiver ? "shiver text-neutral-500" : ""}>{text} </span>;
+        };
+
+        const WorldGrid = ({ textData, highlightedEntities, onSelectEntity, selectedEntityId }) => {
+            // Split text into words for grid rendering
+            const words = useMemo(() => {
+                return textData.flatMap(line => line.split(' ').map(w => ({ text: w, id: Math.random() })));
+            }, [textData]);
+
+            return (
+                <div className="flex-1 bg-black p-8 font-mono text-sm leading-relaxed overflow-y-auto font-bold text-neutral-700 select-none">
+                    <div className="max-w-4xl mx-auto flex flex-wrap gap-x-3 gap-y-2">
+                        {words.map((word, i) => {
+                            // Check if word matches an entity
+                            let entityMatch = null;
+                            highlightedEntities.forEach(ent => {
+                                if (word.text.includes(ent.name) || word.text.includes(ent.id)) {
+                                    entityMatch = ent;
+                                }
+                            });
+
+                            if (entityMatch) {
+                                return (
+                                    <span
+                                        key={word.id}
+                                        onClick={() => onSelectEntity(entityMatch)}
+                                        className={`active-entity transition-colors duration-300 ${selectedEntityId === entityMatch.id ? 'text-green-400 scale-110' : 'text-green-800 hover:text-green-600'}`}
+                                    >
+                                        {word.text}
+                                    </span>
+                                );
+                            }
+
+                            // Random "noise" words
+                            if (['static', 'void', 'grid', 'null'].includes(word.text.toLowerCase().replace(/[^a-z]/g, ''))) {
+                                return <span key={word.id} className="text-neutral-800">{word.text}</span>;
+                            }
+
+                            return <span key={word.id} className="text-neutral-600 hover:text-neutral-500 transition-colors">{word.text}</span>;
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // State
+            const [scenario, setScenario] = useState('CUPBOARD');
+            const [worldLines, setWorldLines] = useState(LATENT_LIBRARY.CUPBOARD.base);
+            const [entities, setEntities] = useState(LATENT_LIBRARY.CUPBOARD.entities);
+            const [selectedEntityId, setSelectedEntityId] = useState(null);
+            const [logs, setLogs] = useState([{ tick: 0, msg: "SYSTEM INIT..." }]);
+            const [tick, setTick] = useState(0);
+            const [autoPlay, setAutoPlay] = useState(false);
+            const [visualIndex, setVisualIndex] = useState(0);
+
+            // Refs
+            const logEndRef = useRef(null);
+
+            // --- ENGINE LOGIC ---
+
+            const addLog = (msg) => {
+                const t = tick + 1;
+                setTick(t);
+                setLogs(prev => [`[T:${t.toString().padStart(4, '0')}] ${msg}`, ...prev].slice(0, 50));
+            };
+
+            const triggerRipple = (vector) => {
+                if (!selectedEntityId) return;
+
+                const entity = entities.find(e => e.id === selectedEntityId);
+                const response = entity.vector_responses[vector];
+
+                // 1. Log the Action
+                addLog(`${entity.name} >> ${vector}`);
+
+                // 2. Update Worldtext (Operative Ekphrasis)
+                // We create a new "block" of text that replaces part of the old world
+                const newLines = [
+                    ...worldLines.slice(0, Math.max(0, worldLines.length - 2)), // Keep some context
+                    `> RIPPLE: ${response}` // Add the new state
+                ];
+
+                // Keep length manageable
+                if (newLines.length > 10) newLines.splice(0, newLines.length - 10);
+
+                setWorldLines(newLines);
+
+                // 3. Visual Feedback
+                // Maybe shift the visual?
+                if (Math.random() > 0.7) {
+                    setVisualIndex(prev => (prev + 1) % VISUAL_ARCHIVE.length);
+                }
+            };
+
+            const handleScenarioChange = (id) => {
+                setScenario(id);
+                setWorldLines(LATENT_LIBRARY[id].base);
+                setEntities(LATENT_LIBRARY[id].entities);
+                setSelectedEntityId(null);
+
+                // Match image
+                const preset = PRESETS.find(p => p.id === id);
+                if (preset) setVisualIndex(preset.imgIndex);
+
+                addLog(`SCENARIO LOADED: ${id}`);
+            };
+
+            // --- AUTOPLAY ---
+            useEffect(() => {
+                if (!autoPlay) return;
+
+                const interval = setInterval(() => {
+                    // 1. Select Random Entity
+                    const randomEntity = entities[Math.floor(Math.random() * entities.length)];
+                    setSelectedEntityId(randomEntity.id);
+
+                    // 2. Select Random Vector after delay
+                    setTimeout(() => {
+                        const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                        const randomVector = vectors[Math.floor(Math.random() * vectors.length)];
+                        triggerRipple(randomVector);
+                    }, 1000);
+
+                }, 4000);
+
+                return () => clearInterval(interval);
+            }, [autoPlay, entities, worldLines]); // Depend on worldLines to keep accessing fresh state
+
+            // --- RENDER ---
+
+            const currentPreset = PRESETS.find(p => p.id === scenario);
+
+            return (
+                <div className="flex w-screen h-screen bg-neutral-900 text-neutral-400 overflow-hidden relative">
+                    <div className="scanline" />
+                    <div className="crt-overlay" />
+
+                    {/* SIDEBAR: SCENARIOS */}
+                    <div className="w-64 bg-black border-r border-neutral-800 flex flex-col z-20">
+                        <div className="p-6 border-b border-neutral-800">
+                            <h1 className="text-xl font-bold tracking-tighter text-neutral-200">RIPPLES</h1>
+                            <p className="text-xs text-neutral-600 mt-1 uppercase tracking-widest">Operative Ecologies</p>
+                        </div>
+                        <div className="p-4 space-y-2 flex-1 overflow-y-auto">
+                            <div className="text-[10px] text-neutral-500 uppercase font-bold mb-2">Preset Scenarios</div>
+                            {PRESETS.map(preset => (
+                                <button
+                                    key={preset.id}
+                                    onClick={() => handleScenarioChange(preset.id)}
+                                    className={`w-full text-left px-3 py-2 text-xs font-mono border-l-2 transition-all ${scenario === preset.id
+                                            ? 'border-green-500 text-green-400 bg-green-900/10'
+                                            : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                                        }`}
+                                >
+                                    {preset.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* VISUAL LATENCY PREVIEW */}
+                        <div className="h-48 bg-neutral-900 border-t border-neutral-800 relative overflow-hidden group">
+                            <img
+                                src={VISUAL_ARCHIVE[visualIndex]}
+                                className="w-full h-full object-cover opacity-50 grayscale group-hover:grayscale-0 transition-all duration-1000"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                            <div className="absolute bottom-2 left-2 text-[10px] font-mono text-white/50">
+                                LATENT_VISUAL_{visualIndex.toString().padStart(3, '0')}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex flex-col z-10 relative">
+
+                        {/* WORLDTEXT VIEWPORT */}
+                        <WorldGrid
+                            textData={worldLines}
+                            highlightedEntities={entities}
+                            onSelectEntity={(e) => setSelectedEntityId(e.id)}
+                            selectedEntityId={selectedEntityId}
+                        />
+
+                        {/* CONTROL PANEL */}
+                        <div className="h-64 bg-neutral-950 border-t border-neutral-800 flex">
+
+                            {/* ENTITY POOL / INFO */}
+                            <div className="w-1/3 border-r border-neutral-800 p-6 flex flex-col">
+                                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Perspective</h3>
+                                {selectedEntityId ? (
+                                    <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                                        <div className="text-2xl font-bold text-green-400 mb-1">
+                                            {entities.find(e => e.id === selectedEntityId).name}
+                                        </div>
+                                        <div className="text-xs font-mono text-green-800 mb-4">
+                                            TYPE: {entities.find(e => e.id === selectedEntityId).type.toUpperCase()}
+                                        </div>
+                                        <div className="text-sm text-neutral-400 italic leading-snug">
+                                            "{entities.find(e => e.id === selectedEntityId).desc}"
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-sm text-neutral-700 italic mt-4">
+                                        Select an entity from the worldtext to initiate a ripple.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* VECTOR CONTROLS */}
+                            <div className="w-1/3 border-r border-neutral-800 p-6 flex flex-col">
+                                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Vector Injection</h3>
+                                <div className="grid grid-cols-1 gap-2 flex-1">
+                                    <button
+                                        onClick={() => triggerRipple('GOAL')}
+                                        disabled={!selectedEntityId}
+                                        className="group flex items-center justify-between px-4 py-2 border border-neutral-800 hover:border-amber-500 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:bg-amber-900/10"
+                                    >
+                                        <span className="font-bold text-amber-600 group-hover:text-amber-400">GOAL</span>
+                                        <span className="text-[10px] text-neutral-600 group-hover:text-amber-500/50">SEEK >></span>
+                                    </button>
+                                    <button
+                                        onClick={() => triggerRipple('OBSTACLE')}
+                                        disabled={!selectedEntityId}
+                                        className="group flex items-center justify-between px-4 py-2 border border-neutral-800 hover:border-red-500 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:bg-red-900/10"
+                                    >
+                                        <span className="font-bold text-red-600 group-hover:text-red-400">OBSTACLE</span>
+                                        <span className="text-[10px] text-neutral-600 group-hover:text-red-500/50">BLOCK ||</span>
+                                    </button>
+                                    <button
+                                        onClick={() => triggerRipple('SHIFT')}
+                                        disabled={!selectedEntityId}
+                                        className="group flex items-center justify-between px-4 py-2 border border-neutral-800 hover:border-purple-500 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:bg-purple-900/10"
+                                    >
+                                        <span className="font-bold text-purple-600 group-hover:text-purple-400">SHIFT</span>
+                                        <span className="text-[10px] text-neutral-600 group-hover:text-purple-500/50">TRANSFORM ~</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* LOGS & AUTOPLAY */}
+                            <div className="w-1/3 p-6 flex flex-col relative overflow-hidden">
+                                <div className="absolute top-4 right-4">
+                                    <button
+                                        onClick={() => setAutoPlay(!autoPlay)}
+                                        className={`text-[10px] font-bold px-2 py-1 rounded border ${autoPlay ? 'border-green-500 text-green-400 animate-pulse' : 'border-neutral-700 text-neutral-600'}`}
+                                    >
+                                        {autoPlay ? 'AUTOPLAY: ON' : 'AUTOPLAY: OFF'}
+                                    </button>
+                                </div>
+                                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Audit Log</h3>
+                                <div className="flex-1 overflow-y-auto space-y-1 font-mono text-[10px] text-neutral-500">
+                                    {logs.map((log, i) => (
+                                        <div key={i} className={`border-b border-neutral-900 pb-0.5 ${i === 0 ? 'text-green-500' : ''}`}>{log}</div>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
