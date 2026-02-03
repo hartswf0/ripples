@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RIPPLES: Latent Prompt</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --bg-primary: #08080c;
+      --bg-secondary: #0f0f14;
+      --bg-tertiary: #16161c;
+      --bg-elevated: #1e1e26;
+      --text-primary: #e8e8f0;
+      --text-secondary: #9090a0;
+      --text-tertiary: #505060;
+      --accent-gold: #d4af37;
+      --accent-crimson: #c45;
+      --accent-cyan: #4dd;
+      --accent-magenta: #d6a;
+      --accent-green: #5c7;
+      --accent-purple: #a7d;
+      --token-entity: #4dd;
+      --token-vector: #d4af37;
+      --token-modifier: #d6a;
+      --token-output: #5c7;
+      --grid-line: rgba(255, 255, 255, 0.02);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+      line-height: 1.5;
+    }
+    
+    /* Latent Prompt Layout */
+    .latent-prompt {
+      display: grid;
+      grid-template-columns: 260px 1fr 300px;
+      grid-template-rows: 44px 1fr 200px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--bg-secondary);
+    }
+    
+    /* Header */
+    .prompt-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--bg-tertiary);
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .logo {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: var(--accent-purple);
+    }
+    
+    .prompt-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      padding: 4px 10px;
+      border: 1px solid var(--bg-tertiary);
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 9px;
+      color: var(--text-tertiary);
+    }
+    
+    .token-count {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .count-value {
+      color: var(--accent-cyan);
+      font-weight: 500;
+    }
+    
+    /* Left Panel - Prompt Components */
+    .components-panel {
+      background: var(--bg-primary);
+      border-right: 1px solid var(--bg-tertiary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      padding: 14px;
+      border-bottom: 1px solid var(--bg-tertiary);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    
+    .component-section {
+      padding: 12px;
+      border-bottom: 1px solid var(--bg-tertiary);
+    }
+    
+    .section-title {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+      letter-spacing: 0.05em;
+    }
+    
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    
+    .component-item {
+      padding: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+      font-size: 9px;
+      color: var(--text-secondary);
+      cursor: grab;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .component-item:hover {
+      border-color: var(--accent-purple);
+      color: var(--text-primary);
+    }
+    
+    .component-item.entity { border-left-color: var(--token-entity); }
+    .component-item.vector { border-left-color: var(--token-vector); }
+    .component-item.modifier { border-left-color: var(--token-modifier); }
+    
+    /* Center - Prompt Workspace */
+    .workspace-panel {
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .workspace-canvas {
+      flex: 1;
+      position: relative;
+      padding: 20px;
+      overflow: auto;
+    }
+    
+    .prompt-composition {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .prompt-slot {
+      padding: 16px;
+      background: var(--bg-secondary);
+      border: 2px dashed var(--bg-tertiary);
+      border-radius: 4px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      transition: all 0.2s;
+    }
+    
+    .prompt-slot.active {
+      border-color: var(--accent-purple);
+      background: rgba(167, 119, 221, 0.05);
+    }
+    
+    .slot-label {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-right: 8px;
+    }
+    
+    .dropped-token {
+      padding: 6px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .dropped-token:hover {
+      transform: translateY(-1px);
+    }
+    
+    .dropped-token.entity {
+      border-color: var(--token-entity);
+      color: var(--token-entity);
+    }
+    .dropped-token.vector {
+      border-color: var(--token-vector);
+      color: var(--token-vector);
+    }
+    .dropped-token.modifier {
+      border-color: var(--token-modifier);
+      color: var(--token-modifier);
+    }
+    
+    .token-remove {
+      width: 12px;
+      height: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      opacity: 0.5;
+      cursor: pointer;
+    }
+    
+    .token-remove:hover {
+      opacity: 1;
+    }
+    
+    /* Latent Space Navigator */
+    .latent-navigator {
+      height: 160px;
+      border-top: 1px solid var(--bg-tertiary);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .navigator-title {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    
+    .latent-canvas-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+    }
+    
+    .latent-canvas {
+      position: absolute;
+      inset: 0;
+    }
+    
+    .latent-point {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .latent-point:hover {
+      transform: translate(-50%, -50%) scale(1.5);
+    }
+    
+    .latent-point.selected {
+      box-shadow: 0 0 10px currentColor;
+    }
+    
+    /* Right Panel - Output & Attention */
+    .output-panel {
+      background: var(--bg-primary);
+      border-left: 1px solid var(--bg-tertiary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .output-display {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    
+    .output-section {
+      margin-bottom: 20px;
+    }
+    
+    .output-label {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .generated-text {
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-left: 2px solid var(--token-output);
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+    
+    .attention-viz {
+      padding: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+    }
+    
+    .attention-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    
+    .attention-label {
+      width: 60px;
+      font-size: 9px;
+      color: var(--text-secondary);
+    }
+    
+    .attention-track {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-tertiary);
+      position: relative;
+    }
+    
+    .attention-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+      transition: width 0.3s ease;
+    }
+    
+    .attention-value {
+      width: 30px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+    
+    /* Bottom Panel - Token Stream */
+    .token-panel {
+      grid-column: 1 / -1;
+      background: var(--bg-primary);
+      border-top: 1px solid var(--bg-tertiary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .token-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--bg-tertiary);
+    }
+    
+    .token-stream {
+      flex: 1;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    
+    .stream-token {
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+      font-size: 10px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .stream-token:hover {
+      border-color: var(--accent-purple);
+      color: var(--text-primary);
+    }
+    
+    .stream-token.active {
+      background: var(--accent-purple);
+      border-color: var(--accent-purple);
+      color: var(--bg-primary);
+    }
+    
+    .stream-token.entity { border-bottom-color: var(--token-entity); }
+    .stream-token.vector { border-bottom-color: var(--token-vector); }
+    .stream-token.modifier { border-bottom-color: var(--token-modifier); }
+    
+    /* Generate Button */
+    .generate-btn {
+      padding: 12px 24px;
+      margin: 16px;
+      background: var(--accent-purple);
+      border: none;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--bg-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .generate-btn:hover {
+      background: #b8d;
+      transform: translateY(-1px);
+    }
+    
+    .generate-btn:disabled {
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-tertiary);
+    }
+    
+    /* Drag ghost */
+    .dragging {
+      opacity: 0.5;
+    }
+    
+    /* Connection lines */
+    .connection-svg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .connection-line {
+      stroke: var(--accent-purple);
+      stroke-width: 1;
+      opacity: 0.3;
+      fill: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="app.js"></script>
+</body>
+</html>

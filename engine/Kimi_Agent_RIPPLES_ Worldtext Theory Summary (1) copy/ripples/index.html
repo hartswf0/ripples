@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Operative Ecologies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           RIPPLES CSS - CRT TERMINAL AESTHETIC
+           ============================================ */
+        
+        :root {
+            --term-bg: #050a05;
+            --term-bg-light: #0a140a;
+            --term-text: #4af626;
+            --term-dim: #1e5c12;
+            --term-dimmer: #0d2a08;
+            --term-alert: #ff3333;
+            --term-gold: #ffd700;
+            --term-cyan: #00ffff;
+            --term-purple: #c084fc;
+            --grid-line: #0a1f0a;
+            --grid-node: #2a6a2a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            background: var(--term-bg);
+            color: var(--term-text);
+        }
+
+        /* CRT Effects */
+        .crt-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .crt-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
+        .crt-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+            pointer-events: none;
+            z-index: 101;
+        }
+
+        .flicker { animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.98; } }
+
+        /* Layout */
+        .app {
+            display: grid;
+            grid-template-columns: 260px 1fr 300px;
+            grid-template-rows: 40px 1fr 160px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--term-dimmer);
+        }
+
+        .panel {
+            background: var(--term-bg);
+            padding: 12px;
+            overflow: auto;
+        }
+
+        .panel-header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: var(--term-bg-light);
+            border-bottom: 1px solid var(--term-dim);
+        }
+
+        .panel-left { grid-row: 2; border-right: 1px solid var(--term-dim); }
+        .panel-center { grid-row: 2; position: relative; display: flex; flex-direction: column; }
+        .panel-right { grid-row: 2; border-left: 1px solid var(--term-dim); }
+        .panel-bottom { grid-column: 1 / -1; border-top: 1px solid var(--term-dim); display: flex; align-items: center; gap: 20px; }
+
+        /* Typography */
+        h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+        h2 { font-size: 11px; font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; color: var(--term-dim); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--term-dimmer); }
+        h3 { font-size: 10px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--term-dim); margin: 16px 0 8px; }
+
+        /* Controls */
+        .control-group { display: flex; align-items: center; gap: 12px; }
+        .control-group label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--term-dim); }
+        
+        select, input[type="text"], input[type="password"] {
+            background: var(--term-bg);
+            color: var(--term-text);
+            border: 1px solid var(--term-dim);
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+        }
+        select:focus, input:focus { border-color: var(--term-text); }
+
+        /* Visualizer Container */
+        .visualizer-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        /* Grid TV Visualizer */
+        .grid-tv-visualizer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 12px;
+        }
+
+        .grid-tv-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .grid-tv-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--term-dim);
+        }
+
+        .grid-tv-status {
+            font-size: 10px;
+            padding: 2px 8px;
+            border: 1px solid var(--term-dim);
+            color: var(--term-dim);
+        }
+
+        .grid-tv-status.locked { color: var(--term-text); border-color: var(--term-text); }
+        .grid-tv-status.auto { color: var(--term-gold); border-color: var(--term-gold); animation: pulse 1s infinite; }
+
+        .grid-tv-screen {
+            display: grid;
+            gap: 2px;
+            background: var(--grid-line);
+            padding: 2px;
+            flex: 1;
+            position: relative;
+        }
+
+        .grid-tv-footer {
+            margin-top: 12px;
+            font-size: 10px;
+            color: var(--term-dim);
+        }
+
+        .grid-cell {
+            aspect-ratio: 1;
+            background: var(--term-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .grid-cell:hover { background: var(--term-bg-light); }
+        .grid-cell.has-entity { background: var(--grid-node); }
+        .grid-cell.selected { 
+            animation: pulse 1s infinite; 
+            box-shadow: 0 0 20px var(--term-text); 
+            z-index: 10; 
+        }
+        .grid-cell.rippling.goal { box-shadow: 0 0 30px var(--term-gold); }
+        .grid-cell.rippling.obstacle { box-shadow: 0 0 30px var(--term-alert); }
+        .grid-cell.rippling.shift { box-shadow: 0 0 30px var(--term-cyan); }
+
+        .entity-state-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--term-dim);
+        }
+
+        .grid-connections {
+            position: absolute;
+            top: 0; left: 0;
+            pointer-events: none;
+        }
+
+        .connection-line {
+            stroke: var(--term-dimmer);
+            stroke-width: 1;
+        }
+
+        .ripple-ring {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: ripple-expand 1s ease-out forwards;
+        }
+
+        @keyframes ripple-expand {
+            0% { width: 20px; height: 20px; opacity: 1; }
+            100% { width: 100px; height: 100px; opacity: 0; }
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* Terminal Visualizer */
+        .terminal-visualizer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 12px;
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .terminal-line { margin-bottom: 4px; }
+        .terminal-line.error { color: var(--term-alert); }
+
+        .terminal-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--term-dimmer);
+        }
+
+        .terminal-prompt { color: var(--term-text); }
+
+        .terminal-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--term-text);
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+        }
+
+        /* Network Graph Visualizer */
+        .network-graph-visualizer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 12px;
+        }
+
+        .network-header {
+            margin-bottom: 12px;
+        }
+
+        .network-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--term-dim);
+        }
+
+        .network-svg {
+            flex: 1;
+            width: 100%;
+        }
+
+        .network-link {
+            stroke: var(--term-dimmer);
+            stroke-width: 1;
+        }
+
+        .network-node { cursor: pointer; }
+
+        .node-circle {
+            fill: var(--grid-node);
+            stroke: var(--term-dim);
+            stroke-width: 1;
+            transition: all 0.15s;
+        }
+
+        .node-circle.animate { fill: #2a5a2a; }
+        .node-circle.inanimate { fill: #3a4a3a; }
+        .node-circle.abstract { fill: #1a3a4a; }
+
+        .node-label {
+            fill: var(--term-text);
+            font-size: 9px;
+            pointer-events: none;
+        }
+
+        /* Entity List */
+        .entity-list { display: flex; flex-direction: column; gap: 4px; }
+        
+        .entity-item {
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .entity-item:hover { background: var(--term-bg-light); border-color: var(--term-dim); }
+        .entity-item.selected { background: rgba(74, 246, 38, 0.08); border-color: var(--term-text); box-shadow: 0 0 12px rgba(74, 246, 38, 0.15); }
+
+        .entity-name { font-weight: 500; font-size: 12px; }
+        .entity-meta { font-size: 10px; color: var(--term-dim); display: flex; gap: 8px; margin-top: 2px; }
+        .entity-type { text-transform: uppercase; letter-spacing: 0.05em; }
+        .entity-state { font-style: italic; }
+
+        /* Worldtext */
+        .worldtext-container {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            border-bottom: 1px solid var(--term-dimmer);
+        }
+
+        .worldtext {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.9;
+            font-size: 13px;
+        }
+
+        .worldtext .entity-ref {
+            color: var(--term-text);
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-color: var(--term-dim);
+            transition: all 0.15s;
+        }
+
+        .worldtext .entity-ref:hover {
+            text-shadow: 0 0 8px var(--term-text);
+            text-decoration-color: var(--term-text);
+        }
+
+        .worldtext .highlight-goal { color: var(--term-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+        .worldtext .highlight-obstacle { color: var(--term-alert); text-shadow: 0 0 8px rgba(255, 51, 51, 0.4); }
+        .worldtext .highlight-shift { color: var(--term-cyan); text-shadow: 0 0 8px rgba(0, 255, 255, 0.4); }
+
+        /* Latent Panel */
+        .latent-panel { display: flex; flex-direction: column; gap: 12px; }
+        
+        .latent-item {
+            padding: 12px;
+            border: 1px solid var(--term-dimmer);
+            background: var(--term-bg-light);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .latent-item:hover { border-color: var(--term-dim); }
+
+        .vector-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .vector-label.goal { color: var(--term-gold); }
+        .vector-label.obstacle { color: var(--term-alert); }
+        .vector-label.shift { color: var(--term-cyan); }
+
+        .latent-text {
+            font-size: 11px;
+            line-height: 1.7;
+            color: rgba(74, 246, 38, 0.85);
+            font-style: italic;
+        }
+
+        /* Vector Controls */
+        .vector-controls {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .vector-btn {
+            padding: 14px 28px;
+            border: 2px solid;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 120px;
+        }
+
+        .vector-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .vector-btn.goal { color: var(--term-gold); border-color: var(--term-gold); }
+        .vector-btn.goal:hover:not(:disabled) { background: rgba(255, 215, 0, 0.1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        .vector-btn.obstacle { color: var(--term-alert); border-color: var(--term-alert); }
+        .vector-btn.obstacle:hover:not(:disabled) { background: rgba(255, 51, 51, 0.1); box-shadow: 0 0 20px rgba(255, 51, 51, 0.3); }
+        .vector-btn.shift { color: var(--term-cyan); border-color: var(--term-cyan); }
+        .vector-btn.shift:hover:not(:disabled) { background: rgba(0, 255, 255, 0.1); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+
+        .vector-btn .vector-desc { font-size: 9px; font-weight: 400; letter-spacing: 0.05em; opacity: 0.7; }
+        .vector-btn .key-hint { font-size: 9px; opacity: 0.5; margin-top: 2px; }
+
+        /* Autoplay */
+        .autoplay-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            border-left: 1px solid var(--term-dim);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 22px;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--term-dimmer);
+            border: 1px solid var(--term-dim);
+            transition: 0.15s;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: '';
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--term-dim);
+            transition: 0.15s;
+        }
+
+        input:checked + .toggle-slider { border-color: var(--term-text); }
+        input:checked + .toggle-slider::before { transform: translateX(22px); background: var(--term-text); }
+
+        .autoplay-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--term-dim); }
+        .autoplay-label.active { color: var(--term-text); }
+        .countdown { font-size: 14px; font-weight: 600; color: var(--term-gold); min-width: 24px; text-align: center; }
+
+        /* Performance Controls */
+        .performance-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 16px;
+            border-left: 1px solid var(--term-dim);
+        }
+
+        .perf-control { display: flex; flex-direction: column; gap: 4px; }
+        .perf-label { font-size: 9px; color: var(--term-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .perf-slider { width: 80px; height: 4px; -webkit-appearance: none; background: var(--term-dimmer); outline: none; }
+        .perf-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--term-dim); cursor: pointer; }
+        .perf-slider::-webkit-slider-thumb:hover { background: var(--term-text); }
+
+        /* LLM Panel */
+        .llm-panel {
+            border-top: 1px solid var(--term-dim);
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
+        .llm-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .llm-mode-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--term-dim); }
+
+        .mode-indicator {
+            font-size: 10px;
+            padding: 4px 8px;
+            border: 1px solid var(--term-dim);
+        }
+
+        .mode-indicator.latent { color: var(--term-text); border-color: var(--term-text); }
+        .mode-indicator.generative { color: var(--term-purple); border-color: var(--term-purple); }
+
+        .llm-config {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .config-row { display: flex; align-items: center; gap: 8px; }
+        .config-label { font-size: 10px; color: var(--term-dim); min-width: 60px; }
+        .config-input { background: var(--term-bg); color: var(--term-text); border: 1px solid var(--term-dim); padding: 4px 8px; font-family: inherit; font-size: 10px; flex: 1; }
+        .config-input:focus { outline: none; border-color: var(--term-text); }
+        .config-btn { background: var(--term-bg-light); color: var(--term-text); border: 1px solid var(--term-dim); padding: 4px 12px; font-family: inherit; font-size: 10px; cursor: pointer; transition: all 0.15s; }
+        .config-btn:hover { background: var(--term-dim); }
+
+        /* Audit Log */
+        .audit-log { display: flex; flex-direction: column; gap: 8px; }
+        
+        .audit-entry {
+            padding: 10px 12px;
+            border-left: 2px solid var(--term-dim);
+            background: var(--term-bg-light);
+            font-size: 11px;
+            line-height: 1.6;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .audit-entry:hover { border-left-color: var(--term-text); }
+        .audit-entry.new { animation: pulse-new 0.5s ease; }
+
+        @keyframes pulse-new { 0% { background: rgba(74, 246, 38, 0.2); } 100% { background: var(--term-bg-light); } }
+
+        .audit-header { display: flex; gap: 8px; margin-bottom: 4px; font-size: 10px; }
+        .audit-tick { color: var(--term-dim); }
+        .audit-vector { font-weight: 600; text-transform: uppercase; }
+        .audit-vector.goal { color: var(--term-gold); }
+        .audit-vector.obstacle { color: var(--term-alert); }
+        .audit-vector.shift { color: var(--term-cyan); }
+        .audit-entity { color: var(--term-text); }
+        .audit-result { color: rgba(74, 246, 38, 0.7); font-style: italic; }
+
+        /* Status Bar */
+        .status-bar { display: flex; align-items: center; gap: 16px; font-size: 10px; }
+        .status-item { display: flex; align-items: center; gap: 6px; }
+        .status-label { color: var(--term-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-value { color: var(--term-text); }
+        .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--term-text); animation: pulse-dot 1s infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Selected Info */
+        .selected-info {
+            padding: 12px;
+            border: 1px solid var(--term-dim);
+            background: var(--term-bg-light);
+            margin-bottom: 16px;
+        }
+
+        .selected-info .label { font-size: 10px; color: var(--term-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+        .selected-info .value { font-size: 13px; color: var(--term-text); }
+
+        /* Empty State */
+        .empty-state { color: var(--term-dim); font-style: italic; text-align: center; padding: 40px 20px; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--term-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--term-dim); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--term-text); }
+
+        /* Keyboard Hints */
+        .keyboard-hints {
+            position: fixed;
+            bottom: 8px;
+            right: 8px;
+            font-size: 9px;
+            color: var(--term-dim);
+            background: var(--term-bg);
+            padding: 8px;
+            border: 1px solid var(--term-dimmer);
+            z-index: 200;
+        }
+
+        .keyboard-hints kbd { background: var(--term-dimmer); padding: 2px 4px; border-radius: 2px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--term-bg);
+            border: 1px solid var(--term-dim);
+            padding: 24px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: auto;
+        }
+
+        .modal h2 { margin-bottom: 16px; border-bottom: 1px solid var(--term-dim); padding-bottom: 8px; }
+        .modal-content { font-size: 11px; line-height: 1.8; }
+        .modal-content h3 { margin-top: 16px; margin-bottom: 8px; }
+        .modal-content kbd { background: var(--term-dimmer); padding: 2px 6px; border-radius: 2px; }
+        .modal-close { margin-top: 16px; background: var(--term-bg-light); color: var(--term-text); border: 1px solid var(--term-dim); padding: 8px 16px; font-family: inherit; font-size: 11px; cursor: pointer; }
+        .modal-close:hover { background: var(--term-dim); }
+    </style>
+</head>
+<body>
+    <div class="crt-container flicker">
+        <div class="app">
+            <!-- Header -->
+            <div class="panel-header">
+                <div class="control-group">
+                    <label>Scenario</label>
+                    <select id="scenarioSelect">
+                        <option value="cupboard">THE CUPBOARD</option>
+                        <option value="abandoned_house">ABANDONED HOUSE</option>
+                        <option value="deep_forest">DEEP FOREST</option>
+                        <option value="urban_jungle">URBAN JUNGLE</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>View</label>
+                    <select id="visualizerSelect">
+                        <option value="gridtv">Grid TV</option>
+                        <option value="terminal">Terminal</option>
+                        <option value="network">Network</option>
+                    </select>
+                </div>
+
+                <h1>RIPPLES: Operative Ecologies</h1>
+                
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-label">Mode:</span>
+                        <span class="status-value" id="modeDisplay">LATENT</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Tick:</span>
+                        <span class="status-value" id="tickDisplay">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="pulse-dot" id="statusDot" style="display: none;"></span>
+                        <span class="status-value" id="statusText">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Panel: Entity Pool + LLM Config -->
+            <div class="panel panel-left">
+                <h2>Entity Pool</h2>
+                <div id="selectedEntityInfo" style="display: none;">
+                    <div class="selected-info">
+                        <div class="label">Selected Perspective</div>
+                        <div class="value" id="selectedEntityName">-</div>
+                    </div>
+                </div>
+                <div class="entity-list" id="entityList"></div>
+                
+                <div class="llm-panel">
+                    <div class="llm-mode-toggle">
+                        <span class="llm-mode-label">Generation</span>
+                        <span class="mode-indicator latent" id="modeIndicator">LATENT</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="llmToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="llm-config" id="llmConfig">
+                        <div class="config-row">
+                            <span class="config-label">Provider</span>
+                            <select class="config-input" id="llmProvider">
+                                <option value="mock">Mock (Demo)</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="local">Local (Ollama)</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <span class="config-label">Model</span>
+                            <input type="text" class="config-input" id="llmModel" placeholder="gpt-4, claude-3, etc">
+                        </div>
+                        <div class="config-row">
+                            <span class="config-label">API Key</span>
+                            <input type="password" class="config-input" id="llmApiKey" placeholder="sk-...">
+                        </div>
+                        <div class="config-row">
+                            <button class="config-btn" id="testLlmBtn">Test</button>
+                            <span id="llmStatus" style="font-size: 10px; color: var(--term-dim);"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Visualizer + Worldtext -->
+            <div class="panel panel-center">
+                <div class="visualizer-container" id="visualizerContainer"></div>
+                <div class="worldtext-container">
+                    <div class="worldtext" id="worldtext">Select an entity to begin...</div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Audit Log + Latent Library -->
+            <div class="panel panel-right">
+                <h2>Audit Log</h2>
+                <div class="audit-log" id="auditLog">
+                    <div class="empty-state">No ripples recorded</div>
+                </div>
+                
+                <h3>Latent Library</h3>
+                <div class="latent-panel" id="latentPanel">
+                    <div class="empty-state">Select an entity to view latent descriptions</div>
+                </div>
+            </div>
+
+            <!-- Bottom Panel: Vector Controls -->
+            <div class="panel panel-bottom">
+                <div class="vector-controls">
+                    <button class="vector-btn goal" id="btnGoal" disabled>
+                        <span>GOAL</span>
+                        <span class="vector-desc">Movement toward</span>
+                        <span class="key-hint">[G]</span>
+                    </button>
+                    <button class="vector-btn obstacle" id="btnObstacle" disabled>
+                        <span>OBSTACLE</span>
+                        <span class="vector-desc">Encounter barrier</span>
+                        <span class="key-hint">[O]</span>
+                    </button>
+                    <button class="vector-btn shift" id="btnShift" disabled>
+                        <span>SHIFT</span>
+                        <span class="vector-desc">Change state</span>
+                        <span class="key-hint">[S]</span>
+                    </button>
+                </div>
+
+                <div class="autoplay-control">
+                    <span class="autoplay-label" id="autoplayLabel">Autoplay</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoplayToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="countdown" id="countdown"></span>
+                </div>
+
+                <div class="performance-controls">
+                    <div class="perf-control">
+                        <span class="perf-label">BPM <span id="bpmValue">20</span></span>
+                        <input type="range" class="perf-slider" id="bpmSlider" min="10" max="60" value="20">
+                    </div>
+                    <div class="perf-control">
+                        <span class="perf-label">FX</span>
+                        <input type="range" class="perf-slider" id="fxSlider" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="keyboard-hints">
+        <kbd>G</kbd> Goal <kbd>O</kbd> Obstacle <kbd>S</kbd> Shift <kbd>Space</kbd> Autoplay <kbd>←/→</kbd> Scenario <kbd>1-6</kbd> Entity <kbd>?</kbd> Help
+    </div>
+
+    <!-- Scripts -->
+    <script src="engine/core.js"></script>
+    <script src="visualizers/base.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

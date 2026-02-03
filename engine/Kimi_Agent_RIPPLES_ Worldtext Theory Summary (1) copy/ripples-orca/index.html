@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RIPPLES: ORCA Integration</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --bg-primary: #000;
+      --bg-grid: #0a0a0a;
+      --bg-cell: #111;
+      --text-primary: #4af626;
+      --text-secondary: #2a9016;
+      --text-tertiary: #1a5010;
+      --accent-gold: #ffd700;
+      --accent-crimson: #ff3333;
+      --accent-cyan: #00ffff;
+      --accent-magenta: #ff00ff;
+      --grid-line: rgba(74, 246, 38, 0.1);
+      --cursor: #fff;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+      line-height: 1;
+    }
+    
+    /* ORCA-Style Grid Layout */
+    .ripples-orca {
+      display: grid;
+      grid-template-rows: 32px 1fr 120px;
+      height: 100vh;
+    }
+    
+    /* Header - Status Bar */
+    .orca-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: var(--bg-cell);
+      border-bottom: 1px solid var(--grid-line);
+      font-size: 11px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .logo {
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-gold);
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: var(--text-secondary);
+    }
+    
+    .metric {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .metric-value {
+      color: var(--text-primary);
+    }
+    
+    /* Main Grid */
+    .orca-grid-container {
+      position: relative;
+      overflow: auto;
+      background: var(--bg-primary);
+      padding: 20px;
+    }
+    
+    .orca-grid {
+      display: grid;
+      grid-template-columns: repeat(56, 14px);
+      grid-template-rows: repeat(36, 20px);
+      gap: 0;
+      font-size: 14px;
+      line-height: 20px;
+      user-select: none;
+    }
+    
+    .grid-cell {
+      width: 14px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .grid-cell:hover {
+      background: rgba(74, 246, 38, 0.1);
+    }
+    
+    .grid-cell.cursor {
+      background: var(--cursor);
+      color: var(--bg-primary);
+    }
+    
+    .grid-cell.operator {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    
+    .grid-cell.operator.goal { color: var(--accent-gold); }
+    .grid-cell.operator.obstacle { color: var(--accent-crimson); }
+    .grid-cell.operator.shift { color: var(--accent-cyan); }
+    .grid-cell.operator.ripple { color: var(--accent-magenta); }
+    
+    .grid-cell.bang {
+      animation: bang 0.1s ease-out;
+    }
+    
+    @keyframes bang {
+      0% { background: var(--text-primary); color: var(--bg-primary); }
+      100% { background: transparent; }
+    }
+    
+    .grid-cell.rippling {
+      animation: ripple-pulse 0.5s ease-out;
+    }
+    
+    @keyframes ripple-pulse {
+      0% { 
+        box-shadow: inset 0 0 0 1px var(--accent-cyan);
+        color: var(--accent-cyan);
+      }
+      100% { 
+        box-shadow: inset 0 0 0 0 transparent;
+        color: var(--text-secondary);
+      }
+    }
+    
+    /* Bottom Panel - Output & Controls */
+    .orca-bottom {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      background: var(--bg-cell);
+      border-top: 1px solid var(--grid-line);
+    }
+    
+    /* Worldtext Output */
+    .worldtext-output {
+      padding: 12px 16px;
+      border-right: 1px solid var(--grid-line);
+      overflow-y: auto;
+    }
+    
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .output-label {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    
+    .output-tick {
+      font-size: 9px;
+      color: var(--text-secondary);
+    }
+    
+    .worldtext-content {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      min-height: 40px;
+    }
+    
+    .worldtext-content .entity { color: var(--accent-cyan); }
+    .worldtext-content .vector { color: var(--accent-gold); }
+    .worldtext-content .uncertainty { color: var(--text-secondary); font-style: italic; }
+    
+    /* UDP/OSC Status */
+    .network-panel {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .network-header {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    
+    .port-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    
+    .port-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+    
+    .port-dot.inactive {
+      background: var(--text-tertiary);
+    }
+    
+    /* Command Input */
+    .command-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      border-top: 1px solid var(--grid-line);
+    }
+    
+    .command-prompt {
+      color: var(--accent-cyan);
+      font-size: 11px;
+    }
+    
+    .command-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 11px;
+      outline: none;
+    }
+    
+    /* Operator Legend */
+    .operator-legend {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 12px;
+      background: var(--bg-cell);
+      border: 1px solid var(--grid-line);
+      font-size: 10px;
+      max-width: 200px;
+    }
+    
+    .legend-title {
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      color: var(--text-secondary);
+    }
+    
+    .legend-op {
+      width: 16px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-cell);
+    }
+    
+    /* CRT Effect */
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.3) 2px,
+        rgba(0, 0, 0, 0.3) 4px
+      );
+      background-size: 100% 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="app.js"></script>
+</body>
+</html>

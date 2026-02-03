@@ -321,6 +321,7 @@
         @media (max-width: 768px) {
             #mobile-controls {
                 display: flex;
+                padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px));
             }
         }
 
@@ -870,7 +871,9 @@
             <div class="mode-btn" id="btn-sel-mode" onclick="Input.toggleSelectMode()">SELECT<br>MODE</div>
         </div>
 
-        <div class="ctrl-group" style="align-items: flex-end;">
+        <div class="ctrl-group" style="align-items: flex-end; gap: 15px;">
+            <div class="action-btn" onclick="Orca.toggle()"
+                style="color: var(--sys-color); border-color: var(--sys-color);">▶</div>
             <div class="action-btn" onclick="Input.triggerKeyboard()">⌨</div>
             <!-- Hidden input to trigger keyboard -->
             <input type="text" id="virtual-input" autocomplete="off">

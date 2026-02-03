@@ -1,0 +1,668 @@
+/**
+ * RIPPLES MAIN APPLICATION
+ * ========================
+ * 
+ * This is the orchestration layer. It:
+ * 1. Initializes the core engine
+ * 2. Registers scenarios
+ * 3. Mounts the active visualizer
+ * 4. Handles UI controls
+ * 
+ * The app is headless regarding visualization—visualizers are swappable.
+ */
+
+// ============================================
+// LATENT LIBRARY (Scenarios)
+// ============================================
+
+const LatentLibrary = {
+    cupboard: {
+        id: 'cupboard',
+        name: 'THE CUPBOARD',
+        baseline: `The cupboard space is pressurized by stillness. Light seeps only through marginal cracks between door and frame. Objects maintain rigid proximity. Six tall glasses (silica/dust coated) delimit the left boundary. A stack of twenty ceramic plates compresses the lower shelf space. The air is stagnant. Particles drift in slow Brownian motion, suspended in the amber light that filters through the crack.`,
+        grid: { cols: 8, rows: 6 },
+        entities: [
+            { id: 'ant', name: 'Formicidae Scout', type: 'animate', state: 'foraging', icon: '🐜', position: { x: 1, y: 2 }, adjacentTo: ['plate-stack', 'tall-glass'] },
+            { id: 'dust-mote', name: 'Dust Mote', type: 'inanimate', state: 'suspended', icon: '✧', position: { x: 0, y: 0 }, adjacentTo: ['light-shaft'] },
+            { id: 'tall-glass', name: 'Tall Glass', type: 'inanimate', state: 'empty', icon: '🥛', position: { x: 2, y: 1 }, adjacentTo: ['ant', 'plate-stack', 'light-shaft'] },
+            { id: 'plate-stack', name: 'Plate Stack', type: 'inanimate', state: 'compressed', icon: '🍽️', position: { x: 3, y: 3 }, adjacentTo: ['ant', 'tall-glass', 'shadow'] },
+            { id: 'light-shaft', name: 'Light Shaft', type: 'abstract', state: 'filtering', icon: '☀️', position: { x: 7, y: 0 }, adjacentTo: ['dust-mote', 'tall-glass', 'shadow'] },
+            { id: 'shadow', name: 'Shadow', type: 'abstract', state: 'expanding', icon: '⬛', position: { x: 6, y: 4 }, adjacentTo: ['plate-stack', 'light-shaft'] }
+        ],
+        latent: {
+            ant: {
+                GOAL: `The Formicidae Scout abandons the boundary cracks, navigating the ceramic topography of the plate stack. It traces an invisible chemical scent-line toward the tall glasses where a residue of dried liquid remains. Antennae process gradients. The world becomes a map of sugar probability. Six legs traverse glazed surfaces. Each step is a data point in the search algorithm. The colony's memory flows through this solitary scout—ancestral knowledge of foraging encoded in its nervous system.`,
+                OBSTACLE: `The Formicidae Scout encounters a vertical cliff of ceramic: the edge of a plate. Its path is blocked. It pauses, antennae waving in frustrated inquiry, before beginning the long circumnavigation. The ceramic surface offers no purchase for climbing. Adhesive pads meet glazed impermeability—a frictionless interface between organic need and mineral indifference. The obstacle is not merely physical but temporal: the ant must wait for conditions to shift.`,
+                SHIFT: `The Formicidae Scout enters a state of torpor. Its metabolic rate drops, its movements slow to glacial patience. It is no longer seeking but waiting, transformed from agent to object. The ant becomes a tiny sculpture of itself, legs folded, antennae retracted. Time dilates. What was a journey becomes a meditation. What was a search becomes a dwelling. The scout has become a monk.`
+            },
+            'dust-mote': {
+                GOAL: `The Dust Mote catches a thermal rising from the shelf below. It ascends in a lazy spiral, drawn toward the crack of light where the air moves. The mote is a constellation of skin cells, fiber fragments, mineral specks—seeking the sun. It dreams of dispersal, of becoming part of the light itself, of dissolving into photons and escaping the cupboard's gravity well.`,
+                OBSTACLE: `The Dust Mote encounters a downdraft. The convection current reverses. It spirals downward, away from the light shaft. The air becomes opposition. It settles on the rim of a glass, adhering to residual moisture. Stillness replaces motion. The obstacle is permanence: having stuck, the mote will likely never move again.`,
+                SHIFT: `The Dust Mote absorbs moisture from the air, swelling slightly. Its composition shifts: what was dry and light becomes damp and heavy. The mote's components begin to separate: organic matter absorbing water, minerals remaining dry, fibers swelling like tiny sponges. Gravity asserts itself more strongly. The heavier mote begins to descend, its Brownian dance becoming a slow fall.`
+            },
+            'tall-glass': {
+                GOAL: `The Tall Glass dreams of being filled. Its emptiness aches for liquid, for the weight of water or wine, for the meniscus that would crown its rim. The glass remembers the last liquid it held—a residue still stains its base. Its interior surface is a landscape of desire: every microscopic imperfection a potential nucleation point where liquid might gather.`,
+                OBSTACLE: `The Tall Glass is blocked by its neighbors. Five identical vessels press against it, preventing movement. It is trapped in the rank and file of its own kind. The glass cannot fall without taking others with it; it cannot rise without displacing its kin. The obstacle is identity: to move, the glass must become different from the others.`,
+                SHIFT: `The Tall Glass undergoes a phase transition in its crystalline structure. The silica network relaxes slightly, settling into a new configuration. A micro-crack appears at the rim, invisible to unaided eyes. The glass has crossed a threshold; it is no longer pristine, no longer new. Its transparency shifts: where it was perfectly clear, it now carries a faint haze.`
+            },
+            'plate-stack': {
+                GOAL: `The Plate Stack dreams of dispersion. Compressed into vertical unity, the twenty plates long to be spread across a table, to receive food, to serve their purpose. Each plate carries the memory of meals past, the ghost-grease of forgotten feasts. The stack is a hierarchy: the top plate is king, the bottom plate is foundation.`,
+                OBSTACLE: `The Plate Stack is held in place by gravity and friction. To remove one is to risk the collapse of all; they are bound by their own weight. The obstacle is the stack itself: the plates have become so accustomed to their compression that separation has become unthinkable. A plate near the middle feels pressure from above and below equally—perfect equilibrium.`,
+                SHIFT: `The Plate Stack settles further, microscopically compressing. The air between them is squeezed out; they move closer to true contact. The plates' edges, once perfectly aligned, have shifted slightly. The stack is no longer straight; it leans, it curves, it develops character. Dust fills the microscopic gaps, cementing them together.`
+            },
+            'light-shaft': {
+                GOAL: `The Light Shaft seeks expansion. Entering through the crack, it wants to fill the entire cupboard, to illuminate every corner, to banish shadow. It carries information from outside: the color of the sky, the angle of the sun, the time of day. Photons bounce from surface to surface, losing energy with each reflection but persisting, spreading.`,
+                OBSTACLE: `The Light Shaft is blocked by the glasses. Their silica surfaces reflect and refract, scattering the photons, breaking the beam into fragments. The obstacle is materiality itself: the light, immaterial, meets the glass's crystalline density and is turned aside. Shadows form behind the glasses—negative spaces where light cannot reach.`,
+                SHIFT: `The Light Shaft's wavelength shifts as it passes through dust-filled air. Scattered by particles, it changes color, becoming warmer, more golden, more diffuse. The angle changes as the sun moves outside. What was a vertical beam becomes diagonal, then horizontal. The light pulses, breathes, becomes alive with the rhythm of the sky.`
+            },
+            shadow: {
+                GOAL: `The Shadow seeks depth. It wants to become darker, denser, more absolute. It dreams of perfect blackness, of the complete absence of light. Behind the plates is the darkest place in the cupboard. The Shadow wants to expand, to claim more territory. Shadows merge where objects meet, creating pools of darkness deeper than the sum of their parts.`,
+                OBSTACLE: `The Shadow is pierced by a beam of light. Where it was absolute, it is now gradient; where it was pure, it is now contaminated by illumination. The obstacle is the crack itself—that narrow opening through which light enters, the wound in the cupboard's darkness. The Shadow shrinks as the sun rises, retreating to corners and crevices.`,
+                SHIFT: `The Shadow's edges blur as dust scatters the light. It is no longer a sharp boundary but a gradient, a zone of transition, a liminal space. The Shadow moves as the light source shifts—not static but dynamic, a dancer in counterpoint to light's choreography. Its color shifts: where it was pure black, it now carries hints of brown, of blue.`
+            }
+        },
+        ambient: [
+            { entityId: 'dust-mote', vector: 'SHIFT', probability: 0.3 },
+            { entityId: 'shadow', vector: 'GOAL', probability: 0.2 },
+            { entityId: 'ant', vector: 'GOAL', probability: 0.5 }
+        ]
+    },
+
+    abandoned_house: {
+        id: 'abandoned_house',
+        name: 'ABANDONED HOUSE',
+        baseline: `The abandoned house breathes through broken windows. Wind moves through rooms like blood through veins, carrying dust, leaves, the scent of rain. Floorboards have warped into waves, frozen tides of wood. Wallpaper hangs in strips like shed skin. In the kitchen, a table holds the ghost of meals. Upstairs, a mattress has become a garden of mold. Rain enters through the roof's wounds. Nature has begun its reclamation.`,
+        grid: { cols: 8, rows: 6 },
+        entities: [
+            { id: 'raccoon', name: 'Raccoon', type: 'animate', state: 'foraging', icon: '🦝', position: { x: 1, y: 1 }, adjacentTo: ['door', 'rain'] },
+            { id: 'mold', name: 'Mold Colony', type: 'animate', state: 'colonizing', icon: '🍄', position: { x: 6, y: 2 }, adjacentTo: ['wallpaper', 'rain'] },
+            { id: 'ivy', name: 'Ivy', type: 'animate', state: 'climbing', icon: '🌿', position: { x: 0, y: 4 }, adjacentTo: ['wallpaper', 'door'] },
+            { id: 'rain', name: 'Rain', type: 'abstract', state: 'infiltrating', icon: '🌧️', position: { x: 4, y: 0 }, adjacentTo: ['raccoon', 'mold', 'wallpaper'] },
+            { id: 'wallpaper', name: 'Wallpaper', type: 'inanimate', state: 'peeling', icon: '📜', position: { x: 2, y: 3 }, adjacentTo: ['mold', 'ivy', 'rain'] },
+            { id: 'door', name: 'Door', type: 'inanimate', state: 'swollen', icon: '🚪', position: { x: 7, y: 5 }, adjacentTo: ['raccoon', 'ivy'] }
+        ],
+        latent: {
+            raccoon: {
+                GOAL: `The Raccoon seeks the attic's treasures. Its paws remember the texture of shiny objects, the weight of metal. It climbs the downspout with practiced ease, claws finding purchase on rusted metal. The attic window is its target, its promised land. In its mind, the attic is a trove: aluminum foil, glass beads, copper wire—treasures beyond measure.`,
+                OBSTACLE: `The Raccoon encounters a boarded window. The wood is old but strong, the nails rusted but holding. The attic remains inaccessible. The obstacle is human intention: someone, long ago, sealed this window against intruders. The Raccoon faces not just wood but will. It circles the house, seeking another entrance.`,
+                SHIFT: `The Raccoon enters a state of vigilance. It freezes, ears rotating, nose testing the air. Something has changed; the house is not as it was. Adrenaline floods its bloodstream. It is becoming a different animal, a prey animal. Its identity fragments: no longer thief but fugitive, no longer agent but object.`
+            },
+            mold: {
+                GOAL: `The Mold Colony seeks expansion. From its stronghold on the mattress, it sends hyphae outward, exploring, colonizing. The ceiling is its goal: the plaster there is damp, perfect for colonization. Hyphae reach upward like fingers, like prayers. Each spore is a potential colony; the Mold dreams in numbers that dwarf human imagination.`,
+                OBSTACLE: `The Mold Colony encounters dry plaster. The wall above the mattress is too arid; hyphae cannot penetrate, cannot establish. The obstacle is the house's architecture: the roof's repair, the window's sealing. The Mold retreats to the mattress, its stronghold. It will wait, it will spore, it will hope for wetter times.`,
+                SHIFT: `The Mold Colony enters reproductive phase. Hyphae rise, swell, and burst, releasing clouds of spores that fill the room like smoke. The Mold is no longer growing but disseminating, spreading its genetic code. The spores are its message in a bottle, its genetic astronauts—each carrying potential for new colonies.`
+            },
+            ivy: {
+                GOAL: `The Ivy seeks the roof. From its base at the foundation, it climbs the wall, tendrils finding cracks, roots secreting acid. Each leaf is a solar panel, each tendril a cable, each root an anchor. The Ivy is a machine for converting light into growth. Its goal is not the house but the sun, not the wall but the sky.`,
+                OBSTACLE: `The Ivy encounters painted wall. The surface is too smooth, the paint too intact; tendrils cannot grip, roots cannot penetrate. The obstacle is temporary: paint cracks, paint peels. The Ivy waits, growing thicker at the base. It searches for alternative routes: a window frame, a crack in mortar, a loose shingle.`,
+                SHIFT: `The Ivy's leaves change shape. Lower leaves, in shadow, become larger, broader, more efficient at capturing scarce light. The plant adapts. Stems become woody at the base, supporting years of growth. It is becoming a tree, a permanent feature. The Ivy has shifted from invader to inhabitant.`
+            },
+            rain: {
+                GOAL: `The Rain seeks the lowest point. Entering through the roof's wound, it flows downward, following gravity, seeking the center of the earth. Each drop carries memory of its journey: evaporation from ocean, condensation in cloud, fall through sky. The Rain's goal is the basement, the foundation, the soil beneath.`,
+                OBSTACLE: `The Rain encounters the floor. The wood is dry, thirsty, absorbent; water soaks in, spreads, is swallowed by the house's hunger. The obstacle is the house's age: wood is cracked, porous, desperate for moisture. The Rain's path is diverted by floorboards, by furniture, by topography of decay.`,
+                SHIFT: `The Rain becomes ice. Temperature drops; water on the attic floor crystallizes, expands, becomes solid. The shift is destructive: ice expands, cracks, splits. The roof's wound grows wider. The ice is the Rain's memory, its preserved form. When warmth returns, it will flow again, but changed.`
+            },
+            wallpaper: {
+                GOAL: `The Wallpaper seeks freedom. It has been glued to plaster for decades, suffocating, unable to breathe. Now it peels in strips, reaching toward the floor. Each strip is a liberation. The Wallpaper dreams of complete detachment, of floating to the floorboards, of becoming litter rather than decor.`,
+                OBSTACLE: `The Wallpaper encounters stubborn adhesive. In places, the glue still holds; the paper tears rather than releases. The obstacle is its own history: once it wanted to stay, once it was applied with care and intention. Now that same care prevents its escape.`,
+                SHIFT: `The Wallpaper changes color. Where it was floral, it is now brown; where it was bright, it is now dim. Water damage creates new patterns—Rorschach blots of decay. The Wallpaper has become abstract art, unintentional beauty. It is no longer what was chosen but what has happened.`
+            },
+            door: {
+                GOAL: `The Door seeks closure. It has hung open for years, unable to seal the frame, unable to perform its function. Now it wants to shut, to latch, to protect what remains inside. The Door dreams of the click of the latch, the solidity of wood against frame.`,
+                OBSTACLE: `The Door encounters its own swelling. Moisture has expanded the wood; the door no longer fits its frame. The obstacle is time and weather, the slow distortion of material. It pushes against the jamb but cannot close. The gap remains—a permanent invitation.`,
+                SHIFT: `The Door settles on its hinges. Years of gravity have pulled it downward; it now rests at an angle, neither open nor closed. The shift is geological in slowness. The Door has become a monument to indecision, to the state between states.`
+            }
+        },
+        ambient: [
+            { entityId: 'rain', vector: 'SHIFT', probability: 0.3 },
+            { entityId: 'mold', vector: 'GOAL', probability: 0.4 },
+            { entityId: 'ivy', vector: 'GOAL', probability: 0.3 }
+        ]
+    },
+
+    deep_forest: {
+        id: 'deep_forest',
+        name: 'DEEP FOREST',
+        baseline: `The deep forest is a cathedral of verticality. Trunks rise like columns, branches arch like vaults. Light filters down in shafts, illuminating dust. The forest floor is a tapestry: fallen leaves, rotting wood, fungal threads. Sound moves differently here—muffled by moss, absorbed by bark. The air is thick with chemistry: oxygen, terpenes, the musk of animals. Each tree is a city; the forest is a network.`,
+        grid: { cols: 8, rows: 6 },
+        entities: [
+            { id: 'mycelium', name: 'Mycelium Network', type: 'animate', state: 'networking', icon: '🕸️', position: { x: 3, y: 3 }, adjacentTo: ['fallen-oak', 'seedling'] },
+            { id: 'deer', name: 'Deer', type: 'animate', state: 'grazing', icon: '🦌', position: { x: 1, y: 2 }, adjacentTo: ['seedling', 'moonlight'] },
+            { id: 'owl', name: 'Owl', type: 'animate', state: 'hunting', icon: '🦉', position: { x: 6, y: 1 }, adjacentTo: ['moonlight', 'fallen-oak'] },
+            { id: 'seedling', name: 'Seedling', type: 'animate', state: 'reaching', icon: '🌱', position: { x: 2, y: 4 }, adjacentTo: ['mycelium', 'deer', 'fallen-oak'] },
+            { id: 'fallen-oak', name: 'Fallen Oak', type: 'inanimate', state: 'decaying', icon: '🪵', position: { x: 4, y: 5 }, adjacentTo: ['mycelium', 'seedling', 'owl'] },
+            { id: 'moonlight', name: 'Moonlight', type: 'abstract', state: 'filtering', icon: '🌙', position: { x: 7, y: 0 }, adjacentTo: ['deer', 'owl'] }
+        ],
+        latent: {
+            mycelium: {
+                GOAL: `The Mycelium Network seeks connection. Hyphae extend through soil, searching for roots, for other fungi, for the network that is the forest's true brain. Each hypha is a cable, a wire, a connection. The Mycelium dreams in chemicals, in signals, in the slow language of molecular exchange. Its goal is symbiosis: partnership with tree roots, exchange of nutrients for sugars.`,
+                OBSTACLE: `The Mycelium Network encounters compacted soil. The hyphae cannot penetrate dense clay; growth is arrested, network fragmented. The obstacle is ancient: a path, a road, human footprint compressed into permanence. One side cannot speak to the other; information is trapped. The forest's brain is split.`,
+                SHIFT: `The Mycelium Network enters fruiting phase. Hyphae gather, swell, and rise, becoming mushroom, becoming visible. The shift is triggered by rain, by temperature, by mysterious internal clock. The mushroom is the Mycelium's voice: I am here, I am alive, I am ready to spread, to colonize, to persist.`
+            },
+            deer: {
+                GOAL: `The Deer seeks the clearing. Its stomach is empty, its need urgent; tender shoots of new growth call from the forest's edge. The Deer's nose tests the air: scent of grass, scent of clover, scent of danger. Each step is calculated—move in bursts, freeze, listen, move again.`,
+                OBSTACLE: `The Deer encounters the stream. Water is high, current strong, far bank steep and slippery. The clearing is beyond, unreachable. The obstacle is fear: memory of hooves on stone, shock of cold water, predator's advantage in the open. The Deer follows the stream, seeking a ford, a fallen log.`,
+                SHIFT: `The Deer enters alert mode. Ears rotate, nostrils flare, muscles tense. Something has changed; the forest is not as it was. The shift is ancient: nervous system evolved over millennia responds to cues invisible to human perception. Consciousness narrows: clearing forgotten, goal is survival, world reduced to threat assessment.`
+            },
+            owl: {
+                GOAL: `The Owl seeks prey. Ears, asymmetrically placed, triangulate scurrying of mice beneath snow, rustling of voles in leaves. Flight is soundless: fringed feathers muffle air, soft plumage absorbs turbulence. The Owl is a ghost, a shadow, a whisper. Each hunt is calculation: distance, angle, wind speed, prey movement.`,
+                OBSTACLE: `The Owl encounters wind. Gusts disrupt flight, push it off course, make silent approach impossible. Prey is warned. The obstacle is the forest's own architecture: gaps in canopy create wind tunnels, turbulence zones. The Owl abandons hunt, perches, waits. Wind will die, silence will return.`,
+                SHIFT: `The Owl molts. Feathers fall like soft rain, revealing new plumage beneath—fresh, functional, ready for demands of flight. The shift is necessary: old feathers wear, lose silence, insulation, camouflage. The Owl is between states, vulnerable, grounded. It is rebuilding itself, feather by feather.`
+            },
+            seedling: {
+                GOAL: `The Seedling seeks light. Cotyledons are small, stem is thin, but need is absolute: photons or death, light or oblivion. The Seedling's goal is a gap in canopy, a shaft of sunlight, temporary abundance in perpetual twilight. Each leaf is a solar panel; each cell a factory.`,
+                OBSTACLE: `The Seedling encounters shade. A mature tree has expanded canopy, blocking light, claiming photons. Growth slows, leaves pale, stem stretches desperately toward dimness. The obstacle is the forest's own success: past generations filled available space, claimed available light.`,
+                SHIFT: `The Seedling enters dormancy. Growth stops, metabolism slows; it becomes a statue of itself, waiting, preserving, enduring. The shift is triggered by stress: too little light, too much competition. Leaves yellow, fall, are absorbed. It retreats to essential self: stem, root, core of being.`
+            },
+            'fallen-oak': {
+                GOAL: `The Fallen Oak seeks dissolution. It has fallen; now it wants to complete the cycle, to return to soil, to feed the forest that fed it. The Oak dreams of decomposition, of becoming substrate for fungi, of releasing stored nutrients. Its goal is not survival but generosity.`,
+                OBSTACLE: `The Fallen Oak encounters resistance. The wood is dense, slow to rot; bark still protects the core. The obstacle is its own strength: what made it stand for centuries now delays its return to earth. Insects work at the surface but cannot penetrate the heartwood.`,
+                SHIFT: `The Fallen Oak becomes nurse log. Moss colonizes the bark; seedlings take root in the crumbling wood. Fungi thread through the xylem, extracting nutrients, sharing with the network. The Oak has shifted from individual to infrastructure, from tree to ecosystem.`
+            },
+            moonlight: {
+                GOAL: `The Moonlight seeks the forest floor. It filters through canopy, dodges leaves, weaves between branches. Its goal is to touch what sunlight cannot reach: the nocturnal world, the creatures of darkness, the hidden life. The Moonlight is a spy, an infiltrator, a silver messenger.`,
+                OBSTACLE: `The Moonlight encounters cloud. The sky closes; silver becomes gray, then black. The obstacle is weather, the unpredictable cover of atmosphere. The Moonlight waits, patient, knowing that clouds pass and its work will resume.`,
+                SHIFT: `The Moonlight changes phase. From full to new, from bright to dim, its character shifts with the month. The forest learns these rhythms: predators hunt more in darkness, prey hides more in brightness. The Moonlight has become a clock, a calendar, a regulator of behavior.`
+            }
+        },
+        ambient: [
+            { entityId: 'moonlight', vector: 'SHIFT', probability: 0.2 },
+            { entityId: 'mycelium', vector: 'GOAL', probability: 0.4 },
+            { entityId: 'owl', vector: 'GOAL', probability: 0.4 }
+        ]
+    },
+
+    urban_jungle: {
+        id: 'urban_jungle',
+        name: 'URBAN JUNGLE',
+        baseline: `The urban jungle is a forest of verticality. Buildings rise like cliffs, streets run like rivers. Concrete is the dominant geology. The air carries unique chemistry: exhaust, cooking, metallic tang of industry. Sound is constant: engines, voices, construction. Light is artificial: streetlamps, neon, LED. The city has its own ecology: pigeons, rats, the hardy species that thrive in cracks.`,
+        grid: { cols: 8, rows: 6 },
+        entities: [
+            { id: 'pigeon', name: 'Pigeon', type: 'animate', state: 'foraging', icon: '🐦', position: { x: 2, y: 2 }, adjacentTo: ['traffic-light', 'rain-puddle'] },
+            { id: 'rat', name: 'Rat', type: 'animate', state: 'scavenging', icon: '🐀', position: { x: 6, y: 4 }, adjacentTo: ['graffiti', 'rain-puddle'] },
+            { id: 'graffiti', name: 'Graffiti', type: 'abstract', state: 'visible', icon: '🎨', position: { x: 1, y: 5 }, adjacentTo: ['rat', 'sidewalk-weed'] },
+            { id: 'traffic-light', name: 'Traffic Light', type: 'inanimate', state: 'cycling', icon: '🚦', position: { x: 4, y: 1 }, adjacentTo: ['pigeon', 'sidewalk-weed'] },
+            { id: 'rain-puddle', name: 'Rain Puddle', type: 'inanimate', state: 'evaporating', icon: '💧', position: { x: 5, y: 3 }, adjacentTo: ['pigeon', 'rat'] },
+            { id: 'sidewalk-weed', name: 'Sidewalk Weed', type: 'animate', state: 'growing', icon: '🌿', position: { x: 0, y: 3 }, adjacentTo: ['graffiti', 'traffic-light'] }
+        ],
+        latent: {
+            pigeon: {
+                GOAL: `The Pigeon seeks crumbs. Its eyes scan pavement, benches, hands of humans—searching for scattered debris of human eating. The Pigeon's goal is the plaza, the park, where humans gather, where food is consumed, where opportunity concentrates. Each step is calculation: approach too closely and human flees; stay too distant and crumb is lost.`,
+                OBSTACLE: `The Pigeon encounters a child. The small human runs, arms waving, voice shouting, disrupting plaza's peace. The obstacle is unpredictable: children do not follow adult patterns, do not respect pigeon space. Pigeons take flight, coordinated explosion of wings, circling, regrouping, waiting for disturbance to pass.`,
+                SHIFT: `The Pigeon enters courtship. Neck swells, feathers iridesce, it struts and coos—transformed from forager to suitor. The shift is hormonal: testosterone floods bloodstream, changing behavior, changing priorities. Movements become performance: the bow, the coo, display of plumage.`
+            },
+            rat: {
+                GOAL: `The Rat seeks the dumpster. Its nose has detected scent of food waste, rich aroma of discarded meals. The Rat's goal is the alley behind the restaurant, the gap in the fence, the path through shadows. Each movement is silent, swift, efficient. The Rat knows the city's secret routes: sewers, gaps, spaces between walls.`,
+                OBSTACLE: `The Rat encounters poison. Bait is placed, trap is set; human war against rat-kind has escalated to chemical warfare. The obstacle is intelligence: humans studied rat behavior, learned preferences, designed baits that appeal, deceive, kill. The Rat avoids, marks location, communicates danger to kin.`,
+                SHIFT: `The Rat enters maternal mode. Female has given birth; behavior changes, territory contracts, world narrows to nest, young, future. The shift is hormonal: prolactin, oxytocin, chemistry of care. Movements become patterns: same routes, same times, same careful checks for danger.`
+            },
+            graffiti: {
+                GOAL: `The Graffiti seeks visibility. The artist's tag wants to be seen, to be known, to claim space in urban visual field. The Graffiti's goal is the high wall, the visible corner, where eyes pass, where tag will be read, remembered, respected. Each line is risk: artist works fast, at night, in fear of police, property owners, rival crews.`,
+                OBSTACLE: `The Graffiti encounters the buffer. City's anti-graffiti squad arrives with paint, with rollers, mandate to erase, to clean, to restore blankness. The obstacle is institutional: city has resources, laws, power to enforce aesthetic conformity. The Graffiti is covered, hidden, made invisible—as if it never was.`,
+                SHIFT: `The Graffiti fades. Sun bleaches colors, rain washes pigment, time erodes inscription. What was vibrant becomes ghost. The shift is natural: all things fade, all colors dull. Faded Graffiti acquires new meaning: it becomes history, memory, marker of time passed.`
+            },
+            'traffic-light': {
+                GOAL: `The Traffic Light seeks order. Its cycles of red, yellow, green are rhythm, dance, attempt to impose pattern on chaos of vehicles. The Traffic Light's goal is smooth flow: no jams, no accidents, no conflicts. Each change is decision: who moves, who stops, who waits. It is judge, dispensing permission and prohibition.`,
+                OBSTACLE: `The Traffic Light encounters blackout. Power fails; light goes dark. Intersection becomes zone of negotiation, of chaos, of danger. The obstacle is grid's fragility: wires, transformers, complex infrastructure that delivers electricity. Drivers hesitate, confused, uncertain.`,
+                SHIFT: `The Traffic Light changes program. Rush hour demands longer greens, shorter reds, pattern optimized for volume. The shift is programmed: sensors detect traffic, computers calculate optimal timing. The Light adapts to conditions, to demand, to reality. It learns, optimizes, becomes node in smart city network.`
+            },
+            'rain-puddle': {
+                GOAL: `The Rain Puddle seeks absorption. It wants to sink into concrete, to find cracks, to return to the earth beneath the city. The Puddle dreams of evaporation too—of becoming vapor, rising, joining clouds, falling again elsewhere. Its goal is cycle, continuity, the endless round of water.`,
+                OBSTACLE: `The Rain Puddle encounters oil. A slick spreads across its surface, rainbow sheen of petroleum products. The obstacle is human residue: what the city discards settles in low places. The Puddle cannot breathe through the film; evaporation slows, life within suffocates.`,
+                SHIFT: `The Rain Puddle shrinks. Sun and wind work together, pulling molecules into air. The shift is imperceptible to human eyes but constant: the Puddle is always becoming smaller, shallower, closer to disappearance. It leaves behind its memory: a dark stain on concrete, minerals and dirt.`
+            },
+            'sidewalk-weed': {
+                GOAL: `The Sidewalk Weed seeks soil. It has found a crack, a gap between concrete slabs, a thin line of dirt accumulated over years. Now it wants more: deeper roots, wider spread, the chance to flower and seed. The Weed dreams of the crack widening, of concrete crumbling, of forest returning.`,
+                OBSTACLE: `The Sidewalk Weed encounters foot traffic. Human shoes press down, compact soil, break stems. The obstacle is constant: the sidewalk is a thoroughfare, the crack is in the path. The Weed is trampled, flattened, but not killed. It grows sideways, stays low, adapts.`,
+                SHIFT: `The Sidewalk Weed flowers. Despite everything—concrete, compression, neglect—it produces blooms, then seeds. The shift is defiance: in the most hostile environment, life persists. The seeds will scatter, find other cracks, continue the work of slowly dismantling the city.`
+            }
+        },
+        ambient: [
+            { entityId: 'traffic-light', vector: 'SHIFT', probability: 0.3 },
+            { entityId: 'pigeon', vector: 'GOAL', probability: 0.4 },
+            { entityId: 'rain-puddle', vector: 'SHIFT', probability: 0.3 }
+        ]
+    }
+};
+
+// ============================================
+// MAIN APPLICATION
+// ============================================
+
+class RipplesApp {
+    constructor() {
+        // Initialize engine
+        this.engine = new RipplesEngine({
+            initialScenario: 'cupboard',
+            generationMode: 'latent',
+            bpm: 20,
+            llmAdapter: new MockLLMAdapter({})
+        });
+
+        // Register all scenarios
+        Object.values(LatentLibrary).forEach(scenario => {
+            this.engine.registerScenario(scenario);
+        });
+
+        // Visualizer management
+        this.visualizers = new Map();
+        this.activeVisualizer = null;
+
+        // UI elements
+        this.els = {};
+    }
+
+    /**
+     * Initialize the application
+     */
+    init() {
+        this.cacheElements();
+        this.bindControls();
+        this.mountVisualizer('gridtv');
+        this.render();
+    }
+
+    /**
+     * Cache DOM element references
+     */
+    cacheElements() {
+        this.els = {
+            scenarioSelect: document.getElementById('scenarioSelect'),
+            visualizerSelect: document.getElementById('visualizerSelect'),
+            visualizerContainer: document.getElementById('visualizerContainer'),
+            entityList: document.getElementById('entityList'),
+            worldtext: document.getElementById('worldtext'),
+            auditLog: document.getElementById('auditLog'),
+            latentPanel: document.getElementById('latentPanel'),
+            selectedEntityInfo: document.getElementById('selectedEntityInfo'),
+            selectedEntityName: document.getElementById('selectedEntityName'),
+            btnGoal: document.getElementById('btnGoal'),
+            btnObstacle: document.getElementById('btnObstacle'),
+            btnShift: document.getElementById('btnShift'),
+            autoplayToggle: document.getElementById('autoplayToggle'),
+            autoplayLabel: document.getElementById('autoplayLabel'),
+            countdown: document.getElementById('countdown'),
+            tickDisplay: document.getElementById('tickDisplay'),
+            modeDisplay: document.getElementById('modeDisplay'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            llmToggle: document.getElementById('llmToggle'),
+            modeIndicator: document.getElementById('modeIndicator'),
+            llmConfig: document.getElementById('llmConfig'),
+            bpmSlider: document.getElementById('bpmSlider'),
+            bpmValue: document.getElementById('bpmValue'),
+            fxSlider: document.getElementById('fxSlider')
+        };
+    }
+
+    /**
+     * Mount a visualizer by name
+     * @param {string} name - Visualizer key
+     */
+    mountVisualizer(name) {
+        // Unmount current
+        if (this.activeVisualizer) {
+            this.activeVisualizer.unmount();
+        }
+
+        // Get or create visualizer
+        let visualizer = this.visualizers.get(name);
+        if (!visualizer) {
+            const VisualizerClass = Visualizers[name];
+            if (!VisualizerClass) {
+                console.error(`Unknown visualizer: ${name}`);
+                return;
+            }
+            visualizer = new VisualizerClass(this.engine, this.els.visualizerContainer);
+            this.visualizers.set(name, visualizer);
+        }
+
+        // Mount and activate
+        visualizer.mount();
+        this.activeVisualizer = visualizer;
+
+        // Update UI
+        if (this.els.visualizerSelect) {
+            this.els.visualizerSelect.value = name;
+        }
+    }
+
+    /**
+     * Bind UI control events
+     */
+    bindControls() {
+        // Scenario selector
+        this.els.scenarioSelect?.addEventListener('change', (e) => {
+            this.engine.loadScenario(e.target.value);
+            this.render();
+        });
+
+        // Visualizer selector
+        this.els.visualizerSelect?.addEventListener('change', (e) => {
+            this.mountVisualizer(e.target.value);
+        });
+
+        // Vector buttons
+        this.els.btnGoal?.addEventListener('click', () => this.triggerRipple('GOAL'));
+        this.els.btnObstacle?.addEventListener('click', () => this.triggerRipple('OBSTACLE'));
+        this.els.btnShift?.addEventListener('click', () => this.triggerRipple('SHIFT'));
+
+        // Autoplay toggle
+        this.els.autoplayToggle?.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.engine.startAutoplay();
+            } else {
+                this.engine.stopAutoplay();
+            }
+        });
+
+        // LLM mode toggle
+        this.els.llmToggle?.addEventListener('change', (e) => {
+            this.toggleLLMMode(e.target.checked);
+        });
+
+        // BPM slider
+        this.els.bpmSlider?.addEventListener('input', (e) => {
+            this.engine.state.bpm = parseInt(e.target.value);
+            this.els.bpmValue.textContent = e.target.value;
+            if (this.engine.state.isAutoplay) {
+                this.engine.stopAutoplay();
+                this.engine.startAutoplay();
+            }
+        });
+
+        // Engine event bindings for UI updates
+        this.engine.events.on('scenario:changed', () => {
+            this.render();
+        });
+
+        this.engine.events.on('entity:selected', ({ entity }) => {
+            this.renderEntityList();
+            this.els.selectedEntityInfo.style.display = 'block';
+            this.els.selectedEntityName.textContent = entity.name;
+            this.els.btnGoal.disabled = false;
+            this.els.btnObstacle.disabled = false;
+            this.els.btnShift.disabled = false;
+            this.els.statusText.textContent = `Perspective: ${entity.name}`;
+            this.els.statusDot.style.display = 'inline-block';
+            this.renderLatentPanel();
+        });
+
+        this.engine.events.on('ripple:triggered', ({ ripple, entity }) => {
+            this.renderWorldtext(ripple.description, ripple.vector);
+            this.addAuditEntry(ripple);
+            this.renderEntityList();
+        });
+
+        this.engine.events.on('autoplay:started', () => {
+            this.els.autoplayLabel.classList.add('active');
+        });
+
+        this.engine.events.on('autoplay:stopped', () => {
+            this.els.autoplayLabel.classList.remove('active');
+            this.els.autoplayToggle.checked = false;
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    }
+
+    /**
+     * Handle keyboard shortcuts
+     * @param {KeyboardEvent} e
+     */
+    handleKeyboard(e) {
+        if (e.target.tagName === 'INPUT') return;
+
+        const key = e.key.toLowerCase();
+
+        switch (key) {
+            case 'g':
+                if (!this.els.btnGoal.disabled) this.triggerRipple('GOAL');
+                break;
+            case 'o':
+                if (!this.els.btnObstacle.disabled) this.triggerRipple('OBSTACLE');
+                break;
+            case 's':
+                if (!this.els.btnShift.disabled) this.triggerRipple('SHIFT');
+                break;
+            case ' ':
+                e.preventDefault();
+                this.els.autoplayToggle.click();
+                break;
+            case 'arrowleft':
+            case 'arrowright':
+                const scenarios = ['cupboard', 'abandoned_house', 'deep_forest', 'urban_jungle'];
+                const currentIndex = scenarios.indexOf(this.engine.state.currentScenario);
+                const newIndex = key === 'arrowleft' 
+                    ? (currentIndex - 1 + scenarios.length) % scenarios.length
+                    : (currentIndex + 1) % scenarios.length;
+                this.els.scenarioSelect.value = scenarios[newIndex];
+                this.engine.loadScenario(scenarios[newIndex]);
+                this.render();
+                break;
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+                const num = parseInt(key);
+                const scenario = this.engine.getCurrentScenario();
+                if (scenario.entities[num - 1]) {
+                    this.engine.selectEntity(scenario.entities[num - 1].id);
+                }
+                break;
+            case '?':
+                this.showHelp();
+                break;
+        }
+    }
+
+    /**
+     * Trigger ripple with selected entity
+     * @param {string} vector
+     */
+    async triggerRipple(vector) {
+        if (!this.engine.state.selectedEntity) return;
+        await this.engine.triggerRipple(vector);
+    }
+
+    /**
+     * Toggle between latent and generative modes
+     * @param {boolean} enabled
+     */
+    toggleLLMMode(enabled) {
+        this.engine.state.generationMode = enabled ? 'generative' : 'latent';
+        this.els.modeDisplay.textContent = enabled ? 'GENERATIVE' : 'LATENT';
+        this.els.modeIndicator.textContent = enabled ? 'GENERATIVE' : 'LATENT';
+        this.els.modeIndicator.className = `mode-indicator ${enabled ? 'generative' : 'latent'}`;
+        this.els.llmConfig.style.display = enabled ? 'flex' : 'none';
+    }
+
+    /**
+     * Render entity list
+     */
+    renderEntityList() {
+        const scenario = this.engine.getCurrentScenario();
+        this.els.entityList.innerHTML = '';
+
+        scenario.entities.forEach((entity, index) => {
+            const item = document.createElement('div');
+            item.className = 'entity-item';
+            if (this.engine.state.selectedEntity === entity.id) {
+                item.classList.add('selected');
+            }
+
+            item.innerHTML = `
+                <div class="entity-name">${index + 1}. ${entity.name}</div>
+                <div class="entity-meta">
+                    <span class="entity-type">${entity.type}</span>
+                    <span class="entity-state">${entity.state}</span>
+                </div>
+            `;
+
+            item.addEventListener('click', () => {
+                this.engine.selectEntity(entity.id);
+            });
+
+            this.els.entityList.appendChild(item);
+        });
+    }
+
+    /**
+     * Render worldtext viewport
+     */
+    renderWorldtext(text, highlightType = null) {
+        let html = text;
+
+        // Highlight entity references
+        const scenario = this.engine.getCurrentScenario();
+        scenario.entities.forEach(entity => {
+            const regex = new RegExp(`\\b${entity.name}\\b`, 'gi');
+            html = html.replace(regex, `<span class="entity-ref" data-entity="${entity.id}">${entity.name}</span>`);
+        });
+
+        if (highlightType) {
+            html = `<span class="highlight-${highlightType.toLowerCase()}">${html}</span>`;
+        }
+
+        this.els.worldtext.innerHTML = html;
+
+        this.els.worldtext.querySelectorAll('.entity-ref').forEach(ref => {
+            ref.addEventListener('click', () => {
+                this.engine.selectEntity(ref.dataset.entity);
+            });
+        });
+    }
+
+    /**
+     * Render latent library panel
+     */
+    renderLatentPanel() {
+        if (!this.engine.state.selectedEntity) {
+            this.els.latentPanel.innerHTML = '<div class="empty-state">Select an entity to view latent descriptions</div>';
+            return;
+        }
+
+        const entity = this.engine.getEntity(this.engine.state.selectedEntity);
+        const latent = this.engine.getLatentDescription(this.engine.state.selectedEntity, 'GOAL');
+        
+        if (!latent || latent.startsWith('[')) {
+            this.els.latentPanel.innerHTML = '<div class="empty-state">No latent descriptions for this entity</div>';
+            return;
+        }
+
+        const scenario = this.engine.getCurrentScenario();
+        const descriptions = scenario.latent[this.engine.state.selectedEntity];
+
+        this.els.latentPanel.innerHTML = `
+            <div class="latent-item" data-vector="GOAL">
+                <div class="vector-label goal"><span>●</span> GOAL</div>
+                <div class="latent-text">${descriptions.GOAL.substring(0, 120)}...</div>
+            </div>
+            <div class="latent-item" data-vector="OBSTACLE">
+                <div class="vector-label obstacle"><span>●</span> OBSTACLE</div>
+                <div class="latent-text">${descriptions.OBSTACLE.substring(0, 120)}...</div>
+            </div>
+            <div class="latent-item" data-vector="SHIFT">
+                <div class="vector-label shift"><span>●</span> SHIFT</div>
+                <div class="latent-text">${descriptions.SHIFT.substring(0, 120)}...</div>
+            </div>
+        `;
+
+        this.els.latentPanel.querySelectorAll('.latent-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const vector = item.dataset.vector;
+                this.renderWorldtext(descriptions[vector], vector);
+            });
+        });
+    }
+
+    /**
+     * Add entry to audit log
+     */
+    addAuditEntry(ripple) {
+        this.els.tickDisplay.textContent = ripple.tick;
+
+        const entryEl = document.createElement('div');
+        entryEl.className = 'audit-entry new';
+        entryEl.innerHTML = `
+            <div class="audit-header">
+                <span class="audit-tick">#${ripple.tick}</span>
+                <span class="audit-vector ${ripple.vector.toLowerCase()}">${ripple.vector}</span>
+                <span class="audit-entity">→ ${ripple.entityName}</span>
+                ${ripple.mode === 'generative' ? '<span style="color: var(--term-purple);">[AI]</span>' : ''}
+            </div>
+            <div class="audit-result">${ripple.description.substring(0, 80)}...</div>
+        `;
+
+        entryEl.addEventListener('click', () => {
+            this.engine.selectEntity(ripple.entityId);
+            this.renderWorldtext(ripple.description, ripple.vector);
+        });
+
+        const emptyState = this.els.auditLog.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        this.els.auditLog.insertBefore(entryEl, this.els.auditLog.firstChild);
+
+        setTimeout(() => entryEl.classList.remove('new'), 500);
+
+        while (this.els.auditLog.children.length > 50) {
+            this.els.auditLog.removeChild(this.els.auditLog.lastChild);
+        }
+    }
+
+    /**
+     * Show help modal
+     */
+    showHelp() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal">
+                <h2>RIPPLES: Keyboard Shortcuts</h2>
+                <div class="modal-content">
+                    <h3>Vector Controls</h3>
+                    <p><kbd>G</kbd> — Apply GOAL vector</p>
+                    <p><kbd>O</kbd> — Apply OBSTACLE vector</p>
+                    <p><kbd>S</kbd> — Apply SHIFT vector</p>
+                    <h3>Navigation</h3>
+                    <p><kbd>1-6</kbd> — Select entity by index</p>
+                    <p><kbd>←/→</kbd> — Cycle scenarios</p>
+                    <h3>Playback</h3>
+                    <p><kbd>Space</kbd> — Toggle autoplay</p>
+                    <h3>Help</h3>
+                    <p><kbd>?</kbd> — Show this help</p>
+                </div>
+                <button class="modal-close">Close</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
+    /**
+     * Main render function
+     */
+    render() {
+        const scenario = this.engine.getCurrentScenario();
+        this.renderWorldtext(scenario.baseline);
+        this.renderEntityList();
+        this.renderLatentPanel();
+    }
+}
+
+// ============================================
+// INITIALIZE
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new RipplesApp();
+    window.app.init();
+});
