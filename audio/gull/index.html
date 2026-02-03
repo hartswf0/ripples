@@ -1,0 +1,48 @@
+<html>
+    <head>
+        <title>gull</title>
+        <script src="./node_modules/socket.io-client/dist/socket.io.js"></script>
+        <script src="./node_modules/tone/build/Tone.js"></script>
+        <style>
+            body {
+                background: black;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .sample {
+                color: white;
+                padding: 10px;
+            }
+
+            #ui {
+                float:left;
+                border-right: 1px solid white;
+            }
+
+            #editor {
+                margin: 10px;
+                background: black;
+                color: white;
+                border: 0;
+                font-size: 14px;
+            }
+            #editor:focus {
+                outline: 0;
+                background-color: #050505;
+            }
+            #canvas-editor {    
+                background: black;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="ui"></div> 
+        <canvas id="canvas-editor"></canvas>
+        <script src="./client/constants.js"></script>
+        <script src="./client/utils.js"></script>
+        <script src="./client/listener.js"></script>
+        <script src="./client/effects.js"></script>
+        <script src="./client/machine.js"></script>
+        <script src="./client/editor.js"></script> 
+        <script src="./client.js"></script>
+    </body>
+</html>
