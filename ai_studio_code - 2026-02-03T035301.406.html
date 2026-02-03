@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES-OS // OPERATIVE ONTOLOGY</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            --bg: #020202;
+            --glass: #0a0f0a;
+            --fg: #33ff00;
+            --fg-dim: #155505;
+            --gold: #ffb000;
+            --red: #ff2a2a;
+            --cyan: #00f0ff;
+            --grid-line: rgba(21, 85, 5, 0.2);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Space Mono', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- CRT CHASSIS --- */
+        #crt-frame {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+
+        #screen {
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--fg-dim);
+            border-radius: 4px;
+            position: relative;
+            background-color: var(--glass);
+            box-shadow: 0 0 20px rgba(51, 255, 0, 0.05), inset 0 0 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+        }
+
+        /* --- OVERLAYS --- */
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.6;
+        }
+        
+        .vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, black 100%);
+            pointer-events: none;
+            z-index: 51;
+        }
+
+        /* --- UI SECTIONS --- */
+        #grid-view {
+            position: relative;
+            border-right: 1px solid var(--fg-dim);
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        aside {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            font-size: 12px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* --- TEXT STYLING --- */
+        h1 { margin: 0; font-size: 18px; letter-spacing: 2px; text-shadow: 0 0 8px var(--fg); }
+        .subtitle { color: var(--fg-dim); font-size: 10px; margin-bottom: 10px; display: block; }
+
+        .log-container {
+            flex-grow: 1;
+            border: 1px solid var(--fg-dim);
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.4;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        .log-entry { margin-bottom: 8px; border-left: 2px solid var(--fg-dim); padding-left: 8px; opacity: 0; animation: fadeSlide 0.3s forwards; }
+        .log-gold { border-color: var(--gold); color: var(--gold); }
+        .log-red { border-color: var(--red); color: var(--red); }
+        .log-cyan { border-color: var(--cyan); color: var(--cyan); }
+
+        @keyframes fadeSlide { to { opacity: 1; transform: translateX(0); } from { opacity: 0; transform: translateX(-10px); } }
+
+        /* --- MODAL --- */
+        #boot-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--fg);
+            color: var(--fg);
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: var(--fg); color: #000; box-shadow: 0 0 15px var(--fg); }
+
+        /* --- HELP OVERLAY --- */
+        #manual {
+            display: none;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 600px;
+            background: #050505;
+            border: 1px solid var(--fg);
+            padding: 20px;
+            z-index: 90;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; border-bottom: 1px solid var(--fg-dim); color: var(--fg-dim); padding: 5px; }
+        td { padding: 5px; border-bottom: 1px solid rgba(21, 85, 5, 0.2); }
+
+    </style>
+</head>
+<body>
+
+    <div id="crt-frame">
+        <div id="screen">
+            <div class="scanlines"></div>
+            <div class="vignette"></div>
+
+            <!-- MAIN GRID -->
+            <div id="grid-view">
+                <canvas id="canvas"></canvas>
+                <!-- HUD Overlay -->
+                <div style="position:absolute; top:10px; left:10px; font-size:10px; color:var(--fg-dim);">
+                    GRID_DENSITY: 40x25<br>
+                    PHYSICS: HIGH_FRICTION<br>
+                    RENDER: PHOSPHOR_DECAY
+                </div>
+            </div>
+
+            <!-- SIDEBAR -->
+            <aside>
+                <div>
+                    <h1>RIPPLES_OS</h1>
+                    <span class="subtitle">OPERATIVE FICTION ENGINE v2.0</span>
+                    <button class="btn" style="width:100%; padding:5px; font-size:10px;" onclick="toggleManual()">[?] OPERATOR MANUAL</button>
+                </div>
+
+                <div style="border: 1px solid var(--fg-dim); padding: 10px;">
+                    <div style="font-size:10px; opacity:0.7; margin-bottom:5px;">VECTOR ARMORY</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; text-align:center;">
+                        <div style="color:var(--gold); border:1px solid var(--gold); padding:5px;">[G]<br>GOAL</div>
+                        <div style="color:var(--red); border:1px solid var(--red); padding:5px;">[O]<br>OBST.</div>
+                        <div style="color:var(--cyan); border:1px solid var(--cyan); padding:5px;">[S]<br>SHIFT</div>
+                    </div>
+                </div>
+
+                <div style="font-size:10px; color:var(--fg-dim);">WORLDTEXT BUFFER // AUDIT LOG</div>
+                <div id="log" class="log-container">
+                    <!-- Logs go here -->
+                </div>
+
+                <div style="font-size:10px;">
+                    TICK: <span id="tick-counter">0000</span> | BPM: 140<br>
+                    <span id="audio-status" style="color:var(--red)">AUDIO: OFFLINE</span>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen">
+        <div style="width: 400px; text-align: left;">
+            <div>> SYSTEM CHECK... OK</div>
+            <div>> LOADING LATENT LIBRARY... OK</div>
+            <div>> MOUNTING PILOT SYNTH... OK</div>
+            <div>> CALIBRATING UMWELT SENSORS...</div>
+            <br>
+            <div style="color:var(--fg-dim)">
+                WELCOME TO RIPPLES.
+                YOU ARE THE WORLD JOCKEY (WJ).
+                YOUR TASK: INTERVENE IN THE ECOLOGY.
+            </div>
+            <br>
+            <button class="btn" onclick="bootSystem()">INITIALIZE SYSTEM</button>
+        </div>
+    </div>
+
+    <!-- MANUAL MODAL -->
+    <div id="manual">
+        <h2 style="margin-top:0; border-bottom:1px solid var(--fg);">OPERATOR'S MANUAL</h2>
+        <p style="font-size:12px; color:var(--fg-dim)">This is not a game. It is a simulation of nonhuman phenomenology. You inject "Vectors" (Forces) into "Entities" (Agents) to generate "Worldtext" (Poetic Data).</p>
+        
+        <table>
+            <tr><th>SYM</th><th>ENTITY</th><th>BEHAVIOR</th></tr>
+            <tr><td>A</td><td>Ant</td><td>Moves randomly. Seeks resources.</td></tr>
+            <tr><td>M</td><td>Mycelium</td><td>Static. Networks underground.</td></tr>
+            <tr><td>W</td><td>Window</td><td>Resonant surface. Barrier.</td></tr>
+        </table>
+        
+        <br>
+        
+        <table>
+            <tr><th>KEY</th><th>VECTOR</th><th>EFFECT</th></tr>
+            <tr><td style="color:var(--gold)">G</td><td>GOAL</td><td>Creates desire/attraction. Harmonic sound.</td></tr>
+            <tr><td style="color:var(--red)">O</td><td>OBSTACLE</td><td>Creates friction/resistance. Distortion.</td></tr>
+            <tr><td style="color:var(--cyan)">S</td><td>SHIFT</td><td>Transformative phase change. Modulation.</td></tr>
+        </table>
+        
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn" style="padding:5px 10px;" onclick="toggleManual()">CLOSE</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * RIPPLES OS v2.0
+ * Features: Phosphor Trails, Linear Vectors, "Worldtext" Generator
+ */
+
+// --- CONFIGURATION ---
+const CONFIG = {
+    cols: 40,
+    rows: 25,
+    cellSize: 20,
+    speed: 100 // ms per tick
+};
+
+// --- STATE ---
+const STATE = {
+    grid: [],
+    entities: [],
+    vectors: [], // {x, y, dx, dy, type, char}
+    ripples: [], // Visual waves
+    tick: 0,
+    running: false,
+    activeKey: 'G',
+    cursor: { x: 0, y: 0 }
+};
+
+// --- LATENT LIBRARY (THE NARRATIVE BRAIN) ---
+const LIBRARY = {
+    'A': {
+        name: "FORMICIDAE",
+        G: ["Antennae detect sucrose gradient.", "Vector locked: Resource acquisition.", "The colony directives override drift."],
+        O: ["Vertical ceramic surface encountered.", "Path blocked by sterile silica.", "Mandibles click in frustration."],
+        S: ["Metabolic rate drops.", "Entering torpor state.", "Identity dissolves into the swarm."]
+    },
+    'M': {
+        name: "MYCELIUM",
+        G: ["Hyphae extend toward nutrient pocket.", "Chemical signaling increased.", "Network expansion confirmed."],
+        O: ["Compacted soil density detected.", "Growth arrested by stone.", "Rerouting nutrient flow."],
+        S: ["Fruiting body initiation.", "Spore release sequence.", "The underground becomes visible."]
+    },
+    'W': {
+        name: "WINDOW",
+        G: ["Photons permitted entry.", "Thermal expansion active.", "Light fills the volume."],
+        O: ["Vibration from external impact.", "Resonant frequency spike.", "Glass structure strained."],
+        S: ["Condensation point reached.", "Transparency fading to opacity.", "The barrier weeps."]
+    }
+};
+
+// --- AUDIO ENGINE (PILOT) ---
+const AUDIO = {
+    synth: null,
+    noise: null,
+    drone: null,
+    
+    init: async () => {
+        await Tone.start();
+        
+        // 1. The Harmonic Voice (Goal)
+        AUDIO.synth = new Tone.PolySynth(Tone.FMSynth, {
+            harmonicity: 3, modulationIndex: 5,
+            envelope: { attack: 0.01, decay: 0.2 }
+        }).toDestination();
+        AUDIO.synth.volume.value = -12;
+
+        // 2. The Noise Voice (Obstacle)
+        AUDIO.noise = new Tone.NoiseSynth({
+            envelope: { attack: 0.001, decay: 0.1 }
+        }).toDestination();
+        AUDIO.noise.volume.value = -10;
+
+        // 3. The Drone (Atmosphere)
+        const droneOsc = new Tone.Oscillator(55, "sawtooth").toDestination();
+        const filter = new Tone.Filter(200, "lowpass").toDestination();
+        droneOsc.connect(filter);
+        droneOsc.volume.value = -25;
+        droneOsc.start();
+        AUDIO.drone = filter; // Control filter for Shift visuals
+
+        document.getElementById('audio-status').innerText = "AUDIO: ONLINE";
+        document.getElementById('audio-status').style.color = "var(--fg)";
+    },
+
+    trigger: (type) => {
+        if(type === 'G') AUDIO.synth.triggerAttackRelease(["C4", "E4", "G4"][Math.floor(Math.random()*3)], "16n");
+        if(type === 'O') AUDIO.noise.triggerAttackRelease("32n");
+        if(type === 'S') {
+            AUDIO.drone.frequency.rampTo(800, 0.1);
+            setTimeout(() => AUDIO.drone.frequency.rampTo(200, 2), 100);
+        }
+    }
+};
+
+// --- GRAPHICS ENGINE (CANVAS) ---
+const cvs = document.getElementById('canvas');
+const ctx = cvs.getContext('2d');
+
+function resize() {
+    const parent = document.getElementById('grid-view');
+    cvs.width = parent.offsetWidth;
+    cvs.height = parent.offsetHeight;
+    CONFIG.cellSize = Math.floor(cvs.width / CONFIG.cols);
+}
+window.addEventListener('resize', resize);
+
+function draw() {
+    // 1. Phosphor Decay (Instead of clearRect, draw semi-transparent black)
+    ctx.fillStyle = 'rgba(10, 15, 10, 0.3)';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+    ctx.font = `${CONFIG.cellSize}px "Space Mono"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // 2. Draw Entities (Static)
+    STATE.entities.forEach(ent => {
+        const x = ent.x * CONFIG.cellSize + CONFIG.cellSize/2;
+        const y = ent.y * CONFIG.cellSize + CONFIG.cellSize/2;
+        
+        ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#fff';
+        ctx.fillText(ent.char, x, y);
+        ctx.shadowBlur = 0;
+    });
+
+    // 3. Draw Vectors (Moving)
+    STATE.vectors.forEach(vec => {
+        const x = vec.x * CONFIG.cellSize + CONFIG.cellSize/2;
+        const y = vec.y * CONFIG.cellSize + CONFIG.cellSize/2;
+        
+        if(vec.type === 'G') ctx.fillStyle = 'var(--gold)';
+        if(vec.type === 'O') ctx.fillStyle = 'var(--red)';
+        if(vec.type === 'S') ctx.fillStyle = 'var(--cyan)';
+        
+        ctx.fillText('>', x, y); // Arrow shape
+    });
+
+    // 4. Draw Ripples (Expanding Circles)
+    STATE.ripples.forEach((r, i) => {
+        const x = r.x * CONFIG.cellSize + CONFIG.cellSize/2;
+        const y = r.y * CONFIG.cellSize + CONFIG.cellSize/2;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, r.age * CONFIG.cellSize, 0, Math.PI * 2);
+        
+        let color = '255, 255, 255';
+        if(r.type === 'G') color = '255, 176, 0';
+        if(r.type === 'O') color = '255, 42, 42';
+        if(r.type === 'S') color = '0, 240, 255';
+
+        ctx.strokeStyle = `rgba(${color}, ${1 - r.age/r.maxAge})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        r.age += 0.2;
+        if(r.age > r.maxAge) STATE.ripples.splice(i, 1);
+    });
+
+    // 5. Draw Cursor
+    const cx = STATE.cursor.x * CONFIG.cellSize;
+    const cy = STATE.cursor.y * CONFIG.cellSize;
+    ctx.strokeStyle = 'var(--fg)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx, cy, CONFIG.cellSize, CONFIG.cellSize);
+    
+    // Cursor Tooltip
+    ctx.fillStyle = 'var(--fg)';
+    ctx.font = '10px "Space Mono"';
+    ctx.fillText(STATE.activeKey, cx + CONFIG.cellSize/2, cy - 5);
+}
+
+// --- LOGIC ENGINE ---
+function init() {
+    STATE.entities = [
+        {x: 10, y: 10, char: 'A'},
+        {x: 15, y: 12, char: 'A'},
+        {x: 30, y: 5, char: 'W'},
+        {x: 32, y: 5, char: 'W'},
+        {x: 20, y: 20, char: 'M'},
+        {x: 22, y: 19, char: 'M'}
+    ];
+    resize();
+    gameLoop();
+}
+
+function spawnVector(x, y, type) {
+    STATE.vectors.push({
+        x, y, 
+        dx: 1, dy: 0, // Always moves East for this version
+        type: type
+    });
+}
+
+function gameLoop() {
+    if(STATE.running) {
+        STATE.tick++;
+        document.getElementById('tick-counter').innerText = STATE.tick.toString().padStart(4, '0');
+
+        // Move Vectors
+        let nextVectors = [];
+        STATE.vectors.forEach(vec => {
+            // Move
+            if(STATE.tick % 2 === 0) vec.x += vec.dx; // Speed control
+
+            // Bounds check
+            if(vec.x >= CONFIG.cols) return; 
+
+            // Collision Check
+            let hit = STATE.entities.find(e => e.x === vec.x && e.y === vec.y);
+            if(hit) {
+                // COLLISION!
+                triggerEvent(hit, vec.type);
+            } else {
+                nextVectors.push(vec);
+            }
+        });
+        STATE.vectors = nextVectors;
+    }
+    
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+function triggerEvent(entity, type) {
+    // 1. Visual Ripple
+    STATE.ripples.push({x: entity.x, y: entity.y, age: 0, maxAge: 5, type: type});
+    
+    // 2. Audio
+    AUDIO.trigger(type);
+
+    // 3. Narrative
+    const lib = LIBRARY[entity.char];
+    if(lib) {
+        const text = lib[type][Math.floor(Math.random() * lib[type].length)];
+        logEvent(entity.char, type, text);
+    }
+}
+
+function logEvent(char, type, text) {
+    const log = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = `log-entry log-${type === 'G' ? 'gold' : type === 'O' ? 'red' : 'cyan'}`;
+    entry.innerHTML = `
+        <span style="opacity:0.5">[${STATE.tick}]</span> 
+        <strong>${char} + ${type}</strong><br>
+        ${text}
+    `;
+    log.prepend(entry);
+    if(log.children.length > 8) log.lastChild.remove();
+}
+
+// --- INTERACTION ---
+function bootSystem() {
+    document.getElementById('boot-screen').style.display = 'none';
+    AUDIO.init();
+    STATE.running = true;
+}
+
+function toggleManual() {
+    const el = document.getElementById('manual');
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+// Mouse
+cvs.addEventListener('mousemove', e => {
+    const rect = cvs.getBoundingClientRect();
+    STATE.cursor.x = Math.floor((e.clientX - rect.left) / CONFIG.cellSize);
+    STATE.cursor.y = Math.floor((e.clientY - rect.top) / CONFIG.cellSize);
+});
+
+cvs.addEventListener('mousedown', () => {
+    if(!STATE.running) return;
+    spawnVector(STATE.cursor.x, STATE.cursor.y, STATE.activeKey);
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+    const k = e.key.toUpperCase();
+    if(['G','O','S'].includes(k)) STATE.activeKey = k;
+    if(e.code === 'Space') STATE.running = !STATE.running;
+});
+
+// Start
+init();
+
+</script>
+</body>
+</html>

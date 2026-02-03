@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // SOUND ECOLOGY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(180deg, #0c0c14 0%, #141420 100%);
+            min-height: 100vh;
+            color: #888;
+        }
+
+        :root {
+            --accent: #00ff88;
+            --goal: #ffbb00;
+            --obstacle: #ff4455;
+            --shift: #aa66ff;
+            --panel: rgba(20, 20, 30, 0.9);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid #333;
+            backdrop-filter: blur(10px);
+        }
+
+        .entity-btn {
+            border: 1px solid #333;
+            background: transparent;
+            color: #888;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            width: 100%;
+        }
+
+        .entity-btn:hover {
+            border-color: #555;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .entity-btn.selected {
+            border-color: var(--accent);
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent);
+        }
+
+        .vector-btn {
+            border: 2px solid currentColor;
+            background: transparent;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn:hover:not(:disabled) {
+            background: currentColor;
+            color: #000;
+        }
+
+        .waveform {
+            width: 100%;
+            height: 60px;
+            margin: 16px 0;
+        }
+
+        .sound-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            transition: all 0.1s;
+        }
+
+        .sound-indicator.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="min-h-screen grid grid-cols-[280px_1fr_280px] grid-rows-[auto_1fr_auto]">
+        <!-- Header -->
+        <header class="col-span-3 panel p-4 flex justify-between items-center">
+            <div>
+                <span class="text-[var(--accent)] glow-text font-semibold">RIPPLES//SOUND</span>
+                <span class="text-[#444] ml-4">Engine-Driven Sonic Ecology</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div id="audio-indicator" class="sound-indicator"></div>
+                    <span class="text-xs">AUDIO</span>
+                </div>
+                <button id="start-audio"
+                    class="text-xs border border-[var(--accent)] text-[var(--accent)] px-3 py-1 hover:bg-[var(--accent)] hover:text-black transition">
+                    START AUDIO
+                </button>
+                <span id="tick-display" class="text-[#555]">TICK: 0</span>
+            </div>
+        </header>
+
+        <!-- Entity Panel -->
+        <aside class="panel p-4 border-t-0 overflow-y-auto">
+            <div class="text-xs text-[#555] mb-4 uppercase tracking-widest">Sonic Entities</div>
+            <div id="entity-list" class="space-y-2"></div>
+
+            <div class="mt-8">
+                <div class="text-xs text-[#555] mb-4 uppercase tracking-widest">Entity Sound</div>
+                <canvas id="entity-waveform" class="waveform border border-[#333]"></canvas>
+                <div id="entity-info" class="text-xs text-[#555] mt-2">Select an entity</div>
+            </div>
+        </aside>
+
+        <!-- Main Display -->
+        <main class="panel border-t-0 border-l-0 border-r-0 p-8 flex flex-col items-center justify-center">
+            <div id="worldtext-container" class="max-w-lg text-center">
+                <div id="worldtext" class="text-lg leading-relaxed text-[#aaa] min-h-[100px]">
+                    Initialize audio and select an entity to begin
+                </div>
+                <div id="ripple-meta" class="mt-6 text-xs text-[#555]"></div>
+            </div>
+
+            <!-- Vector Visualization -->
+            <div id="vector-viz" class="mt-12 flex gap-4">
+                <canvas id="viz-goal" width="80" height="80" class="border border-[#333]"></canvas>
+                <canvas id="viz-obstacle" width="80" height="80" class="border border-[#333]"></canvas>
+                <canvas id="viz-shift" width="80" height="80" class="border border-[#333]"></canvas>
+            </div>
+        </main>
+
+        <!-- Vector Panel -->
+        <aside class="panel p-4 border-t-0 overflow-y-auto">
+            <div class="text-xs text-[#555] mb-4 uppercase tracking-widest">Inject Vector</div>
+            <div class="space-y-3">
+                <button id="btn-goal" class="vector-btn w-full text-[var(--goal)]" disabled>
+                    → GOAL
+                </button>
+                <button id="btn-obstacle" class="vector-btn w-full text-[var(--obstacle)]" disabled>
+                    ■ OBSTACLE
+                </button>
+                <button id="btn-shift" class="vector-btn w-full text-[var(--shift)]" disabled>
+                    ↻ SHIFT
+                </button>
+            </div>
+
+            <div class="mt-8">
+                <div class="text-xs text-[#555] mb-4 uppercase tracking-widest">Audit Log</div>
+                <div id="audit-log" class="space-y-2 max-h-[200px] overflow-y-auto"></div>
+            </div>
+        </aside>
+
+        <!-- Footer -->
+        <footer class="col-span-3 panel p-3 text-xs flex justify-between">
+            <div>TONE.JS INTEGRATION // ENGINE v1.0</div>
+            <div id="audio-status">AUDIO_CONTEXT: SUSPENDED</div>
+        </footer>
+    </div>
+
+    <script>
+        // =========================================
+        // RIPPLES ENGINE
+        // =========================================
+        class RipplesEngine {
+            constructor(latentLibrary) {
+                this.latentLibrary = latentLibrary;
+                this._listeners = new Map();
+                this.state = { scenario: 'soundscape', selectedEntity: null, tick: 0, worldtext: null, auditLog: [] };
+            }
+
+            on(e, cb) { if (!this._listeners.has(e)) this._listeners.set(e, []); this._listeners.get(e).push(cb); }
+            emit(e, d = {}) { this._listeners.get(e)?.forEach(cb => cb(d)); }
+
+            getScenario() { return this.latentLibrary[this.state.scenario]; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            selectEntity(id) { this.state.selectedEntity = id; this.emit('entity:select', { entity: this.getEntity(id) }); }
+            deselectEntity() { this.state.selectedEntity = null; this.emit('entity:deselect', {}); }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getScenario()?.latent?.[this.state.selectedEntity]?.[vector] || 'Response...';
+                this.state.worldtext = worldtext;
+                this.state.auditLog.unshift({ tick: this.state.tick, entity: entity.name, vector, text: worldtext.substring(0, 40) + '...' });
+                if (this.state.auditLog.length > 10) this.state.auditLog = this.state.auditLog.slice(0, 10);
+                this.emit('ripple:complete', { entity, vector, worldtext, tick: this.state.tick });
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            soundscape: {
+                id: 'soundscape', name: 'Sonic Ecology',
+                entities: [
+                    { id: 'bass', name: 'Deep Bass', note: 'C1', waveform: 'sine', color: '#00ff88' },
+                    { id: 'bell', name: 'Crystal Bell', note: 'E5', waveform: 'triangle', color: '#88ccff' },
+                    { id: 'drone', name: 'Ambient Drone', note: 'G2', waveform: 'sawtooth', color: '#ffaa00' },
+                    { id: 'pulse', name: 'Rhythmic Pulse', note: 'C3', waveform: 'square', color: '#ff4488' },
+                    { id: 'harmonics', name: 'Harmonic Series', note: 'C4', waveform: 'sine', color: '#aa66ff' },
+                    { id: 'noise', name: 'White Texture', note: 'noise', waveform: 'noise', color: '#888888' }
+                ],
+                latent: {
+                    'bass': { GOAL: 'The bass frequency descends further, seeking the subsonic, the felt rather than heard.', OBSTACLE: 'Higher frequencies intrude. The bass retreats, compresses, waits.', SHIFT: 'Octave shift. The bass rises, becomes mid-range, takes new territory.' },
+                    'bell': { GOAL: 'The bell rings out, overtones cascading in mathematical perfection.', OBSTACLE: 'Damping occurs. The bell\'s voice shortens, muffled by interference.', SHIFT: 'The bell transposes, finding new resonant frequencies to explore.' },
+                    'drone': { GOAL: 'The drone sustains, a constant presence, the foundation of all else.', OBSTACLE: 'Silence encroaches. The drone struggles to maintain its continuity.', SHIFT: 'Modulation begins. The drone becomes wave, becomes rhythm, becomes new.' },
+                    'pulse': { GOAL: 'The pulse quickens, driving tempo forward, creating urgency.', OBSTACLE: 'Syncopation disrupts. The pulse falters, loses its certainty.', SHIFT: 'The pulse halves, or doubles, finding a new relationship with time.' },
+                    'harmonics': { GOAL: 'Overtones bloom from the fundamental, creating spectral richness.', OBSTACLE: 'Dissonance enters. Harmonics clash, create tension, seek resolution.', SHIFT: 'The fundamental shifts. All harmonics realign to the new core.' },
+                    'noise': { GOAL: 'The noise spreads across the spectrum, filling every gap.', OBSTACLE: 'Filtering narrows the noise, reducing it to specific bands.', SHIFT: 'Color changes. White becomes pink becomes brown, each with character.' }
+                }
+            }
+        };
+
+        // =========================================
+        // SOUND ENGINE
+        // =========================================
+        class SoundEngine {
+            constructor() {
+                this.initialized = false;
+                this.synths = {};
+                this.analyser = null;
+                this.waveformData = new Uint8Array(128);
+            }
+
+            async init() {
+                if (this.initialized) return;
+
+                await Tone.start();
+
+                // Create synths for each entity
+                const entities = LATENT_LIBRARY.soundscape.entities;
+                entities.forEach(e => {
+                    if (e.waveform === 'noise') {
+                        this.synths[e.id] = new Tone.NoiseSynth({
+                            noise: { type: 'white' },
+                            envelope: { attack: 0.1, decay: 0.3, sustain: 0.5, release: 1 }
+                        }).toDestination();
+                    } else {
+                        this.synths[e.id] = new Tone.Synth({
+                            oscillator: { type: e.waveform },
+                            envelope: { attack: 0.1, decay: 0.3, sustain: 0.5, release: 1 }
+                        }).toDestination();
+                    }
+                });
+
+                // Create analyser
+                this.analyser = new Tone.Analyser('waveform', 128);
+                Tone.Destination.connect(this.analyser);
+
+                this.initialized = true;
+                document.getElementById('audio-status').textContent = 'AUDIO_CONTEXT: RUNNING';
+                document.getElementById('audio-indicator').classList.add('active');
+                document.getElementById('start-audio').textContent = 'AUDIO READY';
+            }
+
+            playEntity(entityId, duration = '2n') {
+                const entity = LATENT_LIBRARY.soundscape.entities.find(e => e.id === entityId);
+                if (!entity || !this.synths[entityId]) return;
+
+                if (entity.waveform === 'noise') {
+                    this.synths[entityId].triggerAttackRelease(duration);
+                } else {
+                    this.synths[entityId].triggerAttackRelease(entity.note, duration);
+                }
+            }
+
+            playVector(vector) {
+                // Play a characteristic sound for each vector
+                const vectorSounds = {
+                    GOAL: () => {
+                        const synth = new Tone.Synth({ oscillator: { type: 'sine' } }).toDestination();
+                        synth.triggerAttackRelease('C4', '8n');
+                        setTimeout(() => synth.triggerAttackRelease('E4', '8n'), 100);
+                        setTimeout(() => synth.triggerAttackRelease('G4', '8n'), 200);
+                    },
+                    OBSTACLE: () => {
+                        const synth = new Tone.NoiseSynth({ noise: { type: 'pink' } }).toDestination();
+                        synth.triggerAttackRelease('16n');
+                    },
+                    SHIFT: () => {
+                        const synth = new Tone.Synth({ oscillator: { type: 'triangle' } }).toDestination();
+                        synth.triggerAttackRelease('A3', '4n');
+                        synth.frequency.rampTo('A4', 0.3);
+                    }
+                };
+
+                if (vectorSounds[vector]) vectorSounds[vector]();
+            }
+
+            getWaveformData() {
+                if (this.analyser) {
+                    return this.analyser.getValue();
+                }
+                return new Float32Array(128);
+            }
+        }
+
+        // =========================================
+        // VISUALIZATION
+        // =========================================
+        function drawWaveform(canvas, data, color = '#00ff88') {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#0c0c14';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            const sliceWidth = w / data.length;
+            let x = 0;
+
+            for (let i = 0; i < data.length; i++) {
+                const v = (data[i] + 1) / 2;
+                const y = v * h;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+
+            ctx.stroke();
+        }
+
+        function drawVectorViz(canvasId, vector, intensity = 0) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const colors = { GOAL: '#ffbb00', OBSTACLE: '#ff4455', SHIFT: '#aa66ff' };
+            ctx.strokeStyle = colors[vector];
+            ctx.fillStyle = colors[vector];
+            ctx.globalAlpha = 0.3 + intensity * 0.7;
+
+            if (vector === 'GOAL') {
+                // Arrow pointing right
+                ctx.beginPath();
+                ctx.moveTo(15, cy);
+                ctx.lineTo(65, cy);
+                ctx.lineTo(55, cy - 10);
+                ctx.moveTo(65, cy);
+                ctx.lineTo(55, cy + 10);
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            } else if (vector === 'OBSTACLE') {
+                // Square
+                const size = 30 + intensity * 10;
+                ctx.strokeRect(cx - size / 2, cy - size / 2, size, size);
+            } else if (vector === 'SHIFT') {
+                // Rotating arc
+                const angle = Date.now() / 500;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 25, angle, angle + Math.PI * 1.5);
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        // =========================================
+        // MAIN
+        // =========================================
+        const engine = new RipplesEngine(LATENT_LIBRARY);
+        const sound = new SoundEngine();
+        let vectorIntensities = { GOAL: 0, OBSTACLE: 0, SHIFT: 0 };
+
+        // Start audio button
+        document.getElementById('start-audio').addEventListener('click', async () => {
+            await sound.init();
+        });
+
+        // Entity list
+        function updateEntityList() {
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+            engine.getEntities().forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = `entity-btn ${engine.state.selectedEntity === e.id ? 'selected' : ''}`;
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span style="color: ${e.color}">●</span>
+                        <span>${e.name}</span>
+                    </div>
+                    <div class="text-xs text-[#555] mt-1">${e.waveform} / ${e.note}</div>
+                `;
+                btn.onclick = () => {
+                    if (engine.state.selectedEntity === e.id) {
+                        engine.deselectEntity();
+                    } else {
+                        engine.selectEntity(e.id);
+                        if (sound.initialized) sound.playEntity(e.id, '8n');
+                    }
+                };
+                list.appendChild(btn);
+            });
+        }
+
+        // Engine events
+        engine.on('entity:select', ({ entity }) => {
+            updateEntityList();
+            document.getElementById('btn-goal').disabled = false;
+            document.getElementById('btn-obstacle').disabled = false;
+            document.getElementById('btn-shift').disabled = false;
+            document.getElementById('entity-info').textContent = `${entity.name} (${entity.waveform})`;
+        });
+
+        engine.on('entity:deselect', () => {
+            updateEntityList();
+            document.getElementById('btn-goal').disabled = true;
+            document.getElementById('btn-obstacle').disabled = true;
+            document.getElementById('btn-shift').disabled = true;
+            document.getElementById('entity-info').textContent = 'Select an entity';
+        });
+
+        engine.on('ripple:complete', ({ entity, vector, worldtext, tick }) => {
+            document.getElementById('worldtext').textContent = worldtext;
+            document.getElementById('ripple-meta').textContent = `${entity.name} × ${vector} // TICK ${tick}`;
+            document.getElementById('tick-display').textContent = `TICK: ${tick}`;
+
+            // Play sounds
+            if (sound.initialized) {
+                sound.playEntity(entity.id, '2n');
+                sound.playVector(vector);
+            }
+
+            // Trigger visual intensity
+            vectorIntensities[vector] = 1;
+
+            // Update audit log
+            const log = document.getElementById('audit-log');
+            log.innerHTML = '';
+            engine.state.auditLog.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'text-xs p-2 border-l-2';
+                div.style.borderColor = vector === 'GOAL' ? 'var(--goal)' : vector === 'OBSTACLE' ? 'var(--obstacle)' : 'var(--shift)';
+                div.innerHTML = `<span class="text-[#555]">T${entry.tick}</span> ${entry.entity}`;
+                log.appendChild(div);
+            });
+        });
+
+        // Vector buttons
+        document.getElementById('btn-goal').addEventListener('click', () => engine.triggerVector('GOAL'));
+        document.getElementById('btn-obstacle').addEventListener('click', () => engine.triggerVector('OBSTACLE'));
+        document.getElementById('btn-shift').addEventListener('click', () => engine.triggerVector('SHIFT'));
+
+        // Animation loop
+        const waveformCanvas = document.getElementById('entity-waveform');
+
+        function animate() {
+            // Waveform visualization
+            if (sound.initialized) {
+                const data = sound.getWaveformData();
+                const entity = engine.state.selectedEntity ? engine.getEntity(engine.state.selectedEntity) : null;
+                drawWaveform(waveformCanvas, data, entity?.color || '#00ff88');
+            }
+
+            // Vector visualizations
+            drawVectorViz('viz-goal', 'GOAL', vectorIntensities.GOAL);
+            drawVectorViz('viz-obstacle', 'OBSTACLE', vectorIntensities.OBSTACLE);
+            drawVectorViz('viz-shift', 'SHIFT', vectorIntensities.SHIFT);
+
+            // Decay intensities
+            vectorIntensities.GOAL *= 0.95;
+            vectorIntensities.OBSTACLE *= 0.95;
+            vectorIntensities.SHIFT *= 0.95;
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        updateEntityList();
+        animate();
+    </script>
+</body>
+
+</html>

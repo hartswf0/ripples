@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // PARTICLE SIMULATION</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            grid-template-rows: 1fr;
+            height: 100vh;
+        }
+
+        #sidebar {
+            background: rgba(10, 10, 15, 0.95);
+            border-right: 1px solid #222;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        #canvas-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 9px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #222;
+        }
+
+        .entity-btn {
+            width: 100%;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-family: inherit;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.15s;
+            margin-bottom: 4px;
+        }
+
+        .entity-btn:hover {
+            border-color: #333;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .entity-btn.selected {
+            border-color: #4af626;
+            background: rgba(74, 246, 38, 0.08);
+            color: #4af626;
+        }
+
+        .entity-icon {
+            font-size: 18px;
+        }
+
+        .vector-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.15s;
+            margin-bottom: 6px;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .vector-btn.goal:hover:not(:disabled) {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .vector-btn.obstacle {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .vector-btn.obstacle:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .vector-btn.shift {
+            border-color: #a855f7;
+            color: #a855f7;
+        }
+
+        .vector-btn.shift:hover:not(:disabled) {
+            background: rgba(168, 85, 247, 0.15);
+        }
+
+        #worldtext {
+            font-size: 11px;
+            line-height: 1.6;
+            color: #888;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #222;
+            min-height: 100px;
+            margin-top: 8px;
+        }
+
+        #hud {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 10px;
+            color: #555;
+            text-align: right;
+        }
+
+        #hud-bottom {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            font-size: 9px;
+            color: #444;
+        }
+
+        .scenario-select {
+            width: 100%;
+            padding: 8px;
+            font-size: 11px;
+            font-family: inherit;
+            background: #111;
+            border: 1px solid #333;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+
+        .scenario-select:focus {
+            outline: none;
+            border-color: #4af626;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="section-title">Scenario</div>
+            <select id="scenario-select" class="scenario-select">
+                <option value="cupboard">THE CUPBOARD</option>
+                <option value="forest">DEEP FOREST</option>
+                <option value="void">SECTOR VOID ZERO</option>
+            </select>
+
+            <div class="section-title">Entities</div>
+            <div id="entity-list"></div>
+
+            <div style="margin-top: 20px;">
+                <div class="section-title">Inject Vector</div>
+                <button id="btn-goal" class="vector-btn goal" disabled>→ GOAL</button>
+                <button id="btn-obstacle" class="vector-btn obstacle" disabled>■ OBSTACLE</button>
+                <button id="btn-shift" class="vector-btn shift" disabled>↻ SHIFT</button>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div class="section-title">Worldtext</div>
+                <div id="worldtext">Select entity → Inject vector</div>
+            </div>
+        </aside>
+
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div id="hud">
+                <div id="tick">TICK: 0</div>
+                <div id="particle-count">PARTICLES: 0</div>
+            </div>
+            <div id="hud-bottom">PARTICLE SIMULATION // ENGINE-DRIVEN</div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================
+        // RIPPLES ENGINE
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, auditLog: [], worldtext: null, lastRipple: null };
+            }
+
+            on(event, cb) { if (!this._listeners.has(event)) this._listeners.set(event, []); this._listeners.get(event).push(cb); }
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+            }
+
+            getState() { return { ...this.state }; }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) { this.state.selectedEntity = id; this.emit('entity:select', { entity: this.getEntity(id) }); }
+            deselectEntity() { this.state.selectedEntity = null; this.emit('entity:deselect', {}); }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `${this.getEntity(entityId)?.name} responds to ${vector}...`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, entity, vector, worldtext };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            cupboard: {
+                id: "cupboard", name: "The Cupboard",
+                entities: [
+                    { id: "ant-scout", name: "Ant Scout", icon: "🐜", color: "#4af626" },
+                    { id: "dust-mote", name: "Dust Mote", icon: "✧", color: "#888" },
+                    { id: "light-beam", name: "Light Beam", icon: "◈", color: "#ffdd00" },
+                    { id: "spider", name: "Spider", icon: "🕷️", color: "#aa4444" },
+                    { id: "plate-stack", name: "Plates", icon: "⬡", color: "#6688aa" },
+                    { id: "draft", name: "Draft", icon: "〰️", color: "#44aaff" }
+                ],
+                latent: {
+                    "ant-scout": { GOAL: "The scout traces pheromone echoes, antennae sweeping for sugar signatures.", OBSTACLE: "A ceramic cliff blocks passage. The scout retreats, recalculating.", SHIFT: "Chemical signals rewire. Role transforms from forager to guard." },
+                    "dust-mote": { GOAL: "The mote drifts toward light, carried by thermal currents.", OBSTACLE: "Static charge pins it to glass. Movement ceases.", SHIFT: "Bonding with others, the mote aggregates into something larger." },
+                    "light-beam": { GOAL: "The beam seeks surface, bouncing deeper into shadow territory.", OBSTACLE: "Plate edge cuts the stream. Light fragments.", SHIFT: "Dawn rotation shifts the beam's path entirely." },
+                    "spider": { GOAL: "Vibration detected. The spider calibrates for prey.", OBSTACLE: "Web torn by draft. Structural damage assessed.", SHIFT: "Cold settles. Metabolism slows. Waiting-mode engaged." },
+                    "plate-stack": { GOAL: "The stack settles, seeking equilibrium.", OBSTACLE: "Vibration threatens. Balance becomes precarious.", SHIFT: "One plate removed. New stability in absence." },
+                    "draft": { GOAL: "The draft threads through gaps, seeking equilibrium.", OBSTACLE: "Door sealed. The draft disperses.", SHIFT: "Temperature reverses. Direction inverts." }
+                }
+            },
+            forest: {
+                id: "forest", name: "Deep Forest",
+                entities: [
+                    { id: "mycelium", name: "Mycelium", icon: "◎", color: "#fff" },
+                    { id: "fox", name: "Fox", icon: "🦊", color: "#ff8844" },
+                    { id: "dewdrop", name: "Dew Drop", icon: "◉", color: "#88ccff" },
+                    { id: "moonlight", name: "Moonlight", icon: "◐", color: "#ccccff" },
+                    { id: "oak", name: "Oak", icon: "⬢", color: "#228844" },
+                    { id: "mushroom", name: "Mushroom", icon: "🍄", color: "#cc6644" }
+                ],
+                latent: {
+                    "mycelium": { GOAL: "Network extends, threads seeking root contact.", OBSTACLE: "Dry patch. Hyphae retreat.", SHIFT: "Stress triggers fruiting. Preparing to spore." },
+                    "fox": { GOAL: "Tracking vole tunnels, ears rotating.", OBSTACLE: "Human scent. Weighing options.", SHIFT: "Territory boundaries blur. Adapting." },
+                    "dewdrop": { GOAL: "Swelling, gathering humidity.", OBSTACLE: "Tension holds. Surface forces win.", SHIFT: "Temperature drops. Becoming ice." },
+                    "moonlight": { GOAL: "Filtering through canopy, painting paths.", OBSTACLE: "Clouds mass. Darkness returns.", SHIFT: "Phase advances. Intensity wanes." },
+                    "oak": { GOAL: "Reaching, growth rings accumulating.", OBSTACLE: "Fungal infection probes. Defenses marshal.", SHIFT: "Autumn signals. Withdrawal begins." },
+                    "mushroom": { GOAL: "Pushing upward, cap unfurling.", OBSTACLE: "Slug nibbles. Tolerating damage.", SHIFT: "Maturation complete. Spores ready." }
+                }
+            },
+            void: {
+                id: "void", name: "Sector Void Zero",
+                entities: [
+                    { id: "satellite", name: "Satellite", icon: "◇", color: "#88aacc" },
+                    { id: "asteroid", name: "Asteroid", icon: "◆", color: "#aa8866" },
+                    { id: "nebula-gas", name: "Nebula", icon: "◌", color: "#ff66aa" },
+                    { id: "solar-flare", name: "Solar Flare", icon: "✦", color: "#ffaa00" },
+                    { id: "space-junk", name: "Debris", icon: "◈", color: "#666" },
+                    { id: "gravity-well", name: "Gravity Well", icon: "◎", color: "#4444ff" }
+                ],
+                latent: {
+                    "satellite": { GOAL: "Maintaining orbit, tracking sun.", OBSTACLE: "Debris field approaches. Avoidance.", SHIFT: "Software update. New machine." },
+                    "asteroid": { GOAL: "Following ancient path.", OBSTACLE: "Gravitational perturbation. Orbit bends.", SHIFT: "Thermal stress. Shedding material." },
+                    "nebula-gas": { GOAL: "Drifting toward density.", OBSTACLE: "Stellar wind scatters.", SHIFT: "Radiation ionizes. New colors." },
+                    "solar-flare": { GOAL: "Erupting, plasma arcing.", OBSTACLE: "Field snaps back.", SHIFT: "Polarity inverts." },
+                    "space-junk": { GOAL: "Tumbling, reflecting.", OBSTACLE: "Impact. Fragments multiply.", SHIFT: "Atmosphere grazes. Falling." },
+                    "gravity-well": { GOAL: "Deepening, curving spacetime.", OBSTACLE: "Nearby mass disrupts.", SHIFT: "Mass ejection. Shallowing." }
+                }
+            }
+        };
+
+        // =========================================
+        // PARTICLE SYSTEM
+        // =========================================
+        class Particle {
+            constructor(x, y, color, vector) {
+                this.x = x;
+                this.y = y;
+                this.baseColor = color;
+                this.vector = vector;
+                this.size = Math.random() * 3 + 1;
+                this.life = 1;
+                this.decay = Math.random() * 0.01 + 0.002;
+
+                // Movement based on vector
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2 + 0.5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                if (vector === 'GOAL') {
+                    // Directed outward
+                    this.vx *= 1.5;
+                    this.vy *= 1.5;
+                } else if (vector === 'OBSTACLE') {
+                    // Inward collapse
+                    this.vx *= -0.5;
+                    this.vy *= -0.5;
+                } else if (vector === 'SHIFT') {
+                    // Spiral
+                    this.angularVelocity = (Math.random() - 0.5) * 0.1;
+                }
+            }
+
+            update() {
+                this.life -= this.decay;
+
+                if (this.vector === 'SHIFT' && this.angularVelocity) {
+                    const angle = Math.atan2(this.vy, this.vx) + this.angularVelocity;
+                    const speed = Math.hypot(this.vx, this.vy);
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                ctx.globalAlpha = this.life * 0.8;
+                ctx.fillStyle = this.baseColor;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        class EntityNode {
+            constructor(entity, x, y) {
+                this.entity = entity;
+                this.x = x;
+                this.y = y;
+                this.targetX = x;
+                this.targetY = y;
+                this.radius = 30;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.selected = false;
+            }
+
+            update() {
+                this.x += (this.targetX - this.x) * 0.1;
+                this.y += (this.targetY - this.y) * 0.1;
+                this.pulsePhase += 0.05;
+            }
+
+            draw(ctx) {
+                const pulse = Math.sin(this.pulsePhase) * 0.1 + 1;
+                const r = this.radius * pulse;
+
+                // Glow
+                if (this.selected) {
+                    ctx.shadowColor = this.entity.color;
+                    ctx.shadowBlur = 20;
+                }
+
+                // Outer ring
+                ctx.strokeStyle = this.entity.color;
+                ctx.lineWidth = this.selected ? 2 : 1;
+                ctx.globalAlpha = this.selected ? 0.8 : 0.3;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Fill
+                ctx.fillStyle = this.entity.color;
+                ctx.globalAlpha = 0.1;
+                ctx.fill();
+
+                // Icon
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.entity.icon, this.x, this.y);
+
+                // Name
+                ctx.font = '9px Courier New';
+                ctx.fillStyle = '#666';
+                ctx.fillText(this.entity.name, this.x, this.y + r + 12);
+            }
+
+            contains(x, y) {
+                return Math.hypot(x - this.x, y - this.y) < this.radius;
+            }
+        }
+
+        // =========================================
+        // RENDERER
+        // =========================================
+        class ParticleRenderer {
+            constructor(canvas, engine) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.engine = engine;
+                this.particles = [];
+                this.nodes = [];
+                this.connections = [];
+
+                this.resize();
+                this.setupEvents();
+                this.subscribeToEngine();
+                this.animate();
+            }
+
+            resize() {
+                const parent = this.canvas.parentElement;
+                this.canvas.width = parent.clientWidth;
+                this.canvas.height = parent.clientHeight;
+                this.positionNodes();
+            }
+
+            setupEvents() {
+                window.addEventListener('resize', () => this.resize());
+
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    for (const node of this.nodes) {
+                        if (node.contains(x, y)) {
+                            if (node.selected) {
+                                this.engine.deselectEntity();
+                            } else {
+                                this.engine.selectEntity(node.entity.id);
+                            }
+                            return;
+                        }
+                    }
+                });
+            }
+
+            subscribeToEngine() {
+                this.engine.on('scenario:change', () => this.createNodes());
+                this.engine.on('entity:select', ({ entity }) => this.selectNode(entity.id));
+                this.engine.on('entity:deselect', () => this.deselectAll());
+                this.engine.on('ripple:complete', ({ entity, vector }) => this.emitParticles(entity, vector));
+            }
+
+            createNodes() {
+                const entities = this.engine.getEntities();
+                this.nodes = entities.map(e => new EntityNode(e, 0, 0));
+                this.positionNodes();
+            }
+
+            positionNodes() {
+                const cx = this.canvas.width / 2;
+                const cy = this.canvas.height / 2;
+                const radius = Math.min(cx, cy) * 0.6;
+
+                this.nodes.forEach((node, i) => {
+                    const angle = (i / this.nodes.length) * Math.PI * 2 - Math.PI / 2;
+                    node.targetX = cx + Math.cos(angle) * radius;
+                    node.targetY = cy + Math.sin(angle) * radius;
+                    if (node.x === 0) {
+                        node.x = node.targetX;
+                        node.y = node.targetY;
+                    }
+                });
+            }
+
+            selectNode(entityId) {
+                this.nodes.forEach(n => n.selected = n.entity.id === entityId);
+            }
+
+            deselectAll() {
+                this.nodes.forEach(n => n.selected = false);
+            }
+
+            emitParticles(entity, vector) {
+                const node = this.nodes.find(n => n.entity.id === entity.id);
+                if (!node) return;
+
+                const vectorColors = {
+                    GOAL: '#f59e0b',
+                    OBSTACLE: '#ef4444',
+                    SHIFT: '#a855f7'
+                };
+                const color = vectorColors[vector] || entity.color;
+
+                // Emit particles
+                for (let i = 0; i < 50; i++) {
+                    this.particles.push(new Particle(node.x, node.y, color, vector));
+                }
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                // Fade trail
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, w, h);
+
+                // Draw connections
+                ctx.strokeStyle = 'rgba(100, 100, 100, 0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < this.nodes.length; i++) {
+                    for (let j = i + 1; j < this.nodes.length; j++) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.nodes[i].x, this.nodes[i].y);
+                        ctx.lineTo(this.nodes[j].x, this.nodes[j].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Update and draw particles
+                this.particles = this.particles.filter(p => {
+                    const alive = p.update();
+                    if (alive) p.draw(ctx);
+                    return alive;
+                });
+
+                // Update and draw nodes
+                this.nodes.forEach(n => {
+                    n.update();
+                    n.draw(ctx);
+                });
+
+                // Update HUD
+                document.getElementById('particle-count').textContent = `PARTICLES: ${this.particles.length}`;
+            }
+        }
+
+        // =========================================
+        // MAIN
+        // =========================================
+        const engine = new RipplesEngine({ latentLibrary: LATENT_LIBRARY });
+        let renderer;
+
+        function init() {
+            const canvas = document.getElementById('canvas');
+            renderer = new ParticleRenderer(canvas, engine);
+
+            // Scenario select
+            document.getElementById('scenario-select').addEventListener('change', (e) => {
+                engine.loadScenario(e.target.value);
+            });
+
+            // Vector buttons
+            document.getElementById('btn-goal').addEventListener('click', () => engine.triggerVector('GOAL'));
+            document.getElementById('btn-obstacle').addEventListener('click', () => engine.triggerVector('OBSTACLE'));
+            document.getElementById('btn-shift').addEventListener('click', () => engine.triggerVector('SHIFT'));
+
+            // Engine events
+            engine.on('scenario:change', updateEntityList);
+            engine.on('entity:select', updateUI);
+            engine.on('entity:deselect', updateUI);
+            engine.on('ripple:complete', updateUI);
+            engine.on('state:change', () => {
+                document.getElementById('tick').textContent = `TICK: ${engine.getState().tick}`;
+            });
+
+            engine.loadScenario('cupboard');
+        }
+
+        function updateEntityList() {
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+            const entities = engine.getEntities();
+            const selectedId = engine.getState().selectedEntity;
+
+            entities.forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = `entity-btn ${e.id === selectedId ? 'selected' : ''}`;
+                btn.innerHTML = `<span class="entity-icon">${e.icon}</span><span>${e.name}</span>`;
+                btn.onclick = () => e.id === selectedId ? engine.deselectEntity() : engine.selectEntity(e.id);
+                list.appendChild(btn);
+            });
+        }
+
+        function updateUI() {
+            const state = engine.getState();
+            const hasSelection = state.selectedEntity !== null;
+
+            updateEntityList();
+
+            document.getElementById('btn-goal').disabled = !hasSelection;
+            document.getElementById('btn-obstacle').disabled = !hasSelection;
+            document.getElementById('btn-shift').disabled = !hasSelection;
+
+            document.getElementById('worldtext').textContent = state.worldtext || 'Select entity → Inject vector';
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

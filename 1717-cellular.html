@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // CELLULAR AUTOMATA WORLDTEXT</title>
+    <style>
+        :root {
+            --bg: #020504;
+            --cell-empty: #0a120c;
+            --cell-active: #1a3a1e;
+            --text-dim: #2a4a2e;
+            --text-mid: #4a7a4e;
+            --text-bright: #6aba6e;
+            --crt: #4af626;
+            --goal: #ffd700;
+            --obstacle: #ff3333;
+            --shift: #00ffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-mid);
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* CRT Scanlines */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        header {
+            padding: 15px 30px;
+            border-bottom: 1px solid #1a2a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            color: var(--crt);
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(74, 246, 38, 0.3);
+        }
+
+        .status {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .status span {
+            color: var(--crt);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #ca-viewport {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #ca-grid {
+            display: grid;
+            gap: 0;
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .ca-cell {
+            width: 2ch;
+            height: 1.4em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            transition: color 0.2s, background 0.2s;
+            cursor: default;
+        }
+
+        /* Cell States */
+        .ca-cell.entity {
+            color: var(--crt);
+            cursor: pointer;
+        }
+
+        .ca-cell.entity:hover {
+            text-shadow: 0 0 10px var(--crt);
+        }
+
+        .ca-cell.selected {
+            background: rgba(74, 246, 38, 0.2);
+            text-shadow: 0 0 15px var(--crt);
+        }
+
+        /* Ripple states with CA rules */
+        .ca-cell.ripple-1 {
+            color: var(--goal);
+        }
+
+        .ca-cell.ripple-2 {
+            color: var(--obstacle);
+        }
+
+        .ca-cell.ripple-3 {
+            color: var(--shift);
+        }
+
+        /* Worldtext reveal */
+        .ca-cell.worldtext {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Decay states */
+        .ca-cell.decay-1 {
+            color: var(--text-bright);
+        }
+
+        .ca-cell.decay-2 {
+            color: var(--text-mid);
+        }
+
+        .ca-cell.decay-3 {
+            color: var(--text-dim);
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #0a0f0c;
+            border-left: 1px solid #1a2a1a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel {
+            padding: 15px;
+            border-bottom: 1px solid #1a2a1a;
+        }
+
+        .panel-title {
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .entity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .entity-item {
+            padding: 8px 10px;
+            background: transparent;
+            border: 1px solid #1a2a1a;
+            color: var(--text-mid);
+            font-family: inherit;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .entity-item:hover {
+            border-color: var(--text-mid);
+        }
+
+        .entity-item.selected {
+            border-color: var(--crt);
+            background: rgba(74, 246, 38, 0.1);
+            color: var(--crt);
+        }
+
+        .vector-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .vector-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid;
+            background: transparent;
+            font-family: inherit;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            border-color: var(--goal);
+            color: var(--goal);
+        }
+
+        .vector-btn.goal:not(:disabled):hover {
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .vector-btn.obstacle {
+            border-color: var(--obstacle);
+            color: var(--obstacle);
+        }
+
+        .vector-btn.obstacle:not(:disabled):hover {
+            background: rgba(255, 51, 51, 0.1);
+        }
+
+        .vector-btn.shift {
+            border-color: var(--shift);
+            color: var(--shift);
+        }
+
+        .vector-btn.shift:not(:disabled):hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .ca-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .ca-control {
+            padding: 10px;
+            border: 1px solid #1a2a1a;
+            background: transparent;
+            color: var(--text-mid);
+            font-family: inherit;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .ca-control.active {
+            border-color: var(--crt);
+            color: var(--crt);
+        }
+
+        #worldtext-output {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-bright);
+        }
+
+        .worldtext-header {
+            font-size: 9px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        .worldtext-text {
+            font-style: italic;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #1a2a1a;
+        }
+
+        footer {
+            padding: 8px 30px;
+            border-top: 1px solid #1a2a1a;
+            font-size: 9px;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="title">RIPPLES // CELLULAR AUTOMATA WORLDTEXT</div>
+        <div class="status">
+            GENERATION: <span id="gen">0</span> |
+            ALIVE: <span id="alive">0</span> |
+            RULE: <span id="rule">ORTHOGONAL</span>
+        </div>
+    </header>
+
+    <main>
+        <div id="ca-viewport">
+            <div id="ca-grid"></div>
+        </div>
+
+        <div id="sidebar">
+            <div class="panel">
+                <div class="panel-title">ENTITIES</div>
+                <div id="entity-list" class="entity-list"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">VECTOR INJECTION</div>
+                <div class="vector-buttons">
+                    <button id="btn-goal" class="vector-btn goal" disabled>G</button>
+                    <button id="btn-obstacle" class="vector-btn obstacle" disabled>O</button>
+                    <button id="btn-shift" class="vector-btn shift" disabled>S</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">CA CONTROLS</div>
+                <div class="ca-controls">
+                    <button id="btn-step" class="ca-control">STEP</button>
+                    <button id="btn-run" class="ca-control">RUN</button>
+                    <button id="btn-reset" class="ca-control">RESET</button>
+                    <button id="btn-clear" class="ca-control">CLEAR</button>
+                </div>
+            </div>
+
+            <div class="panel-title" style="padding: 15px 15px 0;">WORLDTEXT OUTPUT</div>
+            <div id="worldtext-output"></div>
+        </div>
+    </main>
+
+    <footer>
+        <span>SEMANTIC PIXELS: TEXT IS TERRAIN</span>
+        <span>KEYS: G/O/S = Vectors | SPACE = Step | ENTER = Run/Stop</span>
+    </footer>
+
+    <script>
+        // =========================================
+        // CELLULAR AUTOMATA WORLDTEXT ENGINE
+        // =========================================
+
+        const COLS = 60;
+        const ROWS = 30;
+        const EMPTY_CHAR = '·';
+
+        // Character sets for different states
+        const CHARS = {
+            ripple: ['░', '▒', '▓', '█', '▓', '▒', '░'],
+            decay: ['◦', '∘', '∙', '·'],
+            worldtext: 'abcdefghijklmnopqrstuvwxyz '.split('')
+        };
+
+        // Entity data
+        const ENTITIES = [
+            { id: 'ant', name: 'Forager Ant', char: '⚈', x: 10, y: 15 },
+            { id: 'dust', name: 'Dust Mote', char: '✧', x: 30, y: 8 },
+            { id: 'light', name: 'Light Shaft', char: '☀', x: 45, y: 5 },
+            { id: 'shadow', name: 'Shadow', char: '▓', x: 50, y: 20 },
+            { id: 'glass', name: 'Tall Glass', char: '⬡', x: 25, y: 18 },
+            { id: 'crumb', name: 'Bread Crumb', char: '◎', x: 15, y: 22 }
+        ];
+
+        // Latent worldtext
+        const LATENT = {
+            ant: {
+                GOAL: 'gradient detected sucrose signature follows the chemical path mandibles ready perhaps sustenance awaits',
+                OBSTACLE: 'surface terminates the vertical cliff of impossibility no purchase no passage only the turning back',
+                SHIFT: 'return protocol activates the beacon that was goal becomes homing signal the colony remembers'
+            },
+            dust: {
+                GOAL: 'drifting following thermal currents seeking settlement seeking surface becoming substrate',
+                OBSTACLE: 'collision detected another body in the void the trajectory breaks the self fragments reforms',
+                SHIFT: 'boundary crossed from light to shadow or shadow to light the conditions change the spin changes'
+            },
+            light: {
+                GOAL: 'propagation continues photons find surfaces warm the dust reveal the hidden illuminate',
+                OBSTACLE: 'something interposes the ray terminates darkness blooms where light was meant to fall',
+                SHIFT: 'angle changes the sun moves behind clouds the beam migrates what was lit goes dark what was dark receives'
+            },
+            shadow: {
+                GOAL: 'following the light that defines it extending into the spaces light cannot reach offering refuge',
+                OBSTACLE: 'light source approaches there is no resistance shadow cannot fight it simply ceases to be',
+                SHIFT: 'new geometries new boundaries the edge migrates the cool territory reorganizes itself'
+            },
+            glass: {
+                GOAL: 'standing containing enduring the vertical geometry a cliff for ants a mirror for light',
+                OBSTACLE: 'vibration passes through the structure resonates perhaps stress perhaps memory then stability returns',
+                SHIFT: 'condensation forms the surface changes new microhabitats emerge on the sweating cylinder'
+            },
+            crumb: {
+                GOAL: 'emitting broadcasting sucrose signals starch gradients an accidental beacon for the hungry',
+                OBSTACLE: 'shadow falls temperature drops the decay slows the signal weakens patience',
+                SHIFT: 'fragment detaches the beacon multiplies what was one crumb becomes constellation'
+            }
+        };
+
+        // State
+        let grid = [];
+        let ripples = [];
+        let worldtextQueue = [];
+        let selectedEntity = null;
+        let generation = 0;
+        let isRunning = false;
+        let runInterval = null;
+
+        // Initialize grid
+        function initGrid() {
+            grid = [];
+            for (let y = 0; y < ROWS; y++) {
+                grid[y] = [];
+                for (let x = 0; x < COLS; x++) {
+                    grid[y][x] = {
+                        char: EMPTY_CHAR,
+                        state: 'empty',
+                        rippleIntensity: 0,
+                        rippleType: null,
+                        worldtextChar: null,
+                        worldtextLife: 0,
+                        entity: null
+                    };
+                }
+            }
+
+            // Place entities
+            ENTITIES.forEach(e => {
+                if (e.x < COLS && e.y < ROWS) {
+                    grid[e.y][e.x].entity = e;
+                    grid[e.y][e.x].char = e.char;
+                    grid[e.y][e.x].state = 'entity';
+                }
+            });
+
+            ripples = [];
+            worldtextQueue = [];
+            generation = 0;
+            updateDisplay();
+        }
+
+        // Spawn ripple at entity location
+        function spawnRipple(entityId, vectorType) {
+            const entity = ENTITIES.find(e => e.id === entityId);
+            if (!entity) return;
+
+            const worldtext = LATENT[entityId]?.[vectorType] || 'unknown experience';
+
+            ripples.push({
+                x: entity.x,
+                y: entity.y,
+                radius: 0,
+                maxRadius: Math.max(COLS, ROWS) / 2,
+                type: vectorType,
+                worldtext: worldtext,
+                charIndex: 0
+            });
+
+            addWorldtextOutput(entity.name, vectorType, worldtext);
+        }
+
+        // CA Step - process one generation
+        function step() {
+            generation++;
+
+            // Process ripples (orthogonal propagation)
+            ripples.forEach(r => {
+                if (r.radius > r.maxRadius) return;
+
+                r.radius += 0.5;
+                const intRadius = Math.floor(r.radius);
+
+                // Orthogonal (Manhattan distance) propagation
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const dist = Math.abs(x - r.x) + Math.abs(y - r.y);
+
+                        // Active wavefront
+                        if (dist === intRadius) {
+                            const cell = grid[y][x];
+                            if (cell.state !== 'entity') {
+                                cell.rippleIntensity = 1.0;
+                                cell.rippleType = r.type;
+                                cell.state = 'ripple';
+
+                                // Reveal worldtext character
+                                if (r.charIndex < r.worldtext.length) {
+                                    cell.worldtextChar = r.worldtext[r.charIndex];
+                                    cell.worldtextLife = 30;
+                                    r.charIndex++;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Decay all cells
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = grid[y][x];
+
+                    // Decay ripple intensity
+                    if (cell.rippleIntensity > 0) {
+                        cell.rippleIntensity -= 0.1;
+                        if (cell.rippleIntensity <= 0) {
+                            cell.rippleIntensity = 0;
+                            cell.rippleType = null;
+                            cell.state = cell.entity ? 'entity' : 'empty';
+                        }
+                    }
+
+                    // Decay worldtext
+                    if (cell.worldtextLife > 0) {
+                        cell.worldtextLife--;
+                        if (cell.worldtextLife <= 0) {
+                            cell.worldtextChar = null;
+                        }
+                    }
+
+                    // Update character based on state
+                    if (cell.entity) {
+                        cell.char = cell.entity.char;
+                    } else if (cell.worldtextChar && cell.worldtextLife > 15) {
+                        cell.char = cell.worldtextChar;
+                    } else if (cell.rippleIntensity > 0) {
+                        const charIndex = Math.floor((1 - cell.rippleIntensity) * (CHARS.ripple.length - 1));
+                        cell.char = CHARS.ripple[charIndex];
+                    } else {
+                        cell.char = EMPTY_CHAR;
+                    }
+                }
+            }
+
+            // Remove dead ripples
+            ripples = ripples.filter(r => r.radius <= r.maxRadius);
+
+            updateDisplay();
+        }
+
+        // Render grid
+        function render() {
+            const gridEl = document.getElementById('ca-grid');
+            gridEl.style.gridTemplateColumns = `repeat(${COLS}, 2ch)`;
+            gridEl.innerHTML = '';
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = grid[y][x];
+                    const el = document.createElement('span');
+                    el.className = 'ca-cell';
+                    el.textContent = cell.char;
+                    el.dataset.x = x;
+                    el.dataset.y = y;
+
+                    // Apply states
+                    if (cell.entity) {
+                        el.classList.add('entity');
+                        if (selectedEntity === cell.entity.id) {
+                            el.classList.add('selected');
+                        }
+                        el.onclick = () => selectEntity(cell.entity.id);
+                    }
+
+                    if (cell.worldtextChar && cell.worldtextLife > 15) {
+                        el.classList.add('worldtext');
+                    } else if (cell.rippleType) {
+                        el.classList.add(`ripple-${cell.rippleType === 'GOAL' ? 1 : cell.rippleType === 'OBSTACLE' ? 2 : 3}`);
+                    }
+
+                    gridEl.appendChild(el);
+                }
+            }
+        }
+
+        // Update entity list
+        function renderEntityList() {
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+
+            ENTITIES.forEach(e => {
+                const item = document.createElement('button');
+                item.className = `entity-item ${selectedEntity === e.id ? 'selected' : ''}`;
+                item.innerHTML = `<span>${e.char} ${e.name}</span>`;
+                item.onclick = () => selectEntity(e.id);
+                list.appendChild(item);
+            });
+        }
+
+        function selectEntity(id) {
+            selectedEntity = selectedEntity === id ? null : id;
+            updateVectorButtons();
+            renderEntityList();
+            render();
+        }
+
+        function updateVectorButtons() {
+            const hasSelection = !!selectedEntity;
+            document.getElementById('btn-goal').disabled = !hasSelection;
+            document.getElementById('btn-obstacle').disabled = !hasSelection;
+            document.getElementById('btn-shift').disabled = !hasSelection;
+        }
+
+        function addWorldtextOutput(entityName, vector, text) {
+            const output = document.getElementById('worldtext-output');
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="worldtext-header">${vector} → ${entityName}</div>
+                <div class="worldtext-text">${text}</div>
+            `;
+            output.insertBefore(div, output.firstChild);
+
+            // Keep only last 5
+            while (output.children.length > 5) {
+                output.removeChild(output.lastChild);
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('gen').textContent = generation;
+            document.getElementById('alive').textContent = ripples.length;
+            render();
+        }
+
+        // Controls
+        document.getElementById('btn-goal').onclick = () => {
+            if (selectedEntity) spawnRipple(selectedEntity, 'GOAL');
+        };
+        document.getElementById('btn-obstacle').onclick = () => {
+            if (selectedEntity) spawnRipple(selectedEntity, 'OBSTACLE');
+        };
+        document.getElementById('btn-shift').onclick = () => {
+            if (selectedEntity) spawnRipple(selectedEntity, 'SHIFT');
+        };
+
+        document.getElementById('btn-step').onclick = step;
+        document.getElementById('btn-run').onclick = () => {
+            isRunning = !isRunning;
+            document.getElementById('btn-run').textContent = isRunning ? 'STOP' : 'RUN';
+            document.getElementById('btn-run').classList.toggle('active', isRunning);
+
+            if (isRunning) {
+                runInterval = setInterval(step, 100);
+            } else {
+                clearInterval(runInterval);
+            }
+        };
+        document.getElementById('btn-reset').onclick = initGrid;
+        document.getElementById('btn-clear').onclick = () => {
+            ripples = [];
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (!grid[y][x].entity) {
+                        grid[y][x] = {
+                            char: EMPTY_CHAR,
+                            state: 'empty',
+                            rippleIntensity: 0,
+                            rippleType: null,
+                            worldtextChar: null,
+                            worldtextLife: 0,
+                            entity: null
+                        };
+                    }
+                }
+            }
+            updateDisplay();
+        };
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'g') { if (selectedEntity) spawnRipple(selectedEntity, 'GOAL'); }
+            if (e.key === 'o') { if (selectedEntity) spawnRipple(selectedEntity, 'OBSTACLE'); }
+            if (e.key === 's') { if (selectedEntity) spawnRipple(selectedEntity, 'SHIFT'); }
+            if (e.key === ' ') { e.preventDefault(); step(); }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btn-run').click();
+            }
+        });
+
+        // Initialize
+        initGrid();
+        renderEntityList();
+        render();
+    </script>
+</body>
+
+</html>

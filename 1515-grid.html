@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // TEXT GRID SIMULATION</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0c0a;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 280px;
+            background: #0d0f0d;
+            border-right: 1px solid #1a2a1a;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .logo {
+            color: #00ff88;
+            font-size: 12px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: #3a5a3a;
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .status-line {
+            color: #4a6a4a;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .status-value {
+            color: #00ff88;
+        }
+
+        .entity-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #1a3a1a;
+            color: #5a8a5a;
+            padding: 10px;
+            margin-bottom: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+
+        .entity-btn:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .entity-btn.selected {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        .vector-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid;
+            padding: 12px;
+            margin-bottom: 6px;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            border-color: #4a6a2a;
+            color: #88cc44;
+        }
+
+        .vector-btn.goal:not(:disabled):hover {
+            background: rgba(136, 204, 68, 0.1);
+        }
+
+        .vector-btn.obstacle {
+            border-color: #6a2a2a;
+            color: #cc4444;
+        }
+
+        .vector-btn.obstacle:not(:disabled):hover {
+            background: rgba(204, 68, 68, 0.1);
+        }
+
+        .vector-btn.shift {
+            border-color: #4a2a6a;
+            color: #aa66cc;
+        }
+
+        .vector-btn.shift:not(:disabled):hover {
+            background: rgba(170, 102, 204, 0.1);
+        }
+
+        #viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #080a08;
+        }
+
+        #header {
+            padding: 10px 20px;
+            border-bottom: 1px solid #1a2a1a;
+            font-size: 10px;
+            color: #3a5a3a;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #grid-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: grid;
+            gap: 0;
+            line-height: 1.1;
+            font-size: 14px;
+        }
+
+        .cell {
+            width: 3ch;
+            text-align: center;
+            color: #1a3a1a;
+            transition: color 0.3s, text-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            color: #3a6a3a;
+        }
+
+        .cell.entity {
+            color: #00aa66;
+        }
+
+        .cell.ripple {
+            color: #00ff88;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+        }
+
+        .cell.ripple-goal {
+            color: #88cc44;
+            text-shadow: 0 0 8px rgba(136, 204, 68, 0.8);
+        }
+
+        .cell.ripple-obstacle {
+            color: #cc4444;
+            text-shadow: 0 0 8px rgba(204, 68, 68, 0.8);
+        }
+
+        .cell.ripple-shift {
+            color: #aa66cc;
+            text-shadow: 0 0 8px rgba(170, 102, 204, 0.8);
+        }
+
+        .cell.worldtext {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+        }
+
+        #terminal {
+            height: 160px;
+            border-top: 1px solid #1a2a1a;
+            background: rgba(8, 10, 8, 0.95);
+            padding: 15px 20px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+
+        .terminal-line {
+            color: #3a5a3a;
+            margin-bottom: 4px;
+        }
+
+        .terminal-line.worldtext {
+            color: #00ff88;
+            padding: 10px 0;
+            line-height: 1.5;
+        }
+
+        /* CRT Effects */
+        #viewport::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 280px;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="sidebar">
+            <div class="logo">
+                USER@RIPPLES-TERMINAL:~$ ./SIMULATE --MODE=ASCII<br>
+                STATUS: ECO_ACTIVE | RIPPLE: ORTHOGONAL
+            </div>
+
+            <div class="section">
+                <div class="section-title">System Status</div>
+                <div class="status-line">SCENARIO: <span id="scenario-name" class="status-value">---</span></div>
+                <div class="status-line">TICK: <span id="tick-display" class="status-value">0</span></div>
+                <div class="status-line">GRID: <span id="grid-size" class="status-value">0x0</span></div>
+                <div class="status-line">RIPPLES: <span id="ripple-count" class="status-value">0</span></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Entities</div>
+                <div id="entity-list"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Vector Injection</div>
+                <button id="btn-goal" class="vector-btn goal" disabled>▶ GOAL</button>
+                <button id="btn-obstacle" class="vector-btn obstacle" disabled>■ OBSTACLE</button>
+                <button id="btn-shift" class="vector-btn shift" disabled>◆ SHIFT</button>
+            </div>
+
+            <div class="section" style="margin-top: auto;">
+                <button class="entity-btn" onclick="cycleScenario()">[ CYCLE SCENARIO ]</button>
+                <button class="entity-btn" onclick="resetGrid()">[ RESET GRID ]</button>
+            </div>
+        </div>
+
+        <div id="viewport">
+            <div id="header">
+                <span>RIPPLES TEXT GRID SIMULATION v1.0</span>
+                <span id="time-display">00:00:00</span>
+            </div>
+            <div id="grid-container">
+                <div id="grid"></div>
+            </div>
+            <div id="terminal">
+                <div class="terminal-line">System initialized. Click entity to select, then inject vector.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================
+        // RIPPLES ENGINE
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, worldtext: null };
+            }
+
+            on(e, cb) { if (!this._listeners.has(e)) this._listeners.set(e, []); this._listeners.get(e).push(cb); }
+            emit(e, d = {}) { this._listeners.get(e)?.forEach(cb => cb(d)); }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) {
+                this.state.selectedEntity = id;
+                this.emit('entity:select', { entity: this.getEntity(id) });
+            }
+
+            deselectEntity() {
+                this.state.selectedEntity = null;
+                this.emit('entity:deselect', {});
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getScenario()?.latent?.[this.state.selectedEntity]?.[vector] || 'No data.';
+                this.state.worldtext = worldtext;
+                this.emit('ripple:complete', { entity, vector, worldtext, tick: this.state.tick });
+                return { entity, vector, worldtext };
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            forest: {
+                id: 'forest', name: 'ECO_FOREST',
+                entities: [
+                    { id: 'oak', name: 'ANCIENT_OAK', char: '🌳' },
+                    { id: 'fox', name: 'RED_FOX', char: '🦊' },
+                    { id: 'stream', name: 'BROOK', char: '💧' },
+                    { id: 'owl', name: 'NIGHT_OWL', char: '🦉' },
+                    { id: 'fern', name: 'FERN', char: '🌿' },
+                    { id: 'deer', name: 'DEER', char: '🦌' }
+                ],
+                latent: {
+                    'oak': { GOAL: 'Roots extend beneath the soil, seeking moisture. Branches reach toward gaps in the canopy.', OBSTACLE: 'Bark beetle detected. Sap production increases. Chemical warnings sent to neighbors.', SHIFT: 'Autumn arrives. Chlorophyll withdraws. Leaves prepare to fall.' },
+                    'fox': { GOAL: 'Stalking through undergrowth. Ears rotate, detecting vole movements beneath leaves.', OBSTACLE: 'Human scent on the wind. Freeze. Assess. Retreat to den.', SHIFT: 'Territory boundaries shift. New pathways established through the forest.' },
+                    'stream': { GOAL: 'Water flows downhill, carving deeper into the bank. Life gathers at the edge.', OBSTACLE: 'Beaver dam upstream. Flow interrupted. Wetland forming.', SHIFT: 'Spring melt surge. Banks overflow. The floodplain remembers.' },
+                    'owl': { GOAL: 'Silent flight through the trees. Infrared vision tracks warm bodies below.', OBSTACLE: 'Rival territory call. Response required. Position defended.', SHIFT: 'Nesting season. Mate calls echo. The cycle continues.' },
+                    'fern': { GOAL: 'Unfurling fronds toward the light. Spores ripening in the shade.', OBSTACLE: 'Canopy closing. Light fading. Dormancy approaches.', SHIFT: 'Fire clears the understory. First to return. Rhizomes survive.' },
+                    'deer': { GOAL: 'Grazing in the meadow. Ears alert. Safe for now.', OBSTACLE: 'Predator scent! Freeze. Listen. Flight path calculated.', SHIFT: 'Migration instinct. The herd moves. Paths remembered.' }
+                }
+            },
+            ocean: {
+                id: 'ocean', name: 'DEEP_OCEAN',
+                entities: [
+                    { id: 'whale', name: 'BLUE_WHALE', char: '🐋' },
+                    { id: 'squid', name: 'GIANT_SQUID', char: '🦑' },
+                    { id: 'jelly', name: 'JELLYFISH', char: '🪼' },
+                    { id: 'coral', name: 'CORAL', char: '🪸' },
+                    { id: 'shark', name: 'SHARK', char: '🦈' },
+                    { id: 'fish', name: 'SCHOOL', char: '🐟' }
+                ],
+                latent: {
+                    'whale': { GOAL: 'Song echoes through the deep. Searching for kin across a thousand miles.', OBSTACLE: 'Ship noise corrupts the signal. Diving deeper. Silence sought.', SHIFT: 'Migration path adjusts. New feeding grounds. Ancient routes evolve.' },
+                    'squid': { GOAL: 'Hunting in the twilight zone. Chromatophores pulse with predator patterns.', OBSTACLE: 'Sperm whale above! Ink release. Rapid descent.', SHIFT: 'Mating aggregation. Giant bodies dance in the deep.' },
+                    'jelly': { GOAL: 'Drifting with the current. Tentacles spread wide. Bioluminescence pulses.', OBSTACLE: 'Temperature anomaly. Stress response. Colony disperses.', SHIFT: 'Bloom conditions. Exponential reproduction. The sea shifts.' },
+                    'coral': { GOAL: 'Polyps extend at night. Feeding on marine snow. Growth continues.', OBSTACLE: 'Water warming. Stress. Zooxanthellae flee. Bleaching begins.', SHIFT: 'Spawning event. The entire reef releases at once.' },
+                    'shark': { GOAL: 'Patrolling the reef. Electroreceptors scan for heartbeats.', OBSTACLE: 'Larger predator in territory. Retreat to deeper waters.', SHIFT: 'Pupping ground changes. New territory established.' },
+                    'fish': { GOAL: 'Moving as one. Safety in numbers. Following the plankton bloom.', OBSTACLE: 'Predator! School explodes outward. Confusion. Reform.', SHIFT: 'Current changes. New migration route. Following temperature.' }
+                }
+            }
+        };
+
+        // =========================================
+        // GRID SYSTEM
+        // =========================================
+        const GRID_CHARS = ['·', ':', ';', '*', '+', '×', '○', '◎', '●'];
+        const COLS = 40;
+        const ROWS = 20;
+
+        let grid = [];
+        let entityPositions = new Map();
+        let ripples = [];
+
+        const engine = new RipplesEngine({ latentLibrary: LATENT_LIBRARY });
+
+        function initGrid() {
+            grid = [];
+            entityPositions.clear();
+            ripples = [];
+
+            const entities = engine.getEntities();
+            const usedPositions = new Set();
+
+            // Place entities
+            entities.forEach(e => {
+                let x, y;
+                do {
+                    x = 5 + Math.floor(Math.random() * (COLS - 10));
+                    y = 3 + Math.floor(Math.random() * (ROWS - 6));
+                } while (usedPositions.has(`${x},${y}`));
+                usedPositions.add(`${x},${y}`);
+                entityPositions.set(e.id, { x, y, entity: e });
+            });
+
+            // Initialize grid
+            for (let y = 0; y < ROWS; y++) {
+                grid[y] = [];
+                for (let x = 0; x < COLS; x++) {
+                    grid[y][x] = {
+                        char: GRID_CHARS[0],
+                        state: 'idle',
+                        rippleLife: 0,
+                        vector: null,
+                        worldtextChar: null,
+                        worldtextLife: 0
+                    };
+                }
+            }
+
+            renderGrid();
+            updateUI();
+        }
+
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.style.gridTemplateColumns = `repeat(${COLS}, 3ch)`;
+            gridEl.innerHTML = '';
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = document.createElement('span');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+
+                    // Check if entity is here
+                    let entityHere = null;
+                    entityPositions.forEach((pos, id) => {
+                        if (pos.x === x && pos.y === y) entityHere = pos.entity;
+                    });
+
+                    if (entityHere) {
+                        cell.textContent = entityHere.char;
+                        cell.classList.add('entity');
+                        cell.dataset.entityId = entityHere.id;
+                    } else {
+                        const g = grid[y][x];
+                        if (g.worldtextLife > 0) {
+                            cell.textContent = g.worldtextChar || '█';
+                            cell.classList.add('worldtext');
+                        } else if (g.rippleLife > 0) {
+                            cell.textContent = GRID_CHARS[Math.min(8, Math.floor(g.rippleLife * 4))];
+                            cell.classList.add('ripple');
+                            if (g.vector === 'GOAL') cell.classList.add('ripple-goal');
+                            else if (g.vector === 'OBSTACLE') cell.classList.add('ripple-obstacle');
+                            else if (g.vector === 'SHIFT') cell.classList.add('ripple-shift');
+                        } else {
+                            cell.textContent = GRID_CHARS[0];
+                        }
+                    }
+
+                    cell.addEventListener('click', () => handleCellClick(x, y, entityHere));
+                    gridEl.appendChild(cell);
+                }
+            }
+
+            document.getElementById('grid-size').textContent = `${COLS}x${ROWS}`;
+            document.getElementById('ripple-count').textContent = ripples.length;
+        }
+
+        function handleCellClick(x, y, entity) {
+            if (entity) {
+                if (engine.state.selectedEntity === entity.id) {
+                    engine.deselectEntity();
+                } else {
+                    engine.selectEntity(entity.id);
+                }
+                updateUI();
+            }
+        }
+
+        // =========================================
+        // RIPPLE SYSTEM (Orthogonal Propagation)
+        // =========================================
+        function spawnRipple(vector) {
+            const selectedId = engine.state.selectedEntity;
+            if (!selectedId) return;
+
+            const pos = entityPositions.get(selectedId);
+            if (!pos) return;
+
+            // Trigger engine
+            const result = engine.triggerVector(vector);
+
+            // Create orthogonal ripple
+            ripples.push({
+                x: pos.x,
+                y: pos.y,
+                radius: 0,
+                maxRadius: Math.max(COLS, ROWS),
+                vector,
+                worldtext: result.worldtext,
+                active: true
+            });
+
+            addLog(`[${vector}] ${pos.entity.name}: Ripple spawned`);
+            updateUI();
+        }
+
+        function updateRipples() {
+            ripples.forEach(r => {
+                if (!r.active) return;
+
+                r.radius += 0.5;
+                if (r.radius > r.maxRadius) {
+                    r.active = false;
+                    return;
+                }
+
+                // Orthogonal propagation (Manhattan distance)
+                const intRadius = Math.floor(r.radius);
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const dist = Math.abs(x - r.x) + Math.abs(y - r.y);
+                        if (dist === intRadius) {
+                            grid[y][x].rippleLife = 1;
+                            grid[y][x].vector = r.vector;
+                        }
+                    }
+                }
+            });
+
+            // Decay ripples and show worldtext
+            ripples.forEach(r => {
+                if (!r.active && r.worldtext) {
+                    // Display worldtext in cells radiating from center
+                    const words = r.worldtext.split(' ');
+                    let charIndex = 0;
+                    for (let radius = 0; radius <= r.maxRadius && charIndex < r.worldtext.length; radius++) {
+                        for (let y = 0; y < ROWS && charIndex < r.worldtext.length; y++) {
+                            for (let x = 0; x < COLS && charIndex < r.worldtext.length; x++) {
+                                const dist = Math.abs(x - r.x) + Math.abs(y - r.y);
+                                if (dist === radius && grid[y][x].worldtextLife === 0) {
+                                    grid[y][x].worldtextChar = r.worldtext[charIndex];
+                                    grid[y][x].worldtextLife = 100;
+                                    charIndex++;
+                                }
+                            }
+                        }
+                    }
+                    r.worldtext = null; // Mark as processed
+                }
+            });
+
+            // Decay all cells
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y][x].rippleLife > 0) grid[y][x].rippleLife -= 0.05;
+                    if (grid[y][x].worldtextLife > 0) grid[y][x].worldtextLife -= 1;
+                    if (grid[y][x].worldtextLife <= 0) {
+                        grid[y][x].worldtextChar = null;
+                    }
+                }
+            }
+
+            // Remove dead ripples
+            ripples = ripples.filter(r => r.active || r.worldtext);
+        }
+
+        // =========================================
+        // UI
+        // =========================================
+        function updateUI() {
+            const scenario = engine.getScenario();
+            document.getElementById('scenario-name').textContent = scenario?.name || '---';
+            document.getElementById('tick-display').textContent = engine.state.tick;
+
+            // Entity list
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+            engine.getEntities().forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = `entity-btn ${engine.state.selectedEntity === e.id ? 'selected' : ''}`;
+                btn.textContent = `${e.char} ${e.name}`;
+                btn.onclick = () => {
+                    if (engine.state.selectedEntity === e.id) {
+                        engine.deselectEntity();
+                    } else {
+                        engine.selectEntity(e.id);
+                    }
+                    updateUI();
+                };
+                list.appendChild(btn);
+            });
+
+            // Vector buttons
+            const hasSelection = !!engine.state.selectedEntity;
+            document.getElementById('btn-goal').disabled = !hasSelection;
+            document.getElementById('btn-obstacle').disabled = !hasSelection;
+            document.getElementById('btn-shift').disabled = !hasSelection;
+        }
+
+        function addLog(msg) {
+            const terminal = document.getElementById('terminal');
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            terminal.insertBefore(line, terminal.firstChild);
+            if (terminal.children.length > 20) terminal.removeChild(terminal.lastChild);
+        }
+
+        function showWorldtext(text) {
+            const terminal = document.getElementById('terminal');
+            const line = document.createElement('div');
+            line.className = 'terminal-line worldtext';
+            line.textContent = text;
+            terminal.insertBefore(line, terminal.firstChild);
+        }
+
+        // =========================================
+        // CONTROLS
+        // =========================================
+        function cycleScenario() {
+            const ids = engine.getScenarioIds();
+            const current = engine.state.scenario;
+            const idx = (ids.indexOf(current) + 1) % ids.length;
+            engine.loadScenario(ids[idx]);
+            initGrid();
+            addLog(`Scenario: ${ids[idx]}`);
+        }
+
+        function resetGrid() {
+            initGrid();
+            addLog('Grid reset');
+        }
+
+        document.getElementById('btn-goal').addEventListener('click', () => {
+            spawnRipple('GOAL');
+            showWorldtext(engine.state.worldtext);
+        });
+        document.getElementById('btn-obstacle').addEventListener('click', () => {
+            spawnRipple('OBSTACLE');
+            showWorldtext(engine.state.worldtext);
+        });
+        document.getElementById('btn-shift').addEventListener('click', () => {
+            spawnRipple('SHIFT');
+            showWorldtext(engine.state.worldtext);
+        });
+
+        // Engine events
+        engine.on('ripple:complete', ({ worldtext }) => {
+            showWorldtext(worldtext);
+        });
+
+        // =========================================
+        // ANIMATION LOOP
+        // =========================================
+        function animate() {
+            updateRipples();
+            renderGrid();
+
+            // Update time
+            const now = new Date();
+            document.getElementById('time-display').textContent = now.toLocaleTimeString();
+
+            requestAnimationFrame(animate);
+        }
+
+        // =========================================
+        // INITIALIZE
+        // =========================================
+        engine.loadScenario('forest');
+        initGrid();
+        animate();
+    </script>
+</body>
+
+</html>

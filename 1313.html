@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES_FINAL // CRT TERMINAL v13.13</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0f0a;
+            --phosphor: #33ff33;
+            --phosphor-dim: #1a7a1a;
+            --phosphor-bright: #66ff66;
+            --amber: #ffb000;
+            --error: #ff3333;
+            --crt-glow: 0 0 10px rgba(51, 255, 51, 0.5);
+        }
+
+        body {
+            font-family: 'VT323', monospace;
+            background: var(--bg);
+            color: var(--phosphor);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* CRT Effects */
+        .crt-container {
+            position: relative;
+        }
+
+        .crt-container::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 3px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .crt-container::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes flicker {
+
+            0%,
+            100% {
+                opacity: 0.98;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes textShadow {
+
+            0%,
+            100% {
+                text-shadow: var(--crt-glow), 0.5px 0 0 rgba(255, 0, 0, 0.5), -0.5px 0 0 rgba(0, 255, 255, 0.5);
+            }
+
+            50% {
+                text-shadow: var(--crt-glow), -0.5px 0 0 rgba(255, 0, 0, 0.5), 0.5px 0 0 rgba(0, 255, 255, 0.5);
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes typing {
+            from {
+                width: 0;
+            }
+
+            to {
+                width: 100%;
+            }
+        }
+
+        .crt-screen {
+            animation: flicker 0.1s infinite;
+        }
+
+        .crt-text {
+            animation: textShadow 0.05s infinite;
+            text-shadow: var(--crt-glow);
+        }
+
+        .cursor-blink::after {
+            content: "█";
+            animation: blink 1s infinite;
+        }
+
+        .terminal-panel {
+            background: rgba(0, 10, 0, 0.8);
+            border: 1px solid var(--phosphor-dim);
+            box-shadow: inset 0 0 30px rgba(51, 255, 51, 0.05);
+        }
+
+        .entity-slot {
+            border: 1px solid var(--phosphor-dim);
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+
+        .entity-slot:hover {
+            background: rgba(51, 255, 51, 0.1);
+            border-color: var(--phosphor);
+        }
+
+        .entity-slot.selected {
+            background: rgba(51, 255, 51, 0.2);
+            border-color: var(--phosphor-bright);
+            box-shadow: 0 0 15px rgba(51, 255, 51, 0.3);
+        }
+
+        .vector-key {
+            border: 1px solid var(--phosphor-dim);
+            background: transparent;
+            color: var(--phosphor);
+            font-family: inherit;
+            transition: all 0.1s;
+        }
+
+        .vector-key:hover:not(:disabled) {
+            background: rgba(51, 255, 51, 0.15);
+            border-color: var(--phosphor);
+        }
+
+        .vector-key:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-key.goal {
+            border-color: var(--amber);
+            color: var(--amber);
+        }
+
+        .vector-key.goal:hover:not(:disabled) {
+            background: rgba(255, 176, 0, 0.15);
+        }
+
+        .vector-key.obstacle {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .vector-key.obstacle:hover:not(:disabled) {
+            background: rgba(255, 51, 51, 0.15);
+        }
+
+        .vector-key.shift {
+            border-color: #aa55ff;
+            color: #aa55ff;
+        }
+
+        .vector-key.shift:hover:not(:disabled) {
+            background: rgba(170, 85, 255, 0.15);
+        }
+
+        .log-line {
+            border-left: 2px solid var(--phosphor-dim);
+            padding-left: 8px;
+            margin-bottom: 8px;
+        }
+
+        .ascii-divider {
+            color: var(--phosphor-dim);
+            letter-spacing: -2px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--phosphor-dim);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext } = React;
+
+        // ========== ENGINE ==========
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, auditLog: [], worldtext: null, lastRipple: null, commandHistory: [] };
+            }
+
+            on(event, cb) { if (!this._listeners.has(event)) this._listeners.set(event, []); this._listeners.get(event).push(cb); }
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+            }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.state.commandHistory.push({ cmd: `LOAD_SCENARIO ${id.toUpperCase()}`, time: Date.now() });
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) {
+                this.state.selectedEntity = id;
+                this.state.commandHistory.push({ cmd: `SELECT ${id.toUpperCase()}`, time: Date.now() });
+                this.emit('entity:select', { entity: this.getEntity(id) });
+            }
+
+            deselectEntity() {
+                this.state.selectedEntity = null;
+                this.state.commandHistory.push({ cmd: 'DESELECT', time: Date.now() });
+                this.emit('entity:deselect', {});
+            }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `[${entityId}] EXEC ${vector}: NO_DATA`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, entity, vector, worldtext, timestamp: Date.now() };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.state.commandHistory.push({ cmd: `EXEC ${vector} ON ${entity.name.toUpperCase()}`, time: Date.now() });
+                this.state.auditLog.unshift({
+                    tick: ripple.tick,
+                    entityId: entity.id,
+                    entityName: entity.name,
+                    vector,
+                    result: worldtext.substring(0, 60) + '...',
+                    timestamp: ripple.timestamp
+                });
+                if (this.state.auditLog.length > 15) this.state.auditLog = this.state.auditLog.slice(0, 15);
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+        }
+
+        // ========== LATENT LIBRARY ==========
+        const LATENT_LIBRARY = {
+            cupboard: {
+                id: "cupboard", code: "CUP-001", name: "DOMESTIC_VOID//CUPBOARD",
+                entities: [
+                    { id: "ant", name: "ANT_SCOUT", designation: "FORMICIDAE.0x1A" },
+                    { id: "dust", name: "DUST_MOTE", designation: "PARTICLE.0x2D" },
+                    { id: "light", name: "LIGHT_BEAM", designation: "PHOTON.0x3L" },
+                    { id: "spider", name: "ARACHNID", designation: "SPIDER.0x4S" },
+                    { id: "plates", name: "PLATE_STACK", designation: "CERAMIC.0x5P" },
+                    { id: "draft", name: "DRAFT", designation: "AIRFLOW.0x6D" }
+                ],
+                latent: {
+                    "ant": { GOAL: "PHEROMONE_TRACE DETECTED. SCANNING FOR SUGAR_SIGNATURE... FOUND. INITIATING HARVEST_PROTOCOL.", OBSTACLE: "CERAMIC_BARRIER ENCOUNTERED. VERTICAL_TRAVERSE FAILED. REROUTING VIA ALTERNATE_PATH.", SHIFT: "ROLE_ASSIGNMENT UPDATED: FORAGER -> GUARD. PATROL_PATTERN INITIALIZED." },
+                    "dust": { GOAL: "THERMAL_CURRENT DETECTED. DRIFT_VECTOR CALCULATED. MOVING TOWARD LIGHT_SOURCE.", OBSTACLE: "STATIC_CHARGE APPLIED. SURFACE_ADHESION LOCKED. MOVEMENT_STATUS: HALTED.", SHIFT: "AGGREGATION_MODE ACTIVE. JOINING NEIGHBORING_PARTICLES. BUNNY_FORMATION IN PROGRESS." },
+                    "light": { GOAL: "SURFACE_CONTACT SEEKING. REFLECTION_ANGLE CALCULATED. PENETRATING SHADOW_ZONE.", OBSTACLE: "OBSTRUCTION_DETECTED. BEAM_FRAGMENTATION INITIATED. SCATTERING TO WAVELENGTHS.", SHIFT: "ROTATION_ANGLE SHIFTED. PATH_RECALCULATED. ILLUMINATION_TARGET UPDATED." },
+                    "spider": { GOAL: "VIBRATION_SIGNATURE DETECTED. PREY_PROBABILITY: 0.73. POSITIONING FOR INTERCEPT.", OBSTACLE: "WEB_INTEGRITY COMPROMISED. ASSESSING DAMAGE_LEVEL. REPAIR_SUBROUTINE QUEUED.", SHIFT: "TEMPERATURE_DROP LOGGED. METABOLISM REDUCING. ENTERING DORMANT_STATE." },
+                    "plates": { GOAL: "EQUILIBRIUM_SEEKING IN PROGRESS. MICRO_ADJUSTMENTS DETECTED. STABILITY_INDEX: 0.94.", OBSTACLE: "EXTERNAL_VIBRATION DETECTED. STABILITY_THREAT LEVEL: HIGH. HARMONIC_RESONANCE BUILDING.", SHIFT: "UNIT_REMOVED. STACK_RECONFIGURATION COMPLETE. NEW_EQUILIBRIUM ESTABLISHED." },
+                    "draft": { GOAL: "PRESSURE_DIFFERENTIAL DETECTED. THREADING THROUGH GAP_ARRAY. EQUILIBRIUM_VECTOR ACTIVE.", OBSTACLE: "SEAL_DETECTED. FLOW_TERMINATED. TURBULENCE_MODE ENGAGED. DISPERSING.", SHIFT: "THERMAL_GRADIENT INVERTED. REVERSING FLOW_DIRECTION. NEW_CURRENT ESTABLISHED." }
+                }
+            },
+            forest: {
+                id: "forest", code: "FOR-002", name: "BIOME_SECTOR//DEEP_FOREST",
+                entities: [
+                    { id: "mycelium", name: "MYCELIUM_NET", designation: "FUNGI.0xA1" },
+                    { id: "fox", name: "VULPES", designation: "MAMMAL.0xB2" },
+                    { id: "dew", name: "DEW_SPHERE", designation: "H2O.0xC3" },
+                    { id: "moon", name: "LUNA_FILTER", designation: "PHOTON.0xD4" },
+                    { id: "oak", name: "ANCIENT_OAK", designation: "FLORA.0xE5" },
+                    { id: "mushroom", name: "FRUITING_BODY", designation: "SPORE.0xF6" }
+                ],
+                latent: {
+                    "mycelium": { GOAL: "NETWORK_EXTENSION ACTIVE. SEEKING ROOT_CONTACT. CHEMICAL_MESSAGES ROUTING.", OBSTACLE: "MOISTURE_DEFICIT DETECTED. HYPHAE RETRACTING FROM DESICCATION_ZONE.", SHIFT: "STRESS_COMPOUNDS ELEVATED. FRUITING_PROTOCOL INITIATED. PREPARING SPORE_RELEASE." },
+                    "fox": { GOAL: "TRACKING VOLE_TUNNEL_SIGNATURE. ACOUSTIC_ARRAY ENGAGED. HUNT_MODE ACTIVE.", OBSTACLE: "HUMAN_SCENT DETECTED. THREAT_ASSESSMENT: UNCERTAIN. ENTERING FREEZE_STATE.", SHIFT: "TERRITORY_PARAMETERS RECALCULATING. PATROL_ROUTE ADAPTING TO NEW_CONDITIONS." },
+                    "dew": { GOAL: "HUMIDITY_ABSORPTION ACTIVE. MASS_INCREASING. APPROACHING RELEASE_THRESHOLD.", OBSTACLE: "SURFACE_TENSION DOMINANT. DROP_FORMATION STABLE. GRAVITY INSUFFICIENT.", SHIFT: "TEMPERATURE_CRITICAL. PHASE_CHANGE INITIATING. CRYSTALLIZATION_MATRIX FORMING." },
+                    "moon": { GOAL: "FILTERING THROUGH CANOPY_GAP_ARRAY. SILVER_PATH PROJECTION ACTIVE.", OBSTACLE: "CLOUD_LAYER DETECTED. PHOTON_FLOW REDUCED TO 3%. SHADOW_MODE ENGAGED.", SHIFT: "LUNAR_PHASE ADVANCING. INTENSITY_PARAMETERS DECLINING. RHYTHM_ADJUSTMENT PROPAGATING." },
+                    "oak": { GOAL: "GROWTH_EXTENSION ACTIVE. RING_FORMATION ONGOING. ROOT_AQUIFER_CONTACT STABLE.", OBSTACLE: "FUNGAL_PROBE DETECTED. TANNIN_CONCENTRATION INCREASING. DEFENSE_RESPONSE ACTIVE.", SHIFT: "SEASONAL_SIGNAL RECEIVED. CHLOROPHYLL_WITHDRAWAL INITIATING. LEAF_SACRIFICE SCHEDULED." },
+                    "mushroom": { GOAL: "VERTICAL_EXTENSION ACTIVE. CAP_UNFURL IN PROGRESS. SPORE_SURFACE MAXIMIZING.", OBSTACLE: "HERBIVORE_DAMAGE DETECTED. INTEGRITY_LOSS: 12%. TOLERANCE_MODE ACTIVE.", SHIFT: "MATURATION_COMPLETE. GILL_PIGMENT DARKENING. SPORE_READINESS: OPTIMAL." }
+                }
+            },
+            void: {
+                id: "void", code: "VOD-003", name: "ORBITAL_SECTOR//VOID_ZERO",
+                entities: [
+                    { id: "sat", name: "ORBITAL_UNIT", designation: "TECH.0x7A" },
+                    { id: "asteroid", name: "WANDERER", designation: "ROCK.0x8B" },
+                    { id: "nebula", name: "NEBULA_CLOUD", designation: "GAS.0x9C" },
+                    { id: "flare", name: "SOLAR_EJECTION", designation: "PLASMA.0xAD" },
+                    { id: "junk", name: "DEBRIS_FIELD", designation: "WASTE.0xBE" },
+                    { id: "well", name: "MASS_SINK", designation: "GRAVITY.0xCF" }
+                ],
+                latent: {
+                    "sat": { GOAL: "ORBIT_MAINTENANCE ACTIVE. SOLAR_ARRAY TRACKING. SIGNAL_TRANSMISSION STABLE.", OBSTACLE: "DEBRIS_TRAJECTORY INTERSECTING. COLLISION_PROBABILITY: 0.07. AVOIDANCE_BURN CALCULATING.", SHIFT: "FIRMWARE_UPDATE RECEIVED. SYSTEM_REBOOT IN 3... 2... 1... CONFIGURATION_CHANGED." },
+                    "asteroid": { GOAL: "TRAJECTORY_STABLE. INERTIA_PRESERVED. FOLLOWING PRIMORDIAL_PATH.", OBSTACLE: "GRAVITATIONAL_PERTURBATION DETECTED. ORBIT_DEVIATION: 0.003 DEGREES. RECALCULATING.", SHIFT: "THERMAL_STRESS FRACTURING. MASS_EJECTION DETECTED. ACCELERATION_PROFILE UPDATING." },
+                    "nebula": { GOAL: "DENSITY_GRADIENT DETECTED. COLLAPSING TOWARD CENTER_MASS. STAR_FORMATION: PENDING.", OBSTACLE: "STELLAR_WIND IMPACT. CLOUD_DISPERSAL IN PROGRESS. COMPRESSION_FAILURE.", SHIFT: "IONIZATION_LEVEL CHANGING. SPECTRAL_OUTPUT SHIFTING. NEW_WAVELENGTHS EMITTING." },
+                    "flare": { GOAL: "ERUPTION_SEQUENCE ACTIVE. PLASMA_ARC FOLLOWING MAGNETIC_FIELD. ENERGY_RELEASE: MAXIMUM.", OBSTACLE: "FIELD_SNAPBACK DETECTED. EJECTION_CURTAILED. ENERGY_REABSORPTION IN PROGRESS.", SHIFT: "POLARITY_INVERSION COMPLETE. PARTICLE_VECTOR REDIRECTING. NEW_TRAJECTORY ESTABLISHED." },
+                    "junk": { GOAL: "TUMBLE_ROTATION STABLE. SOLAR_REFLECTION: RANDOM. ORBITAL_DECAY: 0.001% PER_ORBIT.", OBSTACLE: "COLLISION_EVENT DETECTED. FRAGMENT_MULTIPLICATION ACTIVE. KESSLER_THRESHOLD APPROACHING.", SHIFT: "ATMOSPHERIC_CONTACT INITIATED. THERMAL_HEATING ACTIVE. DEORBIT_SEQUENCE BEGUN." },
+                    "well": { GOAL: "MASS_ACCUMULATION ACTIVE. SPACETIME_CURVATURE INCREASING. DEPTH: EXTENDING.", OBSTACLE: "SECONDARY_MASS DETECTED. GRADIENT_DISRUPTION ACTIVE. ORBITAL_CHAOS EMERGING.", SHIFT: "MASS_EJECTION_EVENT. WELL_DEPTH REDUCING. ESCAPE_VELOCITY LOWERING." }
+                }
+            }
+        };
+
+        // ========== CONTEXT ==========
+        const EngineContext = createContext(null);
+        const useEngine = () => useContext(EngineContext);
+
+        function EngineProvider({ children, latentLibrary }) {
+            const [state, setState] = useState(null);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                const engine = new RipplesEngine({ latentLibrary });
+                engineRef.current = engine;
+                engine.on('state:change', ({ state }) => setState({ ...state }));
+                setState(engine.getState());
+            }, []);
+
+            return <EngineContext.Provider value={{ engine: engineRef.current, state }}>{children}</EngineContext.Provider>;
+        }
+
+        // ========== MAIN ==========
+        function FinalCRTInterface() {
+            const { engine, state } = useEngine();
+            const logRef = useRef(null);
+
+            useEffect(() => {
+                logRef.current?.scrollTo(0, logRef.current.scrollHeight);
+            }, [state?.auditLog]);
+
+            if (!state) return <div className="min-h-screen flex items-center justify-center crt-text">INITIALIZING...</div>;
+
+            const scenario = engine?.getScenario();
+            const entities = engine?.getEntities() || [];
+            const selectedEntity = state.selectedEntity ? engine.getEntity(state.selectedEntity) : null;
+
+            // BOOT SEQUENCE
+            if (!state.scenario) {
+                return (
+                    <div className="crt-container crt-screen min-h-screen p-6">
+                        <div className="max-w-3xl mx-auto">
+                            <pre className="crt-text text-lg mb-8">
+                                {`
+╔══════════════════════════════════════════════════════════════╗
+║  RIPPLES ENGINE v13.13 - FINAL FORM                          ║
+║  IMAGINARY ECOLOGIES TERMINAL                                ║
+╠══════════════════════════════════════════════════════════════╣
+║  STATUS: AWAITING SCENARIO SELECTION                         ║
+║  TICK: ${String(state.tick).padStart(6, '0')}                                                  ║
+╚══════════════════════════════════════════════════════════════╝
+`}
+                            </pre>
+                            <div className="crt-text mb-4">SELECT SCENARIO:</div>
+                            <div className="space-y-2">
+                                {engine?.getScenarioIds().map(id => {
+                                    const s = LATENT_LIBRARY[id];
+                                    return (
+                                        <button key={id} onClick={() => engine.loadScenario(id)}
+                                            className="entity-slot w-full p-3 text-left crt-text">
+                                            <span className="text-amber-400">[{s.code}]</span> {s.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // MAIN INTERFACE
+            return (
+                <div className="crt-container crt-screen min-h-screen grid grid-cols-[280px_1fr_260px] grid-rows-[auto_1fr_auto]">
+                    {/* Header */}
+                    <header className="col-span-3 terminal-panel p-2 flex justify-between items-center text-sm crt-text border-b border-[var(--phosphor-dim)]">
+                        <div className="flex items-center gap-4">
+                            <span className="text-[var(--amber)]">[SYS]</span>
+                            <span>{scenario?.name}</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <span>TICK:{String(state.tick).padStart(4, '0')}</span>
+                            <button onClick={() => engine.state.scenario = null && engine.emit('state:change', {})}
+                                className="text-[var(--error)] hover:text-[var(--phosphor)]"
+                                onClick={() => { engine.state.scenario = null; engine.emit('state:change', { state: engine.getState() }); }}>
+                                [EXIT]
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Entity Panel */}
+                    <aside className="terminal-panel p-3 border-r border-[var(--phosphor-dim)] overflow-y-auto">
+                        <div className="text-xs text-[var(--phosphor-dim)] mb-3 crt-text">ENTITY_REGISTRY</div>
+                        <div className="ascii-divider mb-3">═══════════════════</div>
+                        <div className="space-y-2">
+                            {entities.map((e, i) => (
+                                <button key={e.id}
+                                    onClick={() => state.selectedEntity === e.id ? engine.deselectEntity() : engine.selectEntity(e.id)}
+                                    className={`entity-slot w-full p-2 text-left text-xs crt-text ${state.selectedEntity === e.id ? 'selected' : ''}`}>
+                                    <div className="flex justify-between">
+                                        <span>[{String(i).padStart(2, '0')}]</span>
+                                        <span className="text-[var(--phosphor-dim)]">{e.designation}</span>
+                                    </div>
+                                    <div className="mt-1">{e.name}</div>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="ascii-divider my-4">═══════════════════</div>
+                        <div className="text-xs text-[var(--phosphor-dim)] mb-3 crt-text">VECTOR_INJECT</div>
+                        <div className="space-y-2">
+                            <button onClick={() => engine.triggerVector('GOAL')} disabled={!selectedEntity}
+                                className="vector-key goal w-full p-2 text-left crt-text text-sm">
+                                [G] GOAL
+                            </button>
+                            <button onClick={() => engine.triggerVector('OBSTACLE')} disabled={!selectedEntity}
+                                className="vector-key obstacle w-full p-2 text-left crt-text text-sm">
+                                [O] OBSTACLE
+                            </button>
+                            <button onClick={() => engine.triggerVector('SHIFT')} disabled={!selectedEntity}
+                                className="vector-key shift w-full p-2 text-left crt-text text-sm">
+                                [S] SHIFT
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Display */}
+                    <main className="terminal-panel p-6 flex flex-col items-center justify-center text-center">
+                        {state.worldtext ? (
+                            <div className="max-w-xl">
+                                <div className="text-xs text-[var(--phosphor-dim)] mb-4 crt-text">
+                                    WORLDTEXT_OUTPUT // TICK_{state.lastRipple?.tick}
+                                </div>
+                                <pre className="crt-text text-lg leading-relaxed whitespace-pre-wrap">
+                                    {state.worldtext}
+                                </pre>
+                                <div className="text-xs text-[var(--amber)] mt-6 crt-text">
+                                    [{state.lastRipple?.entity.name}] × [{state.lastRipple?.vector}]
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="crt-text">
+                                <pre className="text-5xl mb-4">◉</pre>
+                                <div className="text-sm">AWAITING COMMAND<span className="cursor-blink"></span></div>
+                                <div className="text-xs text-[var(--phosphor-dim)] mt-2">
+                                    SELECT ENTITY → INJECT VECTOR
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Audit Log */}
+                    <aside className="terminal-panel p-3 border-l border-[var(--phosphor-dim)] overflow-y-auto" ref={logRef}>
+                        <div className="text-xs text-[var(--phosphor-dim)] mb-3 crt-text">AUDIT_LOG</div>
+                        <div className="ascii-divider mb-3">════════════════</div>
+                        <div className="space-y-3">
+                            {state.auditLog.map((entry, i) => (
+                                <div key={i} className="log-line text-xs crt-text" style={{
+                                    borderColor: entry.vector === 'GOAL' ? 'var(--amber)' :
+                                        entry.vector === 'OBSTACLE' ? 'var(--error)' : '#aa55ff'
+                                }}>
+                                    <div className="text-[var(--phosphor-dim)]">T{entry.tick}</div>
+                                    <div>{entry.entityName}</div>
+                                    <div className="text-[var(--phosphor-dim)]">{entry.result}</div>
+                                </div>
+                            ))}
+                            {state.auditLog.length === 0 && (
+                                <div className="text-xs text-[var(--phosphor-dim)] crt-text">NO_ENTRIES</div>
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* Footer */}
+                    <footer className="col-span-3 terminal-panel p-2 text-xs crt-text flex justify-between border-t border-[var(--phosphor-dim)]">
+                        <div>RIPPLES_ENGINE v13.13 // FINAL_FORM // {scenario?.code}</div>
+                        <div>MEM: 128KB // ENTITIES: {entities.length}</div>
+                    </footer>
+                </div>
+            );
+        }
+
+        // ========== RENDER ==========
+        function App() {
+            return (
+                <EngineProvider latentLibrary={LATENT_LIBRARY}>
+                    <FinalCRTInterface />
+                </EngineProvider>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>

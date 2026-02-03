@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // HEAVENLY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background: linear-gradient(135deg, #f8f6f0 0%, #e8e4d8 50%, #d8d0c0 100%);
+            min-height: 100vh;
+            color: #3a3530;
+            overflow-x: hidden;
+        }
+
+        /* Heavenly aesthetic */
+        :root {
+            --cream: #f8f6f0;
+            --parchment: #e8e4d8;
+            --gold: #c4a35a;
+            --sepia: #8a7a60;
+            --deep: #3a3530;
+            --goal-color: #d4a574;
+            --obstacle-color: #a06040;
+            --shift-color: #7a8060;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(1deg);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .heavenly-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 246, 240, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(196, 163, 90, 0.3);
+            box-shadow: 0 4px 30px rgba(138, 122, 96, 0.1), 0 1px 3px rgba(196, 163, 90, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .heavenly-card:hover {
+            box-shadow: 0 8px 40px rgba(138, 122, 96, 0.15), 0 1px 3px rgba(196, 163, 90, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .entity-glyph {
+            font-size: 2.5rem;
+            text-shadow: 0 2px 10px rgba(196, 163, 90, 0.3);
+        }
+
+        .vector-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .vector-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: currentColor;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .vector-btn:hover::after {
+            opacity: 0.05;
+        }
+
+        .worldtext {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .ornament {
+            color: var(--gold);
+            font-size: 1.5rem;
+            letter-spacing: 0.5em;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--parchment);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext } = React;
+
+        // =========================================
+        // ENGINE (Inline)
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, auditLog: [], worldtext: null, lastRipple: null };
+            }
+
+            on(event, cb) { if (!this._listeners.has(event)) this._listeners.set(event, []); this._listeners.get(event).push(cb); }
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+            }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) { this.state.selectedEntity = id; this.emit('entity:select', { entity: this.getEntity(id) }); }
+            deselectEntity() { this.state.selectedEntity = null; this.emit('entity:deselect', {}); }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `${this.getEntity(entityId)?.name} responds to ${vector}...`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, entity, vector, worldtext };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.state.auditLog.unshift({ tick: ripple.tick, entityName: entity.name, vector, result: worldtext });
+                if (this.state.auditLog.length > 10) this.state.auditLog = this.state.auditLog.slice(0, 10);
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            garden: {
+                id: "garden", name: "The Celestial Garden",
+                description: "Where light becomes matter and silence blooms into form.",
+                entities: [
+                    { id: "lily", name: "Lily of the Valley", glyph: "⚘", essence: "Humility" },
+                    { id: "fountain", name: "The Fountain", glyph: "⛲", essence: "Eternal Return" },
+                    { id: "dove", name: "White Dove", glyph: "🕊️", essence: "Grace" },
+                    { id: "sundial", name: "Sundial", glyph: "☉", essence: "Temporal Witness" },
+                    { id: "mist", name: "Morning Mist", glyph: "☁️", essence: "Threshold" },
+                    { id: "stone", name: "Ancient Stone", glyph: "◇", essence: "Memory" }
+                ],
+                latent: {
+                    "lily": { GOAL: "The lily unfurls toward the light, each petal a prayer made manifest in flesh of flower. Its fragrance becomes a path through the air.", OBSTACLE: "Frost threatens. The lily draws its essence inward, protecting the flame of life that burns at its heart.", SHIFT: "Petals fall like blessing. The lily returns to the earth from which it rose, becoming seed, becoming promise." },
+                    "fountain": { GOAL: "Water rises, defying gravity through the force of deep pressure. Each droplet catches light, becomes jewel, falls, rises again.", OBSTACLE: "The source stutters. Water pools, stills, becoming mirror instead of motion. Reflection replaces flow.", SHIFT: "The fountain changes course. New channels open in ancient stone. Water finds its way." },
+                    "dove": { GOAL: "The dove spirals upward, wings cutting arcs of meaning through the morning air. Its flight describes a geometry of peace.", OBSTACLE: "Wings fold. The dove alights, choosing stillness over motion, presence over passage.", SHIFT: "Direction reverses. The dove carries new messages now, letters written in the language of feather and wind." },
+                    "sundial": { GOAL: "Shadow moves across the dial's face, measuring the day's long journey from dawn to dusk. Each hour marked in darkness.", OBSTACLE: "Clouds gather. The shadow vanishes. Time continues, unmeasured, unwitnessed.", SHIFT: "The dial turns. New hours align with old positions. The past becomes future." },
+                    "mist": { GOAL: "The mist drifts between worlds, neither quite here nor there, transforming the familiar into the numinous.", OBSTACLE: "Sun burns through. The mist thins, losing its power to veil and reveal. Clarity replaces mystery.", SHIFT: "Evening falls. The mist returns, thicker now, carrying new secrets gathered from the day." },
+                    "stone": { GOAL: "The stone endures, holding memories of footsteps, of seasons, of the slow dance of lichen across its face.", OBSTACLE: "Crack appears. The stone's integrity questioned by the patient work of frost and root.", SHIFT: "The stone splits. What was one becomes two. Each fragment holds half the history." }
+                }
+            },
+            library: {
+                id: "library", name: "The Infinite Library",
+                description: "Where every book contains all other books, and silence speaks in tongues.",
+                entities: [
+                    { id: "candle", name: "Candle Flame", glyph: "🕯️", essence: "Illumination" },
+                    { id: "book", name: "Unopened Book", glyph: "📖", essence: "Potential" },
+                    { id: "dust", name: "Dust Mote", glyph: "✧", essence: "Time Made Visible" },
+                    { id: "ladder", name: "Ladder", glyph: "☰", essence: "Ascent" },
+                    { id: "window", name: "Rose Window", glyph: "◎", essence: "Portal" },
+                    { id: "shadow", name: "Reading Shadow", glyph: "◐", essence: "Absorption" }
+                ],
+                latent: {
+                    "candle": { GOAL: "The flame reaches upward, converting wax to light, matter to meaning. Its circle of illumination grows.", OBSTACLE: "Draft threatens. The flame gutters, bends, nearly extinguishes. Darkness crowds close.", SHIFT: "The candle burns low. Light reddens, softens. New shadows emerge from old corners." },
+                    "book": { GOAL: "The book waits, pages pressed together, holding stories that exist in potential until a reader releases them.", OBSTACLE: "Binding cracks. Pages threaten to spill, to lose their order, their meaning dependent on sequence.", SHIFT: "A new reader approaches. The book will be different now, read by different eyes, understood differently." },
+                    "dust": { GOAL: "The mote drifts through shafts of colored light, becoming ruby, becoming gold, becoming visible proof of air's movement.", OBSTACLE: "Stillness settles. The mote lands, joins its fellows on surfaces, becomes part of the accumulated past.", SHIFT: "disturbance. The mote rises again, carrying with it fragments of where it rested." },
+                    "ladder": { GOAL: "The ladder leans against shelves that rise beyond sight. Each rung offers elevation, access to higher knowledge.", OBSTACLE: "The topmost reaches tremble. The ladder sways. Heights become vertigo.", SHIFT: "The ladder moves. New shelves become accessible. Old destinations recede." },
+                    "window": { GOAL: "Light streams through colored glass, transforming as it passes, painting the floor with images of saints and stories.", OBSTACLE: "Clouds darken the sky beyond. The window becomes mirror, reflecting the interior rather than illuminating it.", SHIFT: "The sun moves. New panels catch the light. Different stories illuminate the stones." },
+                    "shadow": { GOAL: "The shadow bends over book and light, absorbing words, growing deeper with each page turned.", OBSTACLE: "The shadow stretches thin. Too little light to cast, or too much to hold shape against.", SHIFT: "The shadow merges with evening. Its individual form dissolves into the general dark of closing library." }
+                }
+            },
+            ocean: {
+                id: "ocean", name: "The Primordial Ocean",
+                description: "Before land, before light, there was only the breathing of deep water.",
+                entities: [
+                    { id: "wave", name: "The Wave", glyph: "〰️", essence: "Perpetual Motion" },
+                    { id: "whale", name: "Whale Song", glyph: "🐋", essence: "Deep Communication" },
+                    { id: "biolum", name: "Bioluminescence", glyph: "✨", essence: "Living Light" },
+                    { id: "current", name: "The Current", glyph: "≋", essence: "Invisible Force" },
+                    { id: "shell", name: "Nautilus Shell", glyph: "🐚", essence: "Sacred Geometry" },
+                    { id: "abyss", name: "The Abyss", glyph: "▼", essence: "Unknowable Depth" }
+                ],
+                latent: {
+                    "wave": { GOAL: "The wave builds, gathering water and momentum, rising toward its peak, its moment of perfect form before breaking.", OBSTACLE: "The wave meets resistance—reef, shore, the body of another wave. Energy transfers, transforms, scatters.", SHIFT: "The wave turns back on itself, reflected, carrying new patterns born of its collision with the solid world." },
+                    "whale": { GOAL: "The song travels miles through water, frequencies too low for human ears, carrying messages of location, of identity, of longing.", OBSTACLE: "Noise intrudes—ships, drilling, the mechanical heartbeat of human industry. The song is lost in static.", SHIFT: "The whale changes its song. New phrases emerge, adapted to new conditions. The conversation continues, altered." },
+                    "biolum": { GOAL: "Light without heat, life expressing itself as luminescence. The ocean floor becomes starfield, depth becomes sky.", OBSTACLE: "Predator approaches. The light extinguishes, hiding its source in darkness, survival over expression.", SHIFT: "The pattern changes. Communication shifts to new frequencies, new rhythms of flash and darkness." },
+                    "current": { GOAL: "The current flows, invisible but irresistible, carrying warmth and nutrients, shaping climates on distant shores.", OBSTACLE: "Temperature shifts. The current weakens, its path uncertain, its ancient patterns disrupted.", SHIFT: "The current finds new channels. Water follows gravity and pressure, always seeking, always moving." },
+                    "shell": { GOAL: "The nautilus grows its chamber, each new space larger than the last, logarithmic spiral expanding toward infinity.", OBSTACLE: "Pressure increases with depth. The shell must thicken, growth slowing, beauty yielding to survival.", SHIFT: "The nautilus rises. Different pressures, different requirements. The shell adapts, geometry responding to physics." },
+                    "abyss": { GOAL: "The abyss absorbs—light, sound, all falling things. In its depth, pressure creates strange equilibria.", OBSTACLE: "Something rises from the deep, breaking the abyss's isolation, carrying its secrets upward.", SHIFT: "The abyss shifts, tectonic plates grinding. What was deepest becomes shallow; new depths open elsewhere." }
+                }
+            }
+        };
+
+        // =========================================
+        // CONTEXT
+        // =========================================
+        const EngineContext = createContext(null);
+        const useEngine = () => useContext(EngineContext);
+
+        function EngineProvider({ children, latentLibrary }) {
+            const [state, setState] = useState(null);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                const engine = new RipplesEngine({ latentLibrary });
+                engineRef.current = engine;
+                engine.on('state:change', ({ state }) => setState({ ...state }));
+                setState(engine.getState());
+            }, []);
+
+            return <EngineContext.Provider value={{ engine: engineRef.current, state }}>{children}</EngineContext.Provider>;
+        }
+
+        // =========================================
+        // COMPONENTS
+        // =========================================
+        function EntityCard({ entity, isSelected, onClick }) {
+            return (
+                <button onClick={onClick}
+                    className={`heavenly-card p-6 rounded-lg text-center w-full transition-all duration-300 ${isSelected ? 'ring-2 ring-[var(--gold)]' : ''}`}
+                    style={{ animation: isSelected ? 'float 4s ease-in-out infinite' : 'none' }}>
+                    <div className="entity-glyph mb-2">{entity.glyph}</div>
+                    <div className="text-lg font-semibold text-[var(--deep)]">{entity.name}</div>
+                    <div className="text-sm italic text-[var(--sepia)] mt-1">{entity.essence}</div>
+                </button>
+            );
+        }
+
+        function VectorButton({ vector, label, symbol, color, onClick, disabled }) {
+            return (
+                <button onClick={onClick} disabled={disabled}
+                    className={`vector-btn w-full py-4 px-6 rounded-lg font-semibold transition-all border-2 disabled:opacity-30 disabled:cursor-not-allowed`}
+                    style={{ borderColor: color, color: disabled ? '#999' : color }}>
+                    <span className="text-xl mr-3">{symbol}</span>
+                    <span>{label}</span>
+                </button>
+            );
+        }
+
+        // =========================================
+        // MAIN
+        // =========================================
+        function HeavenlyInterface() {
+            const { engine, state } = useEngine();
+            const [view, setView] = useState('select');
+
+            if (!state) return <div className="min-h-screen flex items-center justify-center text-[var(--sepia)]">Awakening...</div>;
+
+            const scenario = engine?.getScenario();
+            const entities = engine?.getEntities() || [];
+            const selectedEntity = state.selectedEntity ? engine.getEntity(state.selectedEntity) : null;
+
+            // SCENARIO SELECT
+            if (view === 'select') {
+                return (
+                    <div className="min-h-screen p-8 flex flex-col items-center justify-center">
+                        <div className="text-center mb-16">
+                            <div className="ornament mb-4">✦ ✧ ✦</div>
+                            <h1 className="text-5xl font-light tracking-wide text-[var(--deep)] mb-4">Imaginary Ecologies</h1>
+                            <p className="text-xl text-[var(--sepia)] italic">Choose your realm of contemplation</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
+                            {engine?.getScenarioIds().map(id => {
+                                const s = LATENT_LIBRARY[id];
+                                return (
+                                    <button key={id} onClick={() => { engine.loadScenario(id); setView('simulation'); }}
+                                        className="heavenly-card p-8 rounded-xl text-center group">
+                                        <div className="text-4xl mb-4 group-hover:animate-pulse">{s.entities[0].glyph}</div>
+                                        <h2 className="text-2xl font-semibold text-[var(--deep)] mb-2">{s.name}</h2>
+                                        <p className="text-[var(--sepia)] italic text-sm">{s.description}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            }
+
+            // SIMULATION
+            return (
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="p-6 flex justify-between items-center border-b border-[var(--gold)]/20">
+                        <button onClick={() => setView('select')} className="text-[var(--sepia)] hover:text-[var(--deep)] transition">
+                            ← Return
+                        </button>
+                        <h1 className="text-2xl font-light text-[var(--deep)]">{scenario?.name}</h1>
+                        <div className="text-[var(--sepia)] text-sm">Contemplation {state.tick}</div>
+                    </header>
+
+                    <div className="grid grid-cols-[320px_1fr_320px] gap-8 p-8">
+                        {/* Entity Panel */}
+                        <aside className="space-y-4">
+                            <div className="text-sm uppercase tracking-widest text-[var(--gold)] mb-4">Presences</div>
+                            {entities.map(e => (
+                                <EntityCard key={e.id} entity={e} isSelected={state.selectedEntity === e.id}
+                                    onClick={() => state.selectedEntity === e.id ? engine.deselectEntity() : engine.selectEntity(e.id)} />
+                            ))}
+                        </aside>
+
+                        {/* Worldtext Display */}
+                        <main className="heavenly-card rounded-xl p-12 flex flex-col items-center justify-center min-h-[500px] text-center">
+                            {state.worldtext ? (
+                                <div className="worldtext max-w-xl">
+                                    <p className="text-2xl font-light leading-relaxed text-[var(--deep)] italic">{state.worldtext}</p>
+                                    {state.lastRipple && (
+                                        <div className="mt-8 text-[var(--sepia)]">
+                                            <span className="text-2xl mr-3">{state.lastRipple.entity.glyph}</span>
+                                            <span className="italic">{state.lastRipple.entity.name}</span>
+                                            <span className="mx-2">—</span>
+                                            <span>{state.lastRipple.vector}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-[var(--sepia)]">
+                                    <div className="ornament mb-8">✦</div>
+                                    <p className="text-xl italic">Select a presence, then contemplate a vector</p>
+                                </div>
+                            )}
+                        </main>
+
+                        {/* Vector Panel */}
+                        <aside className="space-y-4">
+                            <div className="text-sm uppercase tracking-widest text-[var(--gold)] mb-4">Vectors of Contemplation</div>
+                            <VectorButton vector="GOAL" label="Goal" symbol="→" color="var(--goal-color)"
+                                onClick={() => engine.triggerVector('GOAL')} disabled={!selectedEntity} />
+                            <VectorButton vector="OBSTACLE" label="Obstacle" symbol="◆" color="var(--obstacle-color)"
+                                onClick={() => engine.triggerVector('OBSTACLE')} disabled={!selectedEntity} />
+                            <VectorButton vector="SHIFT" label="Shift" symbol="↻" color="var(--shift-color)"
+                                onClick={() => engine.triggerVector('SHIFT')} disabled={!selectedEntity} />
+
+                            {/* Audit Log */}
+                            <div className="mt-8">
+                                <div className="text-sm uppercase tracking-widest text-[var(--gold)] mb-4">Memory</div>
+                                <div className="space-y-3">
+                                    {state.auditLog.slice(0, 5).map((entry, i) => (
+                                        <div key={i} className="heavenly-card p-4 rounded-lg text-sm">
+                                            <div className="font-semibold text-[var(--deep)]">{entry.entityName}</div>
+                                            <div className="text-[var(--sepia)] italic text-xs">{entry.vector}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            );
+        }
+
+        // =========================================
+        // RENDER
+        // =========================================
+        function App() {
+            return (
+                <EngineProvider latentLibrary={LATENT_LIBRARY}>
+                    <HeavenlyInterface />
+                </EngineProvider>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>

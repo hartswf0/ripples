@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES ENGINE // LIVING INFINITE SCALE</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="app"></canvas>
+
+    <script>
+        /**
+         * RIPPLES ENGINE: LIVING INFINITE SCALE
+         * 
+         * Transplanted from 4.html with RipplesEngine integration
+         * Features:
+         * - Active ripple system with cellular automata wave patterns
+         * - Flocking entity behaviors
+         * - Signal broadcasting
+         * - Engine-driven latent descriptions
+         * - LLM worldtext generation ready
+         */
+
+        // =========================================
+        // RIPPLES ENGINE (Headless Core)
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = {
+                    scenario: null,
+                    selectedEntity: null,
+                    tick: 0,
+                    auditLog: [],
+                    worldtext: null,
+                    lastRipple: null
+                };
+            }
+
+            on(event, cb) {
+                if (!this._listeners.has(event)) this._listeners.set(event, []);
+                this._listeners.get(event).push(cb);
+            }
+
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') {
+                    this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+                }
+            }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) {
+                this.state.selectedEntity = id;
+                this.emit('entity:select', { entity: this.getEntity(id) });
+            }
+
+            deselectEntity() {
+                this.state.selectedEntity = null;
+                this.emit('entity:deselect', {});
+            }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `[${vector}] No latent data.`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, entity, vector, worldtext, timestamp: Date.now() };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.state.auditLog.unshift({
+                    tick: ripple.tick,
+                    entityId: entity.id,
+                    entityName: entity.name,
+                    vector,
+                    result: worldtext.substring(0, 50) + '...'
+                });
+                if (this.state.auditLog.length > 20) this.state.auditLog = this.state.auditLog.slice(0, 20);
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            forest: {
+                id: 'forest', name: 'Deep Forest Ecology',
+                palette: ['#2ecc71', '#27ae60', '#e67e22', '#f1c40f'],
+                bg: '#051405',
+                particleType: 'spore',
+                entities: [
+                    { id: 'oak', name: 'Ancient Oak', type: 0 },
+                    { id: 'mycelium', name: 'Mycelium Network', type: 1 },
+                    { id: 'deer', name: 'Forest Deer', type: 2 },
+                    { id: 'owl', name: 'Night Owl', type: 3 },
+                    { id: 'stream', name: 'Forest Stream', type: 0 },
+                    { id: 'fern', name: 'Creeping Fern', type: 1 }
+                ],
+                latent: {
+                    'oak': { GOAL: 'Roots push deeper toward the aquifer, branches spread to capture more light. The oak grows imperceptibly but inevitably.', OBSTACLE: 'Bark beetle signatures detected. Sap production increased to drown intruders. Chemical alarm signaling to neighbors.', SHIFT: 'Mast year triggered. Acorn production quadrupled. The forest cycle advances.' },
+                    'mycelium': { GOAL: 'Network expansion continues. New root contacts established. Nutrient exchange protocols active across 47 trees.', OBSTACLE: 'Soil compaction detected in sector 7. Rerouting hyphal threads through deeper substrate.', SHIFT: 'Fruiting body emergence. Spore release imminent. Reproduction mode engaged.' },
+                    'deer': { GOAL: 'Following scent trails to the meadow. Alert levels low. Grazing window optimal.', OBSTACLE: 'Predator scent detected. Freeze response. Ears rotating for acoustic triangulation.', SHIFT: 'Migration instinct triggered. The herd moves to winter grounds. Paths remembered.' },
+                    'owl': { GOAL: 'Acoustic scanning active. Mouse movement detected 40 meters northeast. Preparing silent approach.', OBSTACLE: 'Territory incursion. Rival calls from the old pine. Territorial display required.', SHIFT: 'Nesting season begins. Mate courtship calls initiated. The cycle continues.' },
+                    'stream': { GOAL: 'Water flows downhill. Erosion patterns reshape the bank. Life gathers at the edge.', OBSTACLE: 'Beaver dam detected upstream. Flow patterns disrupted. New wetland forming.', SHIFT: 'Spring melt surge. Banks overflow. The floodplain remembers its purpose.' },
+                    'fern': { GOAL: 'Unfurling new fronds toward light gaps. Spore production steady. Colonization proceeding.', OBSTACLE: 'Canopy closure overhead. Light diminishing. Entering dormancy protocol.', SHIFT: 'Fire clears the understory. Rhizomes survive. First to return.' }
+                }
+            },
+            ocean: {
+                id: 'ocean', name: 'Abyssal Ocean',
+                palette: ['#3498db', '#2980b9', '#1abc9c', '#9b59b6'],
+                bg: '#000810',
+                particleType: 'bubble',
+                entities: [
+                    { id: 'whale', name: 'Blue Whale', type: 0 },
+                    { id: 'jellyfish', name: 'Bioluminescent Jelly', type: 1 },
+                    { id: 'squid', name: 'Giant Squid', type: 2 },
+                    { id: 'current', name: 'Thermal Current', type: 3 },
+                    { id: 'krill', name: 'Krill Swarm', type: 0 },
+                    { id: 'coral', name: 'Deep Coral', type: 1 }
+                ],
+                latent: {
+                    'whale': { GOAL: 'Song echoes through the thermocline. Searching for kin across a thousand miles of ocean.', OBSTACLE: 'Ship noise corrupts the signal. Communication bandwidth degraded. Diving deeper.', SHIFT: 'Migration path shifts. New feeding grounds discovered. The ancient routes evolve.' },
+                    'jellyfish': { GOAL: 'Drifting with the current. Tentacles spread wide. Bioluminescence pulses in the dark.', OBSTACLE: 'Temperature anomaly detected. Stress proteins activated. Colony dispersing.', SHIFT: 'Bloom conditions met. Exponential reproduction initiated. The ocean shifts.' },
+                    'squid': { GOAL: 'Hunting in the twilight zone. Chromatophores pulsing with predator patterns.', OBSTACLE: 'Sperm whale detected above. Ink release. Rapid descent to crush depth.', SHIFT: 'Mating aggregation forming. Giant bodies dance in the deep. Life persists.' },
+                    'current': { GOAL: 'Heat from the deep rises. Cold from the surface falls. The engine of life turns.', OBSTACLE: 'Density layers stabilized. Circulation stalled. Nutrients trapped below.', SHIFT: 'Storm above churns the column. Upwelling intensifies. Productivity explodes.' },
+                    'krill': { GOAL: 'Vertical migration begins. Rising through the dark. Surface feeding imminent.', OBSTACLE: 'Whale mouth opens. Millions perish. But millions survive.', SHIFT: 'Population dynamics shift. New generation emerges. The base of everything.' },
+                    'coral': { GOAL: 'Polyps extend at night. Feeding on the marine snow. Growth continues, millimeter by year.', OBSTACLE: 'Water temperature rising. Stress response. Zooxanthellae beginning to leave.', SHIFT: 'Spawning event. The entire reef releases gametes at once. Synchrony of life.' }
+                }
+            },
+            cosmos: {
+                id: 'cosmos', name: 'Cosmic Void',
+                palette: ['#bdc3c7', '#ecf0f1', '#e74c3c', '#8e44ad'],
+                bg: '#050505',
+                particleType: 'star',
+                entities: [
+                    { id: 'star', name: 'Red Giant', type: 0 },
+                    { id: 'nebula', name: 'Stellar Nursery', type: 1 },
+                    { id: 'blackhole', name: 'Event Horizon', type: 2 },
+                    { id: 'comet', name: 'Long-Period Comet', type: 3 },
+                    { id: 'dust', name: 'Cosmic Dust', type: 0 },
+                    { id: 'pulsar', name: 'Millisecond Pulsar', type: 1 }
+                ],
+                latent: {
+                    'star': { GOAL: 'Fusion continues. Hydrogen becomes helium. Helium becomes carbon. Time compresses at the core.', OBSTACLE: 'Core collapse imminent. Final stages. The iron cannot fuse.', SHIFT: 'Supernova! Elements scattered across light years. Seeding future worlds.' },
+                    'nebula': { GOAL: 'Gravity pulls the gas. Density increases. Proto-stars begin to glow with their own light.', OBSTACLE: 'Stellar wind disrupts the collapse. Material scattered. Formation delayed.', SHIFT: 'First ignition. A new star is born. The nebula diminishes.' },
+                    'blackhole': { GOAL: 'Spacetime curves to infinity. The accretion disk spirals inward. Information enters but does not leave.', OBSTACLE: 'Hawking radiation. Slow evaporation. Even darkness has an end.', SHIFT: 'Merger detected. Two singularities become one. Gravitational waves ripple through existence.' },
+                    'comet': { GOAL: 'Falling toward the sun. Ice becomes tail. A message from the outer system.', OBSTACLE: 'Jupiter gravitational capture. Orbit disrupted. New trajectory calculated.', SHIFT: 'Perihelion passed. Returning to the cold. See you in 10,000 years.' },
+                    'dust': { GOAL: 'Drifting between stars. Carrying the elements of life. Future planets inscribed in microscopic grains.', OBSTACLE: 'Radiation pressure scatters the cloud. Material dispersed. But density cores remain.', SHIFT: 'Shockwave from supernova arrives. Compression begins. Planetesimals form.' },
+                    'pulsar': { GOAL: 'Spinning 716 times per second. Lighthouse of the cosmos. Perfect clock.', OBSTACLE: 'Glitch detected. Internal restructuring. The neutron star settles.', SHIFT: 'Binary companion approaches. Mass transfer begins. Spin-up accelerating.' }
+                }
+            }
+        };
+
+        // =========================================
+        // CONFIGURATION
+        // =========================================
+        const CONFIG = {
+            colors: {
+                bgRoot: '#0a0a0a',
+                bgPanel: '#111111',
+                bgTerm: 'rgba(10, 10, 10, 0.9)',
+                border: '#333333',
+                accent: '#00ff9d',
+                signal: '#ffffff',
+                textMain: '#e0e0e0',
+                textDim: '#666666',
+                textAlert: '#ff3366',
+                btnBg: '#1a1a1a',
+                btnHover: '#2a2a2a'
+            },
+            layout: {
+                sidebarWidth: 300,
+                termHeight: 180
+            },
+            sim: {
+                entityCount: 60,
+                baseSpeed: 1.5,
+                rippleMax: 500
+            }
+        };
+
+        // =========================================
+        // STATE
+        // =========================================
+        const State = {
+            frames: 0,
+            mode: 'SIMULATING',
+            entities: [],
+            ripples: [],
+            particles: [],
+            logs: [],
+            autoplay: false,
+            crtEnabled: true,
+            camera: { x: 0, y: 0, z: 1, tx: 0, ty: 0, tz: 1 },
+            nextEventTime: 0,
+            selectedSimEntity: null,
+            hotItem: null,
+            activeItem: null,
+            clickHandled: false,
+            worldtextDisplay: null,
+            worldtextTimer: 0
+        };
+
+        // Initialize engine
+        const engine = new RipplesEngine({ latentLibrary: LATENT_LIBRARY });
+        engine.loadScenario('forest');
+
+        // =========================================
+        // INPUT SYSTEM
+        // =========================================
+        const Mouse = { x: 0, y: 0, down: false, click: false };
+
+        const canvas = document.getElementById('app');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        canvas.addEventListener('mousemove', e => { Mouse.x = e.clientX; Mouse.y = e.clientY; });
+        canvas.addEventListener('mousedown', () => { Mouse.down = true; });
+        canvas.addEventListener('mouseup', () => { Mouse.down = false; Mouse.click = true; });
+
+        // =========================================
+        // LOGGING
+        // =========================================
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
+            State.logs.unshift({ time, msg, type, frame: State.frames });
+            if (State.logs.length > 20) State.logs.pop();
+        }
+
+        // =========================================
+        // PARTICLE SYSTEM
+        // =========================================
+        class Particle {
+            constructor(viewW, viewH, type) {
+                this.pos = { x: (Math.random() - 0.5) * viewW, y: (Math.random() - 0.5) * viewH };
+                this.z = Math.random() * 0.5 + 0.5;
+                this.size = Math.random() * 3 + 1;
+                this.type = type;
+
+                if (type === 'bubble') this.vel = { x: Math.random() * 0.2 - 0.1, y: -Math.random() * 0.5 - 0.2 };
+                else if (type === 'spore') this.vel = { x: Math.random() * 0.4 - 0.2, y: Math.random() * 0.4 - 0.2 };
+                else this.vel = { x: 0, y: 0 };
+            }
+
+            update(viewW, viewH) {
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+
+                const halfW = viewW / 2;
+                const halfH = viewH / 2;
+                if (this.pos.y < -halfH) this.pos.y = halfH;
+                if (this.pos.y > halfH) this.pos.y = -halfH;
+                if (this.pos.x < -halfW) this.pos.x = halfW;
+                if (this.pos.x > halfW) this.pos.x = -halfW;
+            }
+
+            draw(ctx, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // =========================================
+        // RIPPLE SYSTEM (Cellular Automata Wave Pattern)
+        // =========================================
+        class Ripple {
+            constructor(x, y, vectorName, color) {
+                this.pos = { x, y };
+                this.radius = 1;
+                this.maxRadius = CONFIG.sim.rippleMax;
+                this.speed = 5;
+                this.name = vectorName;
+                this.life = 1.0;
+                this.hitList = new Set();
+                this.color = color || CONFIG.colors.accent;
+                this.waveCount = 0; // Track wave rings for spiral effect
+            }
+
+            update() {
+                this.radius += this.speed;
+                this.life = 1 - (this.radius / this.maxRadius);
+                this.waveCount = Math.floor(this.radius / 30);
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                // Draw multiple wave rings for cellular automata effect
+                for (let i = 0; i < 5; i++) {
+                    const waveRadius = this.radius - (i * 25);
+                    if (waveRadius <= 0) continue;
+
+                    const alpha = this.life * (1 - i * 0.15);
+                    ctx.strokeStyle = this.color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+                    ctx.lineWidth = 3 - i * 0.5;
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, waveRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Inner glow
+                const gradient = ctx.createRadialGradient(this.pos.x, this.pos.y, 0, this.pos.x, this.pos.y, 50);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${this.life * 0.3})`);
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, 50, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // =========================================
+        // ENTITY SYSTEM (Living Simulation)
+        // =========================================
+        class SimEntity {
+            constructor(viewW, viewH, engineEntity) {
+                this.engineEntity = engineEntity;
+                this.pos = { x: (Math.random() - 0.5) * viewW, y: (Math.random() - 0.5) * viewH };
+                this.vel = { x: Math.random() - 0.5, y: Math.random() - 0.5 };
+                this.acc = { x: 0, y: 0 };
+                this.type = engineEntity?.type || Math.floor(Math.random() * 4);
+                this.id = engineEntity?.id || Math.random().toString(36).substr(2, 4);
+                this.name = engineEntity?.name || 'Entity';
+                this.rad = 4 + Math.random() * 4;
+                this.pulse = 0;
+            }
+
+            update(others, viewW, viewH) {
+                if (this.pulse > 0) this.pulse -= 0.02;
+
+                // Flocking Forces
+                let sep = { x: 0, y: 0 }, ali = { x: 0, y: 0 }, coh = { x: 0, y: 0 }, count = 0;
+                const perception = 80;
+
+                for (let o of others) {
+                    if (o === this) continue;
+                    let dx = this.pos.x - o.pos.x;
+                    let dy = this.pos.y - o.pos.y;
+                    let d = Math.sqrt(dx * dx + dy * dy);
+
+                    if (d < perception && d > 0) {
+                        sep.x += (this.pos.x - o.pos.x) / d;
+                        sep.y += (this.pos.y - o.pos.y) / d;
+                        if (this.type === o.type) {
+                            ali.x += o.vel.x; ali.y += o.vel.y;
+                            coh.x += o.pos.x; coh.y += o.pos.y;
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > 0) {
+                    ali.x /= count; ali.y /= count;
+                    coh.x = (coh.x / count) - this.pos.x;
+                    coh.y = (coh.y / count) - this.pos.y;
+                }
+
+                this.acc.x += sep.x * 1.5 + ali.x * 0.8 + coh.x * 0.5;
+                this.acc.y += sep.y * 1.5 + ali.y * 0.8 + coh.y * 0.5;
+
+                // Physics
+                this.vel.x += this.acc.x * 0.05;
+                this.vel.y += this.acc.y * 0.05;
+
+                const speed = Math.sqrt(this.vel.x ** 2 + this.vel.y ** 2);
+                const maxSpeed = CONFIG.sim.baseSpeed + (this.pulse * 3);
+                if (speed > maxSpeed) {
+                    this.vel.x = (this.vel.x / speed) * maxSpeed;
+                    this.vel.y = (this.vel.y / speed) * maxSpeed;
+                }
+
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+                this.acc = { x: 0, y: 0 };
+
+                // Wrap
+                const halfW = viewW / 2;
+                const halfH = viewH / 2;
+                if (this.pos.x < -halfW) this.pos.x = halfW;
+                if (this.pos.x > halfW) this.pos.x = -halfW;
+                if (this.pos.y < -halfH) this.pos.y = halfH;
+                if (this.pos.y > halfH) this.pos.y = -halfH;
+            }
+
+            draw(ctx, palette) {
+                // Draw connections when pulsed (signal broadcasting)
+                if (this.pulse > 0.1) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.pulse * 0.4})`;
+                    ctx.lineWidth = 1;
+                    State.entities.forEach(o => {
+                        if (o === this) return;
+                        const dx = this.pos.x - o.pos.x;
+                        const dy = this.pos.y - o.pos.y;
+                        if (Math.abs(dx) < 80 && Math.abs(dy) < 80) {
+                            ctx.beginPath();
+                            ctx.moveTo(this.pos.x, this.pos.y);
+                            ctx.lineTo(o.pos.x, o.pos.y);
+                            ctx.stroke();
+                        }
+                    });
+                }
+
+                // Draw body
+                ctx.fillStyle = this.pulse > 0.1 ? CONFIG.colors.signal : palette[this.type % palette.length];
+
+                if (this.pulse > 0.1) {
+                    ctx.shadowBlur = 15 * this.pulse;
+                    ctx.shadowColor = '#fff';
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.rad + (this.pulse * 3), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Selection ring
+                if (State.selectedSimEntity === this) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x, this.pos.y, this.rad + 15 + Math.sin(State.frames * 0.15) * 4, 0, Math.PI * 2);
+                    ctx.strokeStyle = CONFIG.colors.accent;
+                    ctx.stroke();
+                }
+            }
+
+            triggerSignal() {
+                this.pulse = 1.0;
+            }
+        }
+
+        // =========================================
+        // IMGUI SYSTEM
+        // =========================================
+        const UI = {
+            hit: false,
+            reset() { this.hit = false; },
+
+            button(id, x, y, w, h, text, onClick, active = false) {
+                const isHover = Mouse.x >= x && Mouse.x <= x + w && Mouse.y >= y && Mouse.y <= y + h;
+                if (isHover) {
+                    this.hit = true;
+                    if (Mouse.click) { onClick(); Mouse.click = false; }
+                }
+                ctx.fillStyle = active ? CONFIG.colors.accent : (isHover ? CONFIG.colors.btnHover : CONFIG.colors.btnBg);
+                ctx.strokeStyle = active ? CONFIG.colors.accent : CONFIG.colors.border;
+                ctx.lineWidth = 1;
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = active ? '#000' : (isHover ? '#fff' : CONFIG.colors.textMain);
+                ctx.font = "12px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(text, x + w / 2, y + h / 2);
+            },
+
+            text(str, x, y, color = CONFIG.colors.textMain, size = 12, align = "left") {
+                ctx.fillStyle = color;
+                ctx.font = `${size}px monospace`;
+                ctx.textAlign = align;
+                ctx.textBaseline = "top";
+                ctx.fillText(str, x, y);
+            },
+
+            panel(x, y, w, h, color = CONFIG.colors.bgPanel, border = true) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, w, h);
+                if (border) {
+                    ctx.strokeStyle = CONFIG.colors.border;
+                    ctx.strokeRect(x, y, w, h);
+                }
+            }
+        };
+
+        // =========================================
+        // SYSTEM FUNCTIONS
+        // =========================================
+        function init() {
+            State.entities = [];
+            State.particles = [];
+            State.ripples = [];
+
+            const scenario = engine.getScenario();
+            const vw = canvas.width - CONFIG.layout.sidebarWidth;
+            const vh = canvas.height;
+
+            // Create entities from engine data
+            const engineEntities = engine.getEntities();
+            for (let i = 0; i < CONFIG.sim.entityCount; i++) {
+                const engineEntity = engineEntities[i % engineEntities.length];
+                State.entities.push(new SimEntity(vw, vh, engineEntity));
+            }
+
+            // Create atmospheric particles
+            for (let i = 0; i < 60; i++) {
+                State.particles.push(new Particle(vw, vh, scenario?.particleType || 'spore'));
+            }
+
+            State.nextEventTime = State.frames + 200;
+            log(`Scenario loaded: ${scenario?.name || 'Unknown'}`, 'alert');
+        }
+
+        function cycleScenario() {
+            const ids = engine.getScenarioIds();
+            const current = engine.state.scenario;
+            const idx = (ids.indexOf(current) + 1) % ids.length;
+            engine.loadScenario(ids[idx]);
+            init();
+        }
+
+        function triggerPromptMode() {
+            State.mode = 'PROMPTING';
+            State.selectedSimEntity = State.entities[Math.floor(Math.random() * State.entities.length)];
+            engine.selectEntity(State.selectedSimEntity.id);
+
+            State.camera.tx = State.selectedSimEntity.pos.x;
+            State.camera.ty = State.selectedSimEntity.pos.y;
+            State.camera.tz = 1.6;
+
+            if (State.autoplay) {
+                setTimeout(() => {
+                    const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                    const vec = vectors[Math.floor(Math.random() * vectors.length)];
+                    spawnRipple(vec);
+                }, 800);
+            }
+        }
+
+        function spawnRipple(vectorName) {
+            if (!State.selectedSimEntity) return;
+
+            // Trigger engine for worldtext
+            const rippleData = engine.triggerVector(vectorName);
+
+            log(`[${vectorName}] ${State.selectedSimEntity.name}`, 'alert');
+
+            // Get vector color
+            const colors = { GOAL: 'rgb(74, 246, 38)', OBSTACLE: 'rgb(239, 68, 68)', SHIFT: 'rgb(168, 85, 247)' };
+            const ripple = new Ripple(State.selectedSimEntity.pos.x, State.selectedSimEntity.pos.y, vectorName, colors[vectorName]);
+            State.ripples.push(ripple);
+
+            State.selectedSimEntity.triggerSignal();
+
+            // Display worldtext
+            State.worldtextDisplay = rippleData?.worldtext || 'No response.';
+            State.worldtextTimer = 300;
+
+            // Reset mode
+            State.mode = 'SIMULATING';
+            State.selectedSimEntity = null;
+            engine.deselectEntity();
+            State.camera.tx = 0;
+            State.camera.ty = 0;
+            State.camera.tz = 1;
+            State.nextEventTime = State.frames + Math.floor(Math.random() * 200 + 200);
+        }
+
+        function updateRipples() {
+            const vw = canvas.width - CONFIG.layout.sidebarWidth;
+            const vh = canvas.height;
+
+            for (let i = State.ripples.length - 1; i >= 0; i--) {
+                const r = State.ripples[i];
+                const alive = r.update();
+
+                if (!alive) {
+                    State.ripples.splice(i, 1);
+                    continue;
+                }
+
+                // Collision with entities
+                State.entities.forEach(e => {
+                    if (r.hitList.has(e.id)) return;
+
+                    const dx = e.pos.x - r.pos.x;
+                    const dy = e.pos.y - r.pos.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < r.radius && dist > r.radius - 35) {
+                        r.hitList.add(e.id);
+                        e.triggerSignal();
+
+                        // Physics push
+                        const force = 12 * r.life;
+                        e.vel.x += (dx / dist) * force;
+                        e.vel.y += (dy / dist) * force;
+                    }
+                });
+            }
+        }
+
+        // =========================================
+        // MAIN RENDER LOOP
+        // =========================================
+        function draw() {
+            UI.reset();
+
+            const scenario = engine.getScenario();
+            const sw = CONFIG.layout.sidebarWidth;
+            const vw = canvas.width - sw;
+            const vh = canvas.height;
+
+            // Clear
+            ctx.fillStyle = CONFIG.colors.bgRoot;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // --- SIDEBAR ---
+            UI.panel(0, 0, sw, canvas.height, CONFIG.colors.bgPanel);
+
+            let cy = 20;
+            const pad = 20;
+
+            UI.text("RIPPLES ENGINE", pad, cy, CONFIG.colors.accent, 14);
+            cy += 25;
+            UI.text(`STATUS: ${State.mode}`, pad, cy, State.mode === 'PROMPTING' ? CONFIG.colors.textAlert : CONFIG.colors.textDim, 11);
+            cy += 18;
+            UI.text(`TICK: ${engine.state.tick} | FRAME: ${State.frames}`, pad, cy, CONFIG.colors.textDim, 10);
+            cy += 18;
+            UI.text(`ENTITIES: ${State.entities.length}`, pad, cy, CONFIG.colors.textDim, 10);
+            cy += 30;
+
+            UI.text("SCENARIO", pad, cy, '#fff', 12);
+            cy += 20;
+            UI.button("scenario", pad, cy, sw - pad * 2, 28, `${scenario?.name || 'None'}`, cycleScenario);
+            cy += 40;
+
+            UI.text("CONTROLS", pad, cy, '#fff', 12);
+            cy += 20;
+            UI.button("reset", pad, cy, sw - pad * 2, 28, "RESET SIMULATION", init);
+            cy += 32;
+            UI.button("auto", pad, cy, sw - pad * 2, 28, `AUTOPLAY: ${State.autoplay ? "ON" : "OFF"}`, () => {
+                State.autoplay = !State.autoplay;
+            }, State.autoplay);
+            cy += 32;
+            UI.button("crt", pad, cy, sw - pad * 2, 28, `CRT FX: ${State.crtEnabled ? "ON" : "OFF"}`, () => {
+                State.crtEnabled = !State.crtEnabled;
+            }, State.crtEnabled);
+            cy += 40;
+
+            // Entity list from engine
+            UI.text("ENGINE ENTITIES", pad, cy, '#fff', 12);
+            cy += 20;
+            const engineEnts = engine.getEntities();
+            engineEnts.slice(0, 6).forEach((e, i) => {
+                const color = scenario?.palette?.[e.type % 4] || '#888';
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pad + 6, cy + 10, 5, 0, Math.PI * 2);
+                ctx.fill();
+                UI.text(e.name, pad + 18, cy + 4, CONFIG.colors.textDim, 10);
+                cy += 22;
+            });
+
+            // Footer
+            UI.text("v1.0 LIVING SIM", pad, canvas.height - 20, CONFIG.colors.textDim, 9);
+
+            // --- SIMULATION VIEWPORT ---
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(sw, 0, vw, vh);
+            ctx.clip();
+
+            ctx.fillStyle = scenario?.bg || '#0a0a0a';
+            ctx.fillRect(sw, 0, vw, vh);
+
+            // Camera
+            const cx = sw + vw / 2;
+            const cy_view = vh / 2;
+            State.camera.x += (State.camera.tx - State.camera.x) * 0.05;
+            State.camera.y += (State.camera.ty - State.camera.y) * 0.05;
+            State.camera.z += (State.camera.tz - State.camera.z) * 0.05;
+
+            ctx.translate(cx, cy_view);
+            ctx.scale(State.camera.z, State.camera.z);
+            ctx.translate(-State.camera.x, -State.camera.y);
+
+            // Layer 1: Particles
+            const particleColor = scenario?.particleType === 'bubble' ? 'rgba(52, 152, 219, 0.3)' :
+                scenario?.particleType === 'star' ? 'rgba(255, 255, 255, 0.5)' :
+                    'rgba(46, 204, 113, 0.25)';
+            State.particles.forEach(p => {
+                p.update(vw, vh);
+                p.draw(ctx, particleColor);
+            });
+
+            // Layer 2: Grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.lineWidth = 1;
+            const gridSize = 80;
+            ctx.beginPath();
+            for (let x = -vw; x < vw; x += gridSize) { ctx.moveTo(x, -vh); ctx.lineTo(x, vh); }
+            for (let y = -vh; y < vh; y += gridSize) { ctx.moveTo(-vw, y); ctx.lineTo(vw, y); }
+            ctx.stroke();
+
+            // Layer 3: Ripples
+            if (State.mode === 'SIMULATING') updateRipples();
+            State.ripples.forEach(r => r.draw(ctx));
+
+            // Layer 4: Entities
+            const palette = scenario?.palette || ['#888', '#aaa', '#666', '#999'];
+            if (State.mode === 'SIMULATING' || State.autoplay) {
+                State.entities.forEach(e => e.update(State.entities, vw, vh));
+            }
+            State.entities.forEach(e => e.draw(ctx, palette));
+
+            // Prompt focus effect
+            if (State.mode === 'PROMPTING' && State.selectedSimEntity) {
+                ctx.strokeStyle = CONFIG.colors.accent;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const focusR = (State.frames * 4) % 100;
+                ctx.arc(State.selectedSimEntity.pos.x, State.selectedSimEntity.pos.y, focusR, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // --- VECTOR MODAL ---
+            if (State.mode === 'PROMPTING' && !State.autoplay) {
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(sw, 0, vw, vh);
+
+                const mw = 320;
+                const mh = 220;
+                const mx = sw + (vw - mw) / 2;
+                const my = (vh - mh) / 2;
+
+                UI.panel(mx, my, mw, mh, 'rgba(15,15,15,0.95)');
+                UI.text("INJECT VECTOR", mx + 20, my + 20, CONFIG.colors.accent, 14);
+                UI.text(`Entity: ${State.selectedSimEntity?.name || 'Unknown'}`, mx + 20, my + 45, CONFIG.colors.textDim, 11);
+
+                const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                const vecColors = ['#4af626', '#ef4444', '#a855f7'];
+                vectors.forEach((v, i) => {
+                    UI.button(`vec_${i}`, mx + 20, my + 70 + (i * 45), mw - 40, 35, `> ${v}`, () => spawnRipple(v));
+                });
+            }
+
+            // --- TERMINAL / WORLDTEXT ---
+            const th = CONFIG.layout.termHeight;
+            const ty = vh - th;
+            UI.panel(sw, ty, vw, th, CONFIG.colors.bgTerm);
+
+            if (State.worldtextDisplay && State.worldtextTimer > 0) {
+                State.worldtextTimer--;
+                const alpha = Math.min(1, State.worldtextTimer / 50);
+                ctx.fillStyle = `rgba(0, 255, 157, ${alpha})`;
+                ctx.font = '13px monospace';
+                ctx.textAlign = 'left';
+
+                // Word wrap
+                const words = State.worldtextDisplay.split(' ');
+                let line = '';
+                let ly = ty + 20;
+                const maxWidth = vw - 40;
+
+                for (const word of words) {
+                    const test = line + word + ' ';
+                    if (ctx.measureText(test).width > maxWidth) {
+                        ctx.fillText(line, sw + 20, ly);
+                        line = word + ' ';
+                        ly += 18;
+                    } else {
+                        line = test;
+                    }
+                }
+                ctx.fillText(line, sw + 20, ly);
+            } else {
+                // Show log
+                let ly = ty + 15;
+                State.logs.slice(0, 7).forEach(log => {
+                    const color = log.type === 'alert' ? CONFIG.colors.textAlert : CONFIG.colors.textDim;
+                    UI.text(`[${log.time}] ${log.msg}`, sw + 20, ly, color, 10);
+                    ly += 18;
+                });
+            }
+
+            // --- CRT POST-PROCESS ---
+            if (State.crtEnabled) {
+                ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                for (let y = 0; y < canvas.height; y += 3) ctx.fillRect(0, y, canvas.width, 1);
+
+                const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.height / 3, canvas.width / 2, canvas.height / 2, canvas.height);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Schedule next prompt
+            State.frames++;
+            if (State.mode === 'SIMULATING' && State.frames > State.nextEventTime) triggerPromptMode();
+            if (Mouse.click) Mouse.click = false;
+            requestAnimationFrame(draw);
+        }
+
+        // =========================================
+        // INITIALIZE
+        // =========================================
+        init();
+        draw();
+        log("Living simulation active.", "info");
+    </script>
+</body>
+
+</html>

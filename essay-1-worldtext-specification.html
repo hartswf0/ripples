@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological
+        Interfaces</title>
+
+    <!-- Academic Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-primary: #fdfcfa;
+            --bg-secondary: #f7f5f0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4a4a4a;
+            --text-muted: #7a7a7a;
+            --accent-gold: #b8860b;
+            --accent-red: #8b0000;
+            --accent-cyan: #008b8b;
+            --accent-green: #2d5a27;
+            --border-light: #e0ddd5;
+            --shadow-soft: rgba(0, 0, 0, 0.08);
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --mono: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--serif);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
+            z-index: 1000;
+            transition: width 0.1s;
+        }
+
+        /* Navigation */
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(253, 252, 250, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            z-index: 999;
+            transform: translateY(-100%);
+            transition: transform 0.3s;
+        }
+
+        .nav-header.visible {
+            transform: translateY(0);
+        }
+
+        .nav-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .nav-section {
+            font-family: var(--sans);
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            height: 85vh;
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom,
+                    rgba(253, 252, 250, 0.3) 0%,
+                    rgba(253, 252, 250, 0.6) 50%,
+                    rgba(253, 252, 250, 0.95) 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 800px;
+            padding: 40px;
+        }
+
+        .hero-title {
+            font-family: var(--serif);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .hero-subtitle {
+            font-family: var(--sans);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            font-weight: 300;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            letter-spacing: 0.02em;
+        }
+
+        .hero-meta {
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        /* Author Attribution */
+        .author-attribution {
+            text-align: center;
+            padding: 32px 24px 48px;
+            background: var(--bg-primary);
+        }
+
+        .author-label {
+            font-family: var(--sans);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .author-name {
+            font-family: var(--serif);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .author-date {
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        .content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        /* Section Headers */
+        .section-number {
+            font-family: var(--sans);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-family: var(--serif);
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 32px;
+            line-height: 1.3;
+        }
+
+        h3 {
+            font-family: var(--serif);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 48px;
+            margin-bottom: 20px;
+        }
+
+        h4 {
+            font-family: var(--sans);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+
+        /* Paragraphs */
+        p {
+            font-size: 1.15rem;
+            margin-bottom: 24px;
+            text-align: justify;
+            hyphens: auto;
+        }
+
+        /* Emphasis */
+        strong {
+            font-weight: 600;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        /* Links */
+        a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        a:hover {
+            border-bottom-color: var(--accent-gold);
+        }
+
+        /* Figures */
+        figure {
+            margin: 48px 0;
+            margin-left: -80px;
+            margin-right: -80px;
+        }
+
+        @media (max-width: 900px) {
+            figure {
+                margin-left: -24px;
+                margin-right: -24px;
+            }
+        }
+
+        figure img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+            box-shadow: 0 12px 40px var(--shadow-soft);
+        }
+
+        figcaption {
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 16px;
+            padding: 0 24px;
+            line-height: 1.6;
+        }
+
+        figcaption .fig-number {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Blockquotes */
+        blockquote {
+            margin: 40px 0;
+            padding: 24px 32px;
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-gold);
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+
+        blockquote cite {
+            display: block;
+            margin-top: 12px;
+            font-family: var(--sans);
+            font-size: 13px;
+            font-style: normal;
+            color: var(--text-muted);
+        }
+
+        /* Code Blocks */
+        pre {
+            margin: 32px 0;
+            padding: 24px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        pre code {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: #d4d4d4;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: var(--mono);
+            font-size: 0.9em;
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            margin: 40px 0;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--sans);
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-light);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Lists */
+        ul,
+        ol {
+            margin: 24px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        /* Dividers */
+        hr {
+            margin: 64px 0;
+            border: none;
+            border-top: 1px solid var(--border-light);
+        }
+
+        /* Vector Colors */
+        .vector-goal {
+            color: var(--accent-gold);
+        }
+
+        .vector-obstacle {
+            color: var(--accent-red);
+        }
+
+        .vector-shift {
+            color: var(--accent-cyan);
+        }
+
+        /* Footnotes */
+        .footnote {
+            font-family: var(--sans);
+            font-size: 11px;
+            color: var(--text-muted);
+            vertical-align: super;
+            margin-left: 2px;
+        }
+
+        /* References Section */
+        .references {
+            background: var(--bg-secondary);
+            padding: 60px 24px;
+            margin-top: 80px;
+        }
+
+        .references-inner {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .references h2 {
+            font-size: 1.5rem;
+            margin-bottom: 32px;
+        }
+
+        .reference-item {
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            padding-left: 32px;
+            text-indent: -32px;
+            line-height: 1.6;
+        }
+
+        .reference-item a {
+            word-break: break-all;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 24px;
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-light);
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: var(--bg-secondary);
+            padding: 32px;
+            margin: 48px 0;
+            border-radius: 8px;
+        }
+
+        .toc-title {
+            font-family: var(--sans);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-list li {
+            margin-bottom: 8px;
+            font-family: var(--sans);
+            font-size: 14px;
+        }
+
+        .toc-list a {
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .toc-list a:hover {
+            color: var(--accent-gold);
+        }
+
+        .toc-number {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Print Styles */
+        @media print {
+
+            .nav-header,
+            .progress-bar {
+                display: none;
+            }
+
+            .hero {
+                height: auto;
+                min-height: auto;
+                page-break-after: always;
+            }
+
+            figure {
+                margin: 24px 0;
+                page-break-inside: avoid;
+            }
+
+            h2,
+            h3 {
+                page-break-after: avoid;
+            }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            html {
+                font-size: 15px;
+            }
+
+            .hero {
+                height: 70vh;
+                min-height: 500px;
+            }
+
+            .hero-content {
+                padding: 24px;
+            }
+
+            .content {
+                padding: 48px 20px;
+            }
+
+            figure {
+                margin: 32px -20px;
+            }
+
+            blockquote {
+                padding: 20px;
+                margin: 32px 0;
+            }
+
+            pre {
+                padding: 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="progress-bar" id="progress"></div>
+
+    <nav class="nav-header" id="nav">
+        <div class="nav-inner">
+            <span class="nav-title">RIPPLES: Theoretical Framework</span>
+            <span class="nav-section" id="nav-section">Introduction</span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/1.png"
+            alt="RIPPLES: Worldtext Generator Specification" class="hero-image">
+    </header>
+    <div class="author-attribution">
+        <p class="author-label">A Research Framework</p>
+        <p class="author-name">RIPPLES Research Initiative</p>
+        <p class="author-date">2026</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="content">
+
+        <!-- Table of Contents -->
+        <nav class="toc">
+            <div class="toc-title">Contents</div>
+            <ol class="toc-list">
+                <li><a href="#introduction"><span>Introduction: The Turn Toward Operative Fiction</span><span
+                            class="toc-number">§1</span></a></li>
+                <li><a href="#phenomenology"><span>The Phenomenology of the World Jockey</span><span
+                            class="toc-number">§2</span></a></li>
+                <li><a href="#spatial"><span>Spatial Architecture: The Grid and Adjacency</span><span
+                            class="toc-number">§3</span></a></li>
+                <li><a href="#vectors"><span>Vector Dynamics: The Mechanics of Intervention</span><span
+                            class="toc-number">§4</span></a></li>
+                <li><a href="#latent"><span>The Latent Library: Generative Ecology</span><span
+                            class="toc-number">§5</span></a></li>
+                <li><a href="#sonic"><span>Sonic Ecology: Generative Audio Architecture</span><span
+                            class="toc-number">§6</span></a></li>
+                <li><a href="#visual"><span>Visual Design: Cassette Futurism and CRT Aesthetics</span><span
+                            class="toc-number">§7</span></a></li>
+                <li><a href="#technical"><span>Technical Specification and Architecture</span><span
+                            class="toc-number">§8</span></a></li>
+                <li><a href="#epistemic"><span>Epistemic Commitments and Conclusion</span><span
+                            class="toc-number">§9</span></a></li>
+                <li><a href="#roadmap"><span>Implementation Roadmap</span><span class="toc-number">§10</span></a></li>
+            </ol>
+        </nav>
+
+        <hr>
+
+        <!-- Section 1: Introduction -->
+        <section id="introduction" data-section="Introduction">
+            <p class="section-number">Section 1</p>
+            <h2>Introduction: The Turn Toward Operative Fiction</h2>
+
+            <p>The contemporary landscape of human-computer interaction (HCI) is dominated by two primary paradigms: the
+                <strong>utilitarian tool</strong>, designed for efficiency and task completion, and the
+                <strong>immersive simulation</strong>, designed for entertainment and escapism. Both paradigms, however,
+                rely on a fundamental anthropocentric assumption: that the user is the protagonist and the digital
+                environment is a stage set for human action.
+            </p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/2.png"
+                    alt="The Limitation of Two Paradigms">
+                <figcaption><span class="fig-number">Figure 1.</span> The two dominant paradigms in HCI—utilitarian
+                    tools and immersive simulations—both rely on anthropocentric assumptions. RIPPLES proposes a third
+                    paradigm: Operative Fiction.</figcaption>
+            </figure>
+
+            <p>The <strong>RIPPLES</strong> project proposes a third paradigm: <strong>Operative Fiction</strong>. In
+                this framework, the interface functions not as a passive display or a subservient tool, but as a
+                generative instrument for exploring "imaginary ecologies"—complex systems of nonhuman entities, forces,
+                and phenomenologies.</p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/3.png"
+                    alt="Operative Fiction: A Third Paradigm">
+                <figcaption><span class="fig-number">Figure 2.</span> RIPPLES as a generative instrument that explores
+                    imaginary ecologies through the production of Worldtext—poetic state descriptions from nonhuman
+                    perspectives.</figcaption>
+            </figure>
+
+            <p>RIPPLES is defined explicitly as a <strong>Worldtext Generator</strong>, a machine designed to produce
+                poetic state descriptions from the perspective of nonhuman entities.<sup class="footnote">1</sup> It
+                rejects the label of "simulation" because simulation implies an attempt to accurately model reality, a
+                goal that RIPPLES acknowledges is epistemically impossible when dealing with the internal experiences of
+                an ant, a dust mote, or a shadow.</p>
+
+            <blockquote>
+                "All models are wrong. We aim to be usefully wrong."
+                <cite>— Core Epistemic Commitment of RIPPLES<sup class="footnote">3</sup></cite>
+            </blockquote>
+
+            <p>Instead, RIPPLES embraces <strong>epistemic humility</strong>—the recognition that we cannot know what an
+                entity experiences; it generates a speculation, a "what if," formalized through the constraints of a
+                digital grid and a latent text library.</p>
+
+            <h3>1.1 The Concept of Worldtext</h3>
+
+            <p>"Worldtext" serves as the primary output of the RIPPLES system. Unlike narrative text, which relies on
+                plot, character arc, and temporal progression (beginning, middle, end), worldtext is
+                <strong>state-focused</strong> and <strong>perspective-locked</strong>. It describes a specific entity's
+                phenomenological reality at a single moment in time, frozen and expanded for human consideration.
+            </p>
+
+            <p>The generation of worldtext requires a unique approach to natural language generation (NLG). It must
+                bridge the gap between structured data (grid position, adjacency, vector type) and poetic prose. While
+                early generative systems relied on simple template filling, RIPPLES employs a "Latent Library"—a
+                database of pre-written, modular descriptions—augmented by generative grammars like Tracery or
+                Bracery.<sup class="footnote">6</sup></p>
+
+            <h3>1.2 Epistemic Humility and Speculative Design</h3>
+
+            <p>The philosophical core of RIPPLES is grounded in <strong>Posthumanism</strong> and
+                <strong>Object-Oriented Ontology (OOO)</strong>, which posit that nonhuman entities exist independently
+                of human perception and have their own valid ways of being. However, we cannot access these ways of
+                being directly. To claim we know what it is like to be a bat or a dust mote is arrogance.
+            </p>
+
+            <p>Therefore, RIPPLES functions as a <strong>diegetic prototype</strong>.<sup class="footnote">9</sup> It
+                creates a fiction that <em>acts</em> as if it were true within the boundaries of the interface. The
+                "uncertainty markers" required in the text ("perhaps," "as if," "it is possible that") act as constant
+                reminders of this speculative nature.</p>
+        </section>
+
+        <hr>
+
+        <!-- Section 2: Phenomenology -->
+        <section id="phenomenology" data-section="The World Jockey">
+            <p class="section-number">Section 2</p>
+            <h2>The Phenomenology of the World Jockey</h2>
+
+            <p>The operator of RIPPLES is distinct from a traditional user or player. The <strong>World Jockey
+                    (WJ)</strong> is a performer whose instrument is the ecology itself. This role synthesizes four
+                distinct archetypes of control and creation, each mapping to specific functional requirements within the
+                interface.</p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/4.png"
+                    alt="The World Jockey: Four Archetypes Unified">
+                <figcaption><span class="fig-number">Figure 3.</span> The World Jockey synthesizes four archetypes: The
+                    DJ (mixing perspectives), The VJ (visual manipulation), The Prompt Jockey (steering generative
+                    systems), and The Demiurge (world-making).</figcaption>
+            </figure>
+
+            <h3>2.1 The DJ: Mixing Ecologies and Perspectives</h3>
+
+            <p>Just as a Disc Jockey manages the transition between musical tracks, maintaining tempo and key while
+                shifting the sonic landscape, the WJ manages the transition between <strong>perspectives</strong>. In an
+                ecological network, entities exist simultaneously, but attention is finite. The WJ must "lock" a
+                perspective, bringing a specific node (e.g., the Ant) into the foreground while others recede.</p>
+
+            <h3>2.2 The VJ: Visual Manipulation and Feedback</h3>
+
+            <p>The Visual Jockey (VJ) aspect focuses on the real-time manipulation of the grid's visual state. RIPPLES
+                is not a text-only adventure; it is a visual system where data events (ripples) are rendered as optical
+                events. The VJ triggers "Ripple Animations"—concentric rings of light that expand from the active
+                entity, illuminating connections and illustrating the propagation of influence.<sup
+                    class="footnote">5</sup></p>
+
+            <h3>2.3 The Prompt Jockey: Steering Generative Systems</h3>
+
+            <p>In the era of Large Language Models (LLMs) and generative AI, the role of the "Prompt Jockey" has emerged
+                as a critical skill. The WJ does not write the text; they steer the system that produces it. By
+                selecting a specific vector (<span class="vector-goal">GOAL</span>, <span
+                    class="vector-obstacle">OBSTACLE</span>, or <span class="vector-shift">SHIFT</span>), the WJ
+                provides the semantic "seed" for the generation.</p>
+
+            <h3>2.4 The Demiurge: World-Making and Rule Definition</h3>
+
+            <p>Finally, the WJ acts as a Demiurge, responsible for the construction of the scene itself. Before the
+                performance begins, the WJ selects a <strong>Scenario</strong> (e.g., "The Cupboard," "Deep Forest").
+                This action loads a specific JSON configuration that defines the grid dimensions, the entity population,
+                and the adjacency rules.</p>
+
+            <h3>2.5 Workflow Integration</h3>
+
+            <p>The integration of these four roles creates a cyclical workflow:</p>
+
+            <ol>
+                <li><strong>Load</strong> (Demiurge): Select cupboard.</li>
+                <li><strong>Survey</strong> (DJ): Observe the grid.</li>
+                <li><strong>Lock</strong> (DJ): Select ant.</li>
+                <li><strong>Inject</strong> (Prompt Jockey): Trigger GOAL (Key: G).</li>
+                <li><strong>Watch</strong> (VJ): Observe the gold ripple expand.</li>
+                <li><strong>Read</strong>: Internalize the generated worldtext.</li>
+                <li><strong>Transition</strong> (DJ): Select plates (adjacent entity).</li>
+                <li><strong>Repeat</strong>.</li>
+            </ol>
+        </section>
+
+        <hr>
+
+        <!-- Section 3: Spatial Architecture -->
+        <section id="spatial" data-section="Spatial Architecture">
+            <p class="section-number">Section 3</p>
+            <h2>Spatial Architecture: The Grid and Adjacency</h2>
+
+            <p>The <strong>Grid</strong> is the foundational data structure of RIPPLES. It provides the spatial logic
+                that transforms a list of entities into an interconnected ecology. While visualised as a Cartesian
+                matrix, its underlying logic is relational and graph-based.</p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/5.png"
+                    alt="Spatial Architecture: The Grid">
+                <figcaption><span class="fig-number">Figure 4.</span> The Grid is a foundational, relational data
+                    structure. Visualized as an 8×6 matrix, its logic is graph-based, where adjacency is
+                    semantic—defined by causal, sensory, or thematic links rather than purely physical proximity.
+                </figcaption>
+            </figure>
+
+            <h3>3.1 Grid Structure and Configuration</h3>
+
+            <p>The grid is defined as a fixed-size matrix, defaulting to <strong>8 columns by 6 rows</strong>. This
+                constraint is intentional, referencing the limited screen real estate of early computing terminals and
+                forcing a focused, meaningful selection of entities rather than an infinite sprawl.<sup
+                    class="footnote">11</sup></p>
+
+            <pre><code>// Grid Configuration Object
+const gridConfig = {
+  cols: 8,
+  rows: 6,
+  cells: [], // Array of 48 cell objects
+  entityMap: {
+    'ant': { x: 1, y: 2 },
+    'dust-mote': { x: 0, y: 0 },
+    'light': { x: 3, y: 0 }
+  }
+};</code></pre>
+
+            <h3>3.2 Cell Properties and State</h3>
+
+            <p>Cells are not static; they are state machines. A cell tracks its visual intensity and its participation
+                in a ripple event.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>x</code></td>
+                            <td>Integer</td>
+                            <td>Column index (0-7)</td>
+                        </tr>
+                        <tr>
+                            <td><code>y</code></td>
+                            <td>Integer</td>
+                            <td>Row index (0-5)</td>
+                        </tr>
+                        <tr>
+                            <td><code>entityId</code></td>
+                            <td>String|Null</td>
+                            <td>ID of the entity in this cell</td>
+                        </tr>
+                        <tr>
+                            <td><code>state</code></td>
+                            <td>Enum</td>
+                            <td>active (default), rippling, dormant</td>
+                        </tr>
+                        <tr>
+                            <td><code>rippleIntensity</code></td>
+                            <td>Float</td>
+                            <td>0.0 to 1.0, drives CSS opacity/scale</td>
+                        </tr>
+                        <tr>
+                            <td><code>adjacentTo</code></td>
+                            <td>Array</td>
+                            <td>List of IDs connected to this node</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>3.3 Relational Logic: Adjacency Rules</h3>
+
+            <p>In a standard simulation, adjacency is usually determined by physical proximity (Moore or Von Neumann
+                neighborhoods). In RIPPLES, adjacency is <strong>semantic</strong>. An entity is "adjacent" to another
+                if there is a causal, sensory, or thematic link between them, regardless of their grid distance.</p>
+
+            <pre><code>adjacencyRules: {
+  'ant': ['plates', 'glass', 'shadow'],
+  'dust-mote': ['light', 'shadow'],
+  'light': ['shadow', 'dust-mote']
+}</code></pre>
+
+            <p>This reflects the "Umwelt" theory of Jakob von Uexküll—an organism is connected only to what is
+                significant in its specific sensory world.</p>
+        </section>
+
+        <hr>
+
+        <!-- Section 4: Vector Dynamics -->
+        <section id="vectors" data-section="Vector Dynamics">
+            <p class="section-number">Section 4</p>
+            <h2>Vector Dynamics: The Mechanics of Intervention</h2>
+
+            <p>RIPPLES replaces standard UI interactions (click, drag, type) with a system of <strong>Vectors</strong>.
+                A vector is a directed force or perturbation applied to an entity. It is the primary method by which the
+                WJ "steers" the generative worldtext.</p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/6.png"
+                    alt="Three Canonical Vectors">
+                <figcaption><span class="fig-number">Figure 5.</span> The Three Canonical Vectors—GOAL (Gold), OBSTACLE
+                    (Red), and SHIFT (Cyan)—are directed forces applied to entities within the RIPPLES framework.
+                </figcaption>
+            </figure>
+
+            <h3>4.1 The Three Canonical Vectors</h3>
+
+            <p>There are exactly three vectors in the system. This limitation is a design choice to reduce cognitive
+                load and force creative interpretation of a limited vocabulary.<sup class="footnote">27</sup></p>
+
+            <h4>4.1.1 <span class="vector-goal">GOAL</span> (Gold / #ffd700)</h4>
+            <ul>
+                <li><strong>Key:</strong> G</li>
+                <li><strong>Meaning:</strong> Movement toward a resource, desire, target, or attractant.</li>
+                <li><strong>Phenomenology:</strong> For an Ant, this is foraging. For Light, this is propagation. For
+                    Mold, this is colonization.</li>
+                <li><strong>Visual:</strong> A sharp, bright gold flash that expands rapidly, suggesting urgency and
+                    directionality.</li>
+            </ul>
+
+            <h4>4.1.2 <span class="vector-obstacle">OBSTACLE</span> (Red / #ff3333)</h4>
+            <ul>
+                <li><strong>Key:</strong> O</li>
+                <li><strong>Meaning:</strong> Encounter with a barrier, threat, resistance, or limit.</li>
+                <li><strong>Phenomenology:</strong> The Ant hits a ceramic wall. The Dust Mote hits a downdraft. The
+                    Shadow hits a light source (dissolution).</li>
+                <li><strong>Visual:</strong> A pulsing red glow that may "shudder" or vibrate rather than expanding
+                    smoothly, representing collision.</li>
+            </ul>
+
+            <h4>4.1.3 <span class="vector-shift">SHIFT</span> (Cyan / #00ffff)</h4>
+            <ul>
+                <li><strong>Key:</strong> S</li>
+                <li><strong>Meaning:</strong> Internal change in state, identity, metabolism, or perceptual condition.
+                </li>
+                <li><strong>Phenomenology:</strong> The Ant enters torpor. The Water evaporates. The Shadow becomes
+                    "substance" as night falls.</li>
+                <li><strong>Visual:</strong> A slow, washing cyan wave that changes the "texture" of the grid,
+                    suggesting a phase transition.</li>
+            </ul>
+
+            <h3>4.2 The Ripple Mechanism: Data Flow</h3>
+
+            <p>When a vector is applied, a complex chain of events—a <strong>Ripple</strong>—is initiated. This is the
+                heartbeat of the RIPPLES system.</p>
+
+            <ol>
+                <li><strong>Phase 1: Trigger (0ms)</strong> — The WJ presses G. The system identifies
+                    <code>selectedEntity</code> ('ant') and the vector ('GOAL'). The tick counter increments.
+                </li>
+                <li><strong>Phase 2: Impact (0-200ms)</strong> — The ant node on the grid flashes Gold. The system
+                    queries the Latent Library for <code>latent['ant']['GOAL']</code>. This text is immediately
+                    retrieved and displayed.</li>
+                <li><strong>Phase 3: Propagation (200-800ms)</strong> — The system calculates the visual ripple. A CSS
+                    animation is triggered on a pseudo-element centered on the ant's cell.</li>
+                <li><strong>Phase 4: Cascade (800-1500ms)</strong> — Using the adjacency rules, the system identifies
+                    the "neighbors" (plates, glass). These nodes receive a "secondary ripple" event.</li>
+                <li><strong>Phase 5: Settle (1500-2000ms)</strong> — The animations complete. All entity states return
+                    to <code>active</code>. The system waits for the next input.</li>
+            </ol>
+        </section>
+
+        <hr>
+
+        <!-- Section 5: Latent Library -->
+        <section id="latent" data-section="Latent Library">
+            <p class="section-number">Section 5</p>
+            <h2>The Latent Library: Generative Ecology</h2>
+
+            <p>The <strong>Latent Library</strong> is the narrative engine of RIPPLES. It is "latent" because the
+                potential text exists before the interaction, waiting to be revealed by the specific combination of
+                Entity + Vector.</p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/7.png"
+                    alt="The Latent Library: Generative Ecology">
+                <figcaption><span class="fig-number">Figure 6.</span> The Latent Library classifies entities into
+                    Animate, Inanimate, and Abstract types, each requiring different sensory modes and writing styles.
+                    Generative grammars ensure unique Worldtext output.</figcaption>
+            </figure>
+
+            <h3>5.1 Ontology of Entities</h3>
+
+            <p>Entities are classified into three types, each requiring a different mode of descriptive writing:</p>
+
+            <ol>
+                <li><strong>Animate:</strong> Biological entities with metabolism and intent (Ant, Deer, Rat).
+                    <em>Sensory Mode:</em> Chemical, tactile, auditory. <em>Writing Style:</em> Urgent, metabolic,
+                    focused on survival.
+                </li>
+                <li><strong>Inanimate:</strong> Physical objects (Glass, Door, Stone). <em>Sensory Mode:</em>
+                    Structural, thermal, vibration. <em>Writing Style:</em> Passive, enduring, focused on state of
+                    matter.</li>
+                <li><strong>Abstract:</strong> Forces and phenomena (Light, Shadow, Time). <em>Sensory Mode:</em>
+                    Omnipresent, pervasive. <em>Writing Style:</em> Ethereal, transformative, focusing on defining the
+                    space itself.</li>
+            </ol>
+
+            <h3>5.2 Generative Grammar Examples</h3>
+
+            <p>While a static library is simpler, a <strong>Generative Grammar</strong> approach (using tools like
+                Tracery) allows for infinite variation within the constraints of the entity's voice.<sup
+                    class="footnote">6</sup></p>
+
+            <pre><code>// Generative/Tracery Example
+"ant": {
+  "GOAL": "The #entity# #movement_verb# the #surface#, tracing a #scent_type# gradient.",
+  "entity": ["Forager", "Scout", "Worker"],
+  "movement_verb": ["navigates", "traverses", "scales"],
+  "surface": ["ceramic cliff", "glass horizon", "wooden plain"],
+  "scent_type": ["sucrose", "pheromone", "chemical"]
+}</code></pre>
+
+            <h3>5.3 Canonical Scenarios</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Theme</th>
+                            <th>Key Entities</th>
+                            <th>Aesthetic Tone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cupboard</td>
+                            <td>Domestic Micro-ecology</td>
+                            <td>Ant, Dust Mote, Glass, Light</td>
+                            <td>Quiet, microscopic, fragile</td>
+                        </tr>
+                        <tr>
+                            <td>abandoned-house</td>
+                            <td>Entropy & Decay</td>
+                            <td>Mold, Wallpaper, Rain, Raccoon</td>
+                            <td>Melancholy, slow, reclaiming</td>
+                        </tr>
+                        <tr>
+                            <td>deep-forest</td>
+                            <td>Subterranean Networks</td>
+                            <td>Mycelium, Oak Root, Owl, Stone</td>
+                            <td>Dark, interconnected, vast</td>
+                        </tr>
+                        <tr>
+                            <td>urban-jungle</td>
+                            <td>Technicity</td>
+                            <td>Traffic Light, Pigeon, Puddle, Rat</td>
+                            <td>Glitchy, neon, rhythmic</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <hr>
+
+        <!-- Section 6: Sonic Ecology -->
+        <section id="sonic" data-section="Sonic Ecology">
+            <p class="section-number">Section 6</p>
+            <h2>Sonic Ecology: Generative Audio Architecture</h2>
+
+            <p>Sound is not an accessory in RIPPLES; it is a primary feedback channel. The system uses the <strong>Web
+                    Audio API</strong>, abstracted via <strong>Tone.js</strong>, to create a generative "Drone Ambient"
+                soundscape.<sup class="footnote">29</sup></p>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/8.png"
+                    alt="Sonic Ecology and Visual Design">
+                <figcaption><span class="fig-number">Figure 7.</span> The sonic ecology uses Web Audio API and Tone.js
+                    to create generative drone ambient soundscapes. Each vector type triggers distinct audio events,
+                    from crystalline bells (GOAL) to jarring thuds (OBSTACLE) to phase-shifted textures (SHIFT).
+                </figcaption>
+            </figure>
+
+            <h3>6.1 The Drone Engine</h3>
+
+            <p>The baseline auditory experience is a "Drone"—a continuous, evolving texture that represents the "hum" of
+                the ecology. This is implemented using multiple <code>Tone.Oscillator</code> nodes routed through
+                low-pass filters and reverb.<sup class="footnote">32</sup></p>
+
+            <pre><code>// Drone Synthesis Setup
+const droneA = new Tone.Oscillator(110, "sine").toDestination().start();
+const droneB = new Tone.Oscillator(112, "sine").toDestination().start(); // Detuned for beating
+const filter = new Tone.Filter(400, "lowpass").toDestination();
+
+droneA.connect(filter);
+droneB.connect(filter);
+
+// LFO for organic movement
+const lfo = new Tone.LFO(0.1, 300, 600).start();
+lfo.connect(filter.frequency);</code></pre>
+
+            <h3>6.2 Vector Sonification</h3>
+
+            <ul>
+                <li><strong><span class="vector-goal">GOAL</span> (Gold):</strong> A high-pitched, crystalline sound.
+                    Use <code>Tone.FMSynth</code> with a high harmonicity ratio (bell-like). <em>Musical Quality:</em>
+                    Consonant, resolving, major scale interval.</li>
+                <li><strong><span class="vector-obstacle">OBSTACLE</span> (Red):</strong> A low, jarring thud or noise
+                    burst. Use <code>Tone.MembraneSynth</code> or filtered White Noise. <em>Musical Quality:</em>
+                    Dissonant, percussive, abrupt decay.</li>
+                <li><strong><span class="vector-shift">SHIFT</span> (Cyan):</strong> A sweeping texture change. Use
+                    <code>Tone.Phaser</code> or <code>Tone.Chorus</code> automation to "warp" the drone for 2-3 seconds.
+                    <em>Musical Quality:</em> Ethereal, fluid, phase-shifting.
+                </li>
+            </ul>
+        </section>
+
+        <hr>
+
+        <!-- Section 7: Visual Design -->
+        <section id="visual" data-section="Visual Design">
+            <p class="section-number">Section 7</p>
+            <h2>Visual Design: Cassette Futurism and CRT Aesthetics</h2>
+
+            <p>The visual language of RIPPLES is strictly defined as <strong>Retro-Futuristic</strong> /
+                <strong>Cassette Futurism</strong>. This aesthetic choice serves a functional purpose: it lowers the
+                expectation of photorealism (the "Uncanny Valley") and heightens the acceptance of text-based
+                abstraction.<sup class="footnote">11</sup>
+            </p>
+
+            <h3>7.1 Color and Light</h3>
+
+            <p>The palette is restricted to high-contrast, terminal-phosphor colors against a near-black background
+                (<code>#050a05</code>):</p>
+
+            <ul>
+                <li><strong>Primary Text:</strong> CRT Green (<code>#4af626</code>)</li>
+                <li><strong>Vectors:</strong> Gold (<code>#ffd700</code>), Red (<code>#ff3333</code>), Cyan
+                    (<code>#00ffff</code>)</li>
+            </ul>
+
+            <h3>7.2 CRT Simulation Effects</h3>
+
+            <p>To achieve the "Operative Fiction" feel, the entire viewport is treated with a CRT post-processing effect
+                using CSS overlays:<sup class="footnote">12</sup></p>
+
+            <ol>
+                <li><strong>Scanlines:</strong> A repeating linear gradient overlay
+                    (<code>background-size: 100% 4px</code>).</li>
+                <li><strong>Flicker:</strong> An <code>@keyframes</code> animation altering opacity between 0.95 and 1.0
+                    rapidly.</li>
+                <li><strong>Curvature (Optional):</strong> A subtle <code>border-radius</code> and
+                    <code>box-shadow inset</code> to simulate the curved glass of a physical monitor.
+                </li>
+            </ol>
+        </section>
+
+        <hr>
+
+        <!-- Section 8: Technical Specification -->
+        <section id="technical" data-section="Technical Specification">
+            <p class="section-number">Section 8</p>
+            <h2>Technical Specification and Architecture</h2>
+
+            <p>RIPPLES acts as a single-page application (SPA). Given the requirements for state management and DOM
+                manipulation, <strong>React</strong> is the recommended framework, though a vanilla JS implementation is
+                possible for purists.</p>
+
+            <h3>8.1 Component Hierarchy</h3>
+
+            <ol>
+                <li><strong>AppContainer:</strong> Manages global state (scenario, tick, audit log).</li>
+                <li><strong>CRTOverlay:</strong> Visual post-processing wrapper.</li>
+                <li><strong>InterfaceLayout:</strong> Split screen (Grid Left, Controls/Text Right).</li>
+                <li><strong>GridDisplay:</strong> Renders the 8×6 matrix.
+                    <ul>
+                        <li>GridCell: Individual cell component.</li>
+                        <li>RippleOverlay: Canvas or DOM layer for animations.</li>
+                    </ul>
+                </li>
+                <li><strong>WorldtextConsole:</strong> Typewriter-style text display.</li>
+                <li><strong>ControlDeck:</strong> Vector buttons (G, O, S) and Entity Pool.</li>
+                <li><strong>AuditLog:</strong> Scrollable history.</li>
+            </ol>
+
+            <h3>8.2 State Management Logic</h3>
+
+            <pre><code>// State Store (e.g., Zustand or React Context)
+interface GameState {
+  currentScenario: string;
+  grid: Cell[][];
+  entities: Record<string, Entity>;
+  selectedEntityId: string | null;
+  tick: number;
+  isAutoplay: boolean;
+  auditLog: LogEntry[];
+  
+  // Actions
+  selectEntity: (id: string) => void;
+  triggerVector: (type: 'GOAL' | 'OBSTACLE' | 'SHIFT') => void;
+  toggleAutoplay: () => void;
+}</code></pre>
+        </section>
+
+        <hr>
+
+        <!-- Section 9: Epistemic Commitments -->
+        <section id="epistemic" data-section="Epistemic Commitments">
+            <p class="section-number">Section 9</p>
+            <h2>Epistemic Commitments and Conclusion</h2>
+
+            <figure>
+                <img src="RIPPLES_RIPPLES Worldtext Generator Specification_RIPPLES_ Theoretical Framework, Technical Specification, and Operative Methodologies for Latent Ecological Interfaces/9.png"
+                    alt="Epistemic Humility: The Usefully Wrong Model">
+                <figcaption><span class="fig-number">Figure 8.</span> The core epistemic commitment: All models are
+                    wrong, but the aim is to be usefully wrong. By framing output as poetic speculation rather than
+                    simulation data, RIPPLES avoids reductionism while creating safe spaces for imagining the radical
+                    other.</figcaption>
+            </figure>
+
+            <h3>9.1 The "Usefully Wrong" Model</h3>
+
+            <p>RIPPLES is explicitly defined by its epistemic commitment: "All models are wrong. We aim to be usefully
+                wrong." This acknowledges the limits of computation in capturing biological reality. By framing the
+                output as <strong>Poetic Speculation</strong> rather than simulation data, the system avoids the trap of
+                reductionism. It does not reduce the Ant to a state machine; it uses a state machine to prompt a human
+                to imagine the Ant.<sup class="footnote">3</sup></p>
+
+            <h3>9.2 The Interface as Performance</h3>
+
+            <p>By designating the operator as a <strong>World Jockey</strong>, RIPPLES reframes software usage as a
+                creative performance. The Grid is not a spreadsheet; it is a musical score. The Vector is not a button;
+                it is a baton. This shift in perspective—from user to performer, from data to poetics, from simulation
+                to speculation—is the core innovation of the RIPPLES framework.</p>
+
+            <h3>9.3 Future Directions</h3>
+
+            <ul>
+                <li><strong>LLM Integration:</strong> Replacing the static library with a prompted LLM (e.g.,
+                    GPT-4o-mini) could allow for dynamic worldtext generation based on the history of the audit log.<sup
+                        class="footnote">18</sup></li>
+                <li><strong>Hardware Integration:</strong> Mapping the vector controls to a physical MIDI controller
+                    (e.g., Novation Launchpad) would further enhance the "instrument" feel of the system.<sup
+                        class="footnote">42</sup></li>
+            </ul>
+
+            <blockquote>
+                "RIPPLES stands as a testament to the power of Operative Fiction: the idea that by building interfaces
+                for worlds that don't exist, we develop new sensitivities for the world that does."
+            </blockquote>
+        </section>
+
+        <hr>
+
+        <!-- Section 10: Implementation Roadmap -->
+        <section id="roadmap" data-section="Implementation Roadmap">
+            <p class="section-number">Section 10</p>
+            <h2>Implementation Roadmap</h2>
+
+            <p>For a developer tasked with building RIPPLES from scratch, the following phase order is recommended:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Focus</th>
+                            <th>Key Tasks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1</strong></td>
+                            <td>Core Data</td>
+                            <td>Define JSON schemas for Scenes, Entities, and Grid. Implement adjacencyRules logic.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>2</strong></td>
+                            <td>Grid UI</td>
+                            <td>Build the 8×6 CSS Grid. Render entity icons. Implement Selection logic.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>3</strong></td>
+                            <td>Vector Logic</td>
+                            <td>Implement triggerRipple. Connect buttons to state updates. Build the Audit Log.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>4</strong></td>
+                            <td>Visuals</td>
+                            <td>Create the Ripple CSS animation. Add CRT scanlines and glow effects.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>5</strong></td>
+                            <td>Audio</td>
+                            <td>Integrate Tone.js. Create the Drone and Vector stingers.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>6</strong></td>
+                            <td>Content</td>
+                            <td>Write the Latent Library (30+ descriptions per scenario).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>7</strong></td>
+                            <td>Polish</td>
+                            <td>Tune animation timings. Adjust color palette. Add "Start Screen" and "About".</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p><em>This specification provides the blueprint. The rest is performance.</em></p>
+        </section>
+
+    </main>
+
+    <!-- References Section -->
+    <section class="references">
+        <div class="references-inner">
+            <h2>Works Cited</h2>
+
+            <div class="reference-item">1. "Tackling Procedural text generation?" Reddit, r/proceduralgeneration,
+                accessed February 3, 2026, <a
+                    href="https://www.reddit.com/r/proceduralgeneration/comments/a6s0wo/tackling_procedural_text_generation/">https://www.reddit.com/r/proceduralgeneration/comments/a6s0wo/tackling_procedural_text_generation/</a>
+            </div>
+
+            <div class="reference-item">3. Dunne, Anthony, and Fiona Raby. <em>Speculative Everything: Design, Fiction,
+                    and Social Dreaming</em>. MIT Press, 2013. <a
+                    href="https://readings.design/PDF/speculative-everything.pdf">https://readings.design/PDF/speculative-everything.pdf</a>
+            </div>
+
+            <div class="reference-item">5. "Best Free Open Software for VJs: Top 10 Picks." VJ Galaxy, accessed February
+                3, 2026, <a
+                    href="https://vjgalaxy.com/blogs/resources-digital-assets/the-best-open-source-and-free-software-for-vjing-and-video-design">https://vjgalaxy.com/blogs/resources-digital-assets/</a>
+            </div>
+
+            <div class="reference-item">6. Compton, Kate. "Tracery: A Story-Grammar Generation Library for JavaScript."
+                GitHub, accessed February 3, 2026, <a
+                    href="https://github.com/galaxykate/tracery">https://github.com/galaxykate/tracery</a></div>
+
+            <div class="reference-item">9. "Diegetic Prototypes in the Design Fiction Film Her: A Posthumanist
+                Interpretation." Journal of Futures Studies, 2023, <a
+                    href="https://jfsdigital.org/articles-and-essays/2023-2/diegetic-prototypes-in-the-design-fiction-film-her-a-posthumanist-interpretation/">https://jfsdigital.org/articles-and-essays/2023-2/</a>
+            </div>
+
+            <div class="reference-item">11. "Retro-Futuristic UI Design." GitHub/Imetomi, accessed February 3, 2026, <a
+                    href="https://github.com/Imetomi/retro-futuristic-ui-design">https://github.com/Imetomi/retro-futuristic-ui-design</a>
+            </div>
+
+            <div class="reference-item">12. "Add CRT scanlines, screen flicker and color separation effects." GitHub
+                Gist, accessed February 3, 2026, <a
+                    href="https://gist.github.com/lmas/6a1bd445bc7a7145245085f4a740d3f5">https://gist.github.com/lmas/6a1bd445bc7a7145245085f4a740d3f5</a>
+            </div>
+
+            <div class="reference-item">18. "Running Tracery bots with LLMs." BorisTheBrave.Com, March 8, 2025, <a
+                    href="https://www.boristhebrave.com/2025/03/08/tracery-ai/">https://www.boristhebrave.com/2025/03/08/tracery-ai/</a>
+            </div>
+
+            <div class="reference-item">27. "What are User Interface (UI) Design Patterns?" Interaction Design
+                Foundation, accessed February 3, 2026, <a
+                    href="https://www.interaction-design.org/literature/topics/ui-design-patterns">https://www.interaction-design.org/literature/topics/ui-design-patterns</a>
+            </div>
+
+            <div class="reference-item">29. "Advanced techniques: Creating and sequencing audio." MDN Web Docs, accessed
+                February 3, 2026, <a
+                    href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Advanced_techniques">https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Advanced_techniques</a>
+            </div>
+
+            <div class="reference-item">32. "BasicSynth." Tone.js Wiki, GitHub, accessed February 3, 2026, <a
+                    href="https://github.com/tonejs/tone.js/wiki/BasicSynth">https://github.com/tonejs/tone.js/wiki/BasicSynth</a>
+            </div>
+
+            <div class="reference-item">42. "Awesome VJing: A curated list of VJing resources." GitHub, accessed
+                February 3, 2026, <a
+                    href="https://github.com/LimeLimeW/awesome-vjing">https://github.com/LimeLimeW/awesome-vjing</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>RIPPLES: Latent Interface Specification · Technical Research Report · 2026</p>
+        <p style="margin-top: 8px; opacity: 0.7;">Document generated from theoretical framework documentation</p>
+    </footer>
+
+    <script>
+        // Progress Bar
+        const progressBar = document.getElementById('progress');
+        const navHeader = document.getElementById('nav');
+        const navSection = document.getElementById('nav-section');
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            progressBar.style.width = scrollPercent + '%';
+
+            // Show/hide nav header
+            if (scrollTop > window.innerHeight * 0.5) {
+                navHeader.classList.add('visible');
+            } else {
+                navHeader.classList.remove('visible');
+            }
+
+            // Update current section
+            const sections = document.querySelectorAll('section[data-section]');
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    navSection.textContent = section.dataset.section;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

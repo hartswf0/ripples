@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES v3.5 // OMNISCIENT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #050505;
+            --term: #33ff00;
+            --dim: #113311;
+            --cyan: #00ffff;
+            --gold: #ffcc00;
+            --red: #ff3333;
+            --font: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--term);
+            font-family: var(--font);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CRT OVERLAY (Conditional) --- */
+        #crt-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.5;
+            mix-blend-mode: overlay;
+            transition: opacity 0.5s;
+        }
+
+        body.tui-mode #crt-layer {
+            opacity: 0;
+        }
+
+        body.tui-mode * {
+            text-shadow: none !important;
+            box-shadow: none !important;
+        }
+
+        body.tui-mode canvas {
+            filter: none !important;
+        }
+
+        /* --- MAIN VIEWPORT --- */
+        #viewport {
+            flex-grow: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            transition: filter 0.3s;
+        }
+
+        /* --- HUD (Heads Up Display) --- */
+        #hud {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            pointer-events: none;
+            font-size: 12px;
+            color: var(--term);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 1px solid var(--dim);
+        }
+
+        .hud-row {
+            margin-bottom: 4px;
+        }
+
+        .hud-label {
+            color: var(--dim);
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .hud-val {
+            font-weight: bold;
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* --- TERMINAL (Chat) --- */
+        #terminal-wrapper {
+            height: 200px;
+            background: #080808;
+            border-top: 1px solid var(--term);
+            display: flex;
+            flex-direction: column;
+            padding: 10px 20px;
+            font-size: 14px;
+            z-index: 60;
+        }
+
+        #history {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            color: #888;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column-reverse;
+            /* Bottom up */
+        }
+
+        .msg-sys {
+            color: var(--cyan);
+        }
+
+        .msg-err {
+            color: var(--red);
+        }
+
+        .msg-user {
+            color: #fff;
+            opacity: 0.5;
+        }
+
+        #input-line {
+            display: flex;
+            align-items: center;
+        }
+
+        #prompt {
+            color: var(--term);
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: var(--font);
+            font-size: 14px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        /* --- BOOT SCREEN --- */
+        #boot {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="crt-layer"></div>
+
+    <div id="viewport">
+        <canvas id="canvas"></canvas>
+
+        <div id="hud">
+            <div class="hud-row"><span class="hud-label">SCENARIO</span> <span id="hud-scene" class="hud-val"
+                    style="color:var(--cyan)">VOID</span></div>
+            <div class="hud-row"><span class="hud-label">TICK_RATE</span> <span id="hud-speed"
+                    class="hud-val">0ms</span></div>
+            <div class="hud-row"><span class="hud-label">ENTITIES</span> <span id="hud-ents" class="hud-val">0</span>
+            </div>
+            <div style="border-top: 1px dashed var(--dim); margin: 5px 0;"></div>
+            <div class="hud-row"><span class="hud-label">TRACKING_ID</span> <span id="track-id"
+                    class="hud-val">NULL</span></div>
+            <div class="hud-row"><span class="hud-label">UMWELT</span> <span id="track-state" class="hud-val">---</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIDDEN PROMPT OVERLAY -->
+    <div id="prompt-overlay"
+        style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:600px; background:#000; border:1px solid var(--term); padding:10px; z-index:200; box-shadow:0 0 20px rgba(0,255,0,0.2);">
+        <div style="color:var(--dim); font-size:10px; margin-bottom:5px;">WORLDTEXT GENERATOR // AWAITING PROMPT</div>
+        <input type="text" id="overlay-input"
+            style="width:100%; background:transparent; border:none; color:var(--term); font-family:var(--font); font-size:14px; outline:none; text-transform:uppercase;"
+            placeholder="Describe an entity or structure (e.g., 'A STONE TEMPLE', 'A COIL OF SNAKES')...">
+    </div>
+
+    <div id="boot" onclick="boot()">
+        <h1 style="color:var(--term); text-shadow: 0 0 15px var(--term);">RIPPLES v4.0</h1>
+        <p style="color:var(--dim); font-size:12px;">[WORLDTEXT DISPLAY // CLICK TO INITIALIZE]</p>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES v4.0 - WORLDTEXT DISPLAY
+         * "The Grid is the Prompt"
+         */
+
+        // --- CONFIG ---
+        const COLS = 60;
+        const ROWS = 28;
+
+        // --- MOCK LLM RASTERIZER ---
+        const LATENT_SPACE = {
+            'TEMPLE': [
+                "  /\\  ",
+                " /xx\\ ",
+                " |[]| ",
+                " |[]| "
+            ],
+            'CASTLE': [
+                "|~| |~|",
+                "|_|_|_|",
+                "|[] []|",
+                "|_____|"
+            ],
+            'SNAKE': [
+                "   O   ",
+                "  / \\  ",
+                "  | |  ",
+                "  \\ \\_ "
+            ],
+            'GHOST': [
+                " .-. ",
+                "(Oo )",
+                " `-' "
+            ],
+            'TREE': [
+                "  ^  ",
+                " /#\\ ",
+                "/###\\",
+                "  |  "
+            ],
+            'SKULL': [
+                " /``\\ ",
+                "| () |",
+                " \\../ "
+            ]
+        };
+
+        // --- STATE ---
+        let state = {
+            grid: [],
+            agents: [],
+            ripples: [],
+            tick: 0,
+            running: false,
+            speed: 100,
+            mode: 'CRT',
+            promptOpen: false
+        };
+
+        // --- AUDIO ---
+        const Audio = {
+            ready: false,
+            synth: null,
+            init: async () => {
+                await Tone.start();
+                Audio.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                Audio.synth.volume.value = -12;
+                Audio.ready = true;
+            },
+            play: (note) => { if (Audio.ready && state.running) Audio.synth.triggerAttackRelease(note, "32n"); }
+        };
+
+        // --- ENGINE CORE ---
+        function init() {
+            state.grid = Array(ROWS * COLS).fill({ char: '.', color: '#222' });
+            resize();
+            loop();
+        }
+
+        function updatePhysics() {
+            // 1. RIPPLES
+            let activeRipples = [];
+            state.ripples.forEach(r => {
+                r.radius += 0.8;
+                for (let i = 0; i < state.grid.length; i++) {
+                    const gx = i % COLS; const gy = Math.floor(i / COLS);
+                    const dist = Math.sqrt((gx - r.x) ** 2 + (gy - r.y) ** 2);
+                    if (dist < r.radius && dist > r.radius - 2) {
+                        if (r.type === 'RASTER') {
+                            state.grid[i] = { char: r.char, color: r.color };
+                        }
+                        else if (r.type === 'CLEAR') {
+                            state.grid[i] = { char: '.', color: '#222' };
+                        }
+                    }
+                }
+                if (r.radius < r.maxRadius) activeRipples.push(r);
+            });
+            state.ripples = activeRipples;
+
+            // 2. AGENTS
+            state.agents.forEach(a => {
+                if (Math.random() > 0.3) {
+                    const dx = Math.floor(Math.random() * 3) - 1;
+                    const dy = Math.floor(Math.random() * 3) - 1;
+                    const nx = a.x + dx;
+                    const ny = a.y + dy;
+
+                    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                        // Simple collision with grid chars
+                        const cell = state.grid[ny * COLS + nx];
+                        if (cell.char !== '.' && cell.char !== ' ') {
+                            // Bump
+                            Audio.play("F2");
+                        } else {
+                            a.x = nx; a.y = ny;
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- RENDERER ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+
+        function draw() {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const scaleX = canvas.width / COLS;
+            const scaleY = canvas.height / ROWS;
+
+            ctx.font = `${Math.floor(scaleY)}px "JetBrains Mono"`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Draw Grid
+            for (let i = 0; i < state.grid.length; i++) {
+                const x = i % COLS; const y = Math.floor(i / COLS);
+                const cell = state.grid[i];
+
+                ctx.fillStyle = cell.color;
+                if (cell.char !== '.' && cell.char !== ' ') {
+                    ctx.fillText(cell.char, x * scaleX + scaleX / 2, y * scaleY + scaleY / 2);
+                }
+            }
+
+            // Draw Agents
+            state.agents.forEach(a => {
+                ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 5; ctx.shadowColor = '#fff';
+                ctx.fillText('A', a.x * scaleX + scaleX / 2, a.y * scaleY + scaleY / 2);
+                ctx.shadowBlur = 0;
+            });
+
+            // Prompt Mode Overlay
+            if (state.promptOpen) {
+                ctx.fillStyle = 'rgba(0, 50, 0, 0.5)';
+                ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+            }
+        }
+
+        // --- GAME LOOP ---
+        function loop() {
+            if (state.running) {
+                state.tick++;
+                updatePhysics();
+            }
+            draw();
+            setTimeout(() => requestAnimationFrame(loop), state.speed);
+        }
+
+        // --- GENERATIVE AI SIMULATION ---
+        function rasterize(term, cx, cy) {
+            // 1. Text to Glyph
+            if (term.length === 1) {
+                // Single char flood
+                spawnRipple(cx, cy, 'RASTER', { char: term, color: '#0f0' });
+                return;
+            }
+
+            // 2. Keyword Lookup
+            let shape = LATENT_SPACE['TREE']; // Default
+            let color = '#0f0';
+
+            // Simple NLP
+            if (term.includes('TEMPLE')) { shape = LATENT_SPACE.TEMPLE; color = '#fc0'; }
+            if (term.includes('CASTLE')) { shape = LATENT_SPACE.CASTLE; color = '#ccc'; }
+            if (term.includes('SNAKE')) { shape = LATENT_SPACE.SNAKE; color = '#0f0'; }
+            if (term.includes('GHOST')) { shape = LATENT_SPACE.GHOST; color = '#fff'; }
+            if (term.includes('SKULL')) { shape = LATENT_SPACE.SKULL; color = '#ccc'; }
+
+            // Rasterize Shape Center
+            const h = shape.length;
+            const w = shape[0].length;
+            const startX = cx - Math.floor(w / 2);
+            const startY = cy - Math.floor(h / 2);
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const char = shape[y][x];
+                    if (char !== ' ') {
+                        const idx = (startY + y) * COLS + (startX + x);
+                        if (idx >= 0 && idx < state.grid.length) {
+                            state.grid[idx] = { char, color };
+                        }
+                    }
+                }
+            }
+
+            spawnRipple(cx, cy, 'RASTER_FX', null); // Visual flare only
+        }
+
+        const overlay = document.getElementById('prompt-overlay');
+        const input = document.getElementById('overlay-input');
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                state.promptOpen = !state.promptOpen;
+                overlay.style.display = state.promptOpen ? 'block' : 'none';
+                if (state.promptOpen) {
+                    input.focus();
+                    state.running = false; // Pause while thinking
+                } else {
+                    // Submit!
+                    const prompt = input.value.toUpperCase();
+                    if (prompt) {
+                        rasterize(prompt, Math.floor(COLS / 2), Math.floor(ROWS / 2));
+                        input.value = '';
+                    }
+                    state.running = true;
+                }
+            }
+        });
+
+        function spawnRipple(x, y, type, payload) {
+            state.ripples.push({
+                x, y, radius: 0, maxRadius: 20,
+                type, char: payload ? payload.char : '?', color: payload ? payload.color : '#fff'
+            });
+            Audio.play("C4");
+        }
+
+        function boot() {
+            document.getElementById('boot').style.display = 'none';
+            Audio.init();
+            state.running = true;
+            // Spawn basic agents
+            for (let i = 0; i < 10; i++) state.agents.push({ x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) });
+        }
+
+        init();
+
+    </script>
+</body>
+
+</html>

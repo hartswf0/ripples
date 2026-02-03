@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES v3.0 // DEMIURGE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            --bg: #050505;
+            --term: #33ff00;
+            --dim: #113311;
+            --cyan: #00ffff;
+            --gold: #ffcc00;
+            --red: #ff3333;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--term);
+            font-family: 'Space Mono', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CRT OVERLAY --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px; pointer-events: none; z-index: 50; opacity: 0.5;
+        }
+
+        /* --- MAIN DISPLAY --- */
+        #viewport {
+            flex-grow: 1;
+            position: relative;
+            border-bottom: 2px solid var(--term);
+            background: #000;
+        }
+        
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* --- COMMAND LINE --- */
+        #console {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background: #0a0a0a;
+            font-size: 16px;
+        }
+
+        #prompt { color: var(--cyan); margin-right: 10px; font-weight: bold; }
+        
+        input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--term);
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            outline: none;
+            caret-color: var(--term);
+            text-transform: uppercase;
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            pointer-events: none;
+            font-size: 12px;
+            color: var(--dim);
+        }
+        .active-scene { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+
+        /* --- BOOT OVERLAY --- */
+        #boot {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column; cursor: pointer;
+        }
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div id="viewport">
+        <canvas id="canvas"></canvas>
+        <div id="hud">
+            <div>SYSTEM: ONLINE</div>
+            <div>SCENARIO: <span id="scene-name" class="active-scene">VOID</span></div>
+            <div>ENTITIES: <span id="ent-count">0</span></div>
+        </div>
+    </div>
+
+    <div id="console">
+        <span id="prompt">DEMIURGE@CORE:~$</span>
+        <input type="text" id="cmd-input" placeholder="Type a command (e.g. 'Shift to Forest', 'Spawn 20 Ants')..." autofocus>
+    </div>
+
+    <div id="boot" onclick="boot()">
+        <h1 style="color:var(--term); text-shadow: 0 0 10px var(--term);">RIPPLES v3.0</h1>
+        <p style="color:var(--dim)">[CLICK TO INITIALIZE AUDIO/VISUAL LINK]</p>
+    </div>
+
+<script>
+    /**
+     * RIPPLES v3.0 - DEMIURGE ENGINE
+     * Natural Language Processing + Ripple Phase Shifting
+     */
+
+    // --- CONFIG ---
+    const COLS = 60;
+    const ROWS = 30;
+    const CELL_SIZE = 16;
+
+    // --- SCENARIO DEFINITIONS ---
+    const SCENARIOS = {
+        'VOID': { bg: '.', ent: [], color: '#333' },
+        'CUPBOARD': { 
+            bg: '·', 
+            wall: '#',
+            entities: { agent: 'A', goal: 'G', obs: 'O' },
+            colors: { agent: '#fff', goal: '#fc0', obs: '#f33' },
+            desc: "Domestic stillness. Ceramic cliffs."
+        },
+        'FOREST': { 
+            bg: ',', 
+            wall: 'T',
+            entities: { agent: 'M', goal: 'R', obs: 'S' }, // Mycelium, Rain, Stone
+            colors: { agent: '#0f0', goal: '#0ff', obs: '#888' },
+            desc: "Subterranean networks. Decay."
+        },
+        'CITY': { 
+            bg: '+', 
+            wall: '█',
+            entities: { agent: 'R', goal: '$', obs: 'X' }, // Rat, Trash, Trap
+            colors: { agent: '#f0f', goal: '#0f0', obs: '#f00' },
+            desc: "Concrete geology. Neon noise."
+        }
+    };
+
+    // --- STATE ---
+    let state = {
+        grid: [],
+        agents: [],
+        ripples: [], // Active visual waves
+        currentScene: 'VOID',
+        tick: 0,
+        running: false
+    };
+
+    // --- AUDIO (Tone.js) ---
+    const Audio = {
+        ready: false,
+        synth: null,
+        noise: null,
+        phaser: null,
+        
+        init: async () => {
+            await Tone.start();
+            Audio.phaser = new Tone.Phaser({ frequency: 15, octaves: 5, baseFrequency: 1000 }).toDestination();
+            
+            Audio.synth = new Tone.PolySynth(Tone.FMSynth).connect(Audio.phaser);
+            Audio.synth.volume.value = -12;
+            
+            Audio.noise = new Tone.NoiseSynth().toDestination();
+            Audio.noise.volume.value = -20;
+            
+            Audio.ready = true;
+        },
+
+        rippleSound: (type) => {
+            if(!Audio.ready) return;
+            if(type === 'SHIFT') {
+                const osc = new Tone.Oscillator(50, "sawtooth").connect(Audio.phaser).start();
+                osc.frequency.rampTo(500, 2);
+                osc.stop("+2");
+            } else if (type === 'SPAWN') {
+                Audio.synth.triggerAttackRelease(["C4", "E4", "G4"], "16n");
+            } else if (type === 'KILL') {
+                Audio.noise.triggerAttackRelease("8n");
+            }
+        }
+    };
+
+    // --- ENGINE ---
+    function init() {
+        // Init Grid
+        state.grid = Array(ROWS * COLS).fill({ char: '.', color: '#333' });
+        resize();
+        loop();
+    }
+
+    function spawnRipple(x, y, type, payload) {
+        state.ripples.push({
+            x, y, 
+            radius: 0, 
+            maxRadius: Math.max(COLS, ROWS), 
+            type, // 'SHIFT', 'SPAWN', 'CLEAR'
+            payload // Data for the change (e.g. new scenario)
+        });
+        Audio.rippleSound(type);
+    }
+
+    function updatePhysics() {
+        // 1. Process Ripples (The Core Mechanic)
+        let activeRipples = [];
+        state.ripples.forEach(r => {
+            r.radius += 1.5; // Expansion Speed
+
+            // Affect Grid Cells within the wavefront ring
+            // Using simplified distance check for performance
+            for(let i=0; i<state.grid.length; i++) {
+                const gx = i % COLS;
+                const gy = Math.floor(i / COLS);
+                const dist = Math.sqrt((gx - r.x)**2 + (gy - r.y)**2);
+
+                // If the wave is passing this cell NOW
+                if (dist < r.radius && dist > r.radius - 2) {
+                    
+                    // APPLY RIPPLE EFFECT
+                    if (r.type === 'SHIFT') {
+                        // Rewrite reality
+                        const scene = SCENARIOS[r.payload];
+                        state.grid[i] = { 
+                            char: Math.random() > 0.9 ? scene.wall : scene.bg, 
+                            color: Math.random() > 0.9 ? '#555' : '#113311' 
+                        };
+                        // Kill agents caught in the shift
+                        state.agents = state.agents.filter(a => {
+                            const adist = Math.sqrt((a.x - r.x)**2 + (a.y - r.y)**2);
+                            return adist > r.radius; // Keep if wave hasn't hit yet
+                        });
+                    }
+                    else if (r.type === 'CLEAR') {
+                        state.grid[i] = { char: '.', color: '#333' };
+                        state.agents = [];
+                    }
+                }
+            }
+
+            if (r.radius < r.maxRadius * 1.5) activeRipples.push(r);
+        });
+        state.ripples = activeRipples;
+
+        // 2. Agent Behavior (Simple Boids/Seek)
+        state.agents.forEach(a => {
+            // Random Walk + Bounds Check
+            if(Math.random() > 0.5) {
+                const dx = Math.floor(Math.random()*3)-1;
+                const dy = Math.floor(Math.random()*3)-1;
+                a.x = Math.max(0, Math.min(COLS-1, a.x + dx));
+                a.y = Math.max(0, Math.min(ROWS-1, a.y + dy));
+            }
+        });
+    }
+
+    // --- RENDERER ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+    }
+    window.addEventListener('resize', resize);
+
+    function draw() {
+        // Clear
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate Scale
+        const scaleX = canvas.width / COLS;
+        const scaleY = canvas.height / ROWS;
+
+        ctx.font = `${Math.floor(scaleY)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Draw Grid
+        for(let y=0; y<ROWS; y++) {
+            for(let x=0; x<COLS; x++) {
+                const idx = y * COLS + x;
+                const cell = state.grid[idx];
+                
+                // Base Char
+                ctx.fillStyle = cell.color || '#333';
+                ctx.fillText(cell.char, x * scaleX + scaleX/2, y * scaleY + scaleY/2);
+            }
+        }
+
+        // Draw Agents
+        const scene = SCENARIOS[state.currentScene] || SCENARIOS['VOID'];
+        state.agents.forEach(a => {
+            ctx.fillStyle = a.type === 'agent' ? scene.colors.agent : 
+                           a.type === 'goal' ? scene.colors.goal : scene.colors.obs;
+            
+            const char = a.type === 'agent' ? scene.entities.agent :
+                         a.type === 'goal' ? scene.entities.goal : scene.entities.obs;
+
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fillText(char, a.x * scaleX + scaleX/2, a.y * scaleY + scaleY/2);
+            ctx.shadowBlur = 0;
+        });
+
+        // Draw Ripple Overlay (Visual Flares)
+        state.ripples.forEach(r => {
+            const cx = r.x * scaleX;
+            const cy = r.y * scaleY;
+            const rad = r.radius * Math.max(scaleX, scaleY);
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+            ctx.strokeStyle = r.type === 'SHIFT' ? 'rgba(0, 255, 255, 0.5)' : 
+                              r.type === 'SPAWN' ? 'rgba(255, 200, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        });
+
+        // HUD Update
+        document.getElementById('ent-count').innerText = state.agents.length;
+    }
+
+    function loop() {
+        if(state.running) {
+            state.tick++;
+            updatePhysics();
+        }
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // --- NLP (NATURAL LANGUAGE PARSER) ---
+    const input = document.getElementById('cmd-input');
+    
+    input.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') {
+            parseCommand(input.value);
+            input.value = '';
+        }
+    });
+
+    function parseCommand(cmd) {
+        const txt = cmd.toUpperCase();
+        
+        // 1. SCENARIO SHIFTING
+        if (txt.includes('SHIFT') || txt.includes('LOAD')) {
+            let target = 'VOID';
+            if (txt.includes('FOREST')) target = 'FOREST';
+            else if (txt.includes('CITY')) target = 'CITY';
+            else if (txt.includes('CUPBOARD')) target = 'CUPBOARD';
+            
+            if (target !== state.currentScene) {
+                state.currentScene = target;
+                document.getElementById('scene-name').innerText = target;
+                spawnRipple(COLS/2, ROWS/2, 'SHIFT', target);
+                return;
+            }
+        }
+
+        // 2. SPAWNING
+        if (txt.includes('SPAWN') || txt.includes('CREATE') || txt.includes('ADD') || txt.includes('MAKE')) {
+            // Count
+            const numbers = txt.match(/\d+/);
+            const count = numbers ? parseInt(numbers[0]) : 10; // Default 10
+
+            // Type
+            let type = 'agent';
+            if (txt.includes('GOAL') || txt.includes('FOOD') || txt.includes('RESOURCE')) type = 'goal';
+            if (txt.includes('OBSTACLE') || txt.includes('WALL') || txt.includes('ROCK')) type = 'obs';
+
+            for(let i=0; i<count; i++) {
+                state.agents.push({
+                    x: Math.floor(Math.random() * COLS),
+                    y: Math.floor(Math.random() * ROWS),
+                    type: type
+                });
+            }
+            spawnRipple(Math.random()*COLS, Math.random()*ROWS, 'SPAWN');
+            return;
+        }
+
+        // 3. DESTRUCTION
+        if (txt.includes('KILL') || txt.includes('CLEAR') || txt.includes('DESTROY') || txt.includes('RESET')) {
+            spawnRipple(COLS/2, ROWS/2, 'CLEAR');
+            state.currentScene = 'VOID';
+            document.getElementById('scene-name').innerText = "VOID";
+            return;
+        }
+    }
+
+    function boot() {
+        document.getElementById('boot').style.display = 'none';
+        Audio.init();
+        state.running = true;
+        // Initial Shift
+        setTimeout(() => {
+            input.value = "Shift to Cupboard";
+            parseCommand("Shift to Cupboard");
+            input.value = "";
+        }, 500);
+    }
+
+    init();
+
+</script>
+</body>
+</html>

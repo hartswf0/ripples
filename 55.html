@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // LAYERED RENDERING</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
+            overflow: hidden;
+        }
+
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #layer-background {
+            z-index: 10;
+        }
+
+        #layer-grid {
+            z-index: 20;
+        }
+
+        #layer-connections {
+            z-index: 30;
+        }
+
+        #layer-entities {
+            z-index: 40;
+        }
+
+        #layer-effects {
+            z-index: 50;
+        }
+
+        #layer-ui {
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        #controls {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid #333;
+            padding: 16px;
+            width: 240px;
+            color: #888;
+            font-size: 11px;
+        }
+
+        .control-section {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            font-size: 9px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            cursor: pointer;
+        }
+
+        .layer-toggle input {
+            cursor: pointer;
+        }
+
+        .layer-toggle:hover {
+            color: #aaa;
+        }
+
+        .entity-btn {
+            width: 100%;
+            text-align: left;
+            padding: 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #777;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .entity-btn:hover {
+            border-color: #333;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .entity-btn.selected {
+            border-color: var(--accent);
+            background: rgba(74, 246, 38, 0.1);
+            color: #4af626;
+        }
+
+        .vector-btn {
+            width: 100%;
+            padding: 8px;
+            font-size: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.15s;
+            margin-bottom: 4px;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .vector-btn.obstacle {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .vector-btn.shift {
+            border-color: #a855f7;
+            color: #a855f7;
+        }
+
+        #worldtext {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 20, 0.95);
+            border: 1px solid #333;
+            padding: 20px 40px;
+            max-width: 600px;
+            color: #888;
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        #worldtext.visible {
+            opacity: 1;
+        }
+
+        #hud {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            color: #444;
+            font-size: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <canvas id="layer-background" class="layer"></canvas>
+        <canvas id="layer-grid" class="layer"></canvas>
+        <canvas id="layer-connections" class="layer"></canvas>
+        <canvas id="layer-entities" class="layer"></canvas>
+        <canvas id="layer-effects" class="layer"></canvas>
+
+        <div id="layer-ui" class="layer">
+            <div id="controls">
+                <div class="control-section">
+                    <div class="control-label">Layers</div>
+                    <label class="layer-toggle"><input type="checkbox" id="toggle-bg" checked> Background</label>
+                    <label class="layer-toggle"><input type="checkbox" id="toggle-grid" checked> Grid</label>
+                    <label class="layer-toggle"><input type="checkbox" id="toggle-conn" checked> Connections</label>
+                    <label class="layer-toggle"><input type="checkbox" id="toggle-ent" checked> Entities</label>
+                    <label class="layer-toggle"><input type="checkbox" id="toggle-fx" checked> Effects</label>
+                </div>
+
+                <div class="control-section">
+                    <div class="control-label">Entities</div>
+                    <div id="entity-list"></div>
+                </div>
+
+                <div class="control-section">
+                    <div class="control-label">Vectors</div>
+                    <button id="btn-goal" class="vector-btn goal" disabled>Goal</button>
+                    <button id="btn-obstacle" class="vector-btn obstacle" disabled>Obstacle</button>
+                    <button id="btn-shift" class="vector-btn shift" disabled>Shift</button>
+                </div>
+            </div>
+
+            <div id="worldtext"></div>
+            <div id="hud">LAYERED RENDERING // TICK: <span id="tick">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================
+        // MODULE: Engine
+        // =========================================
+        class RipplesEngine {
+            constructor(latentLibrary) {
+                this.latentLibrary = latentLibrary;
+                this._listeners = new Map();
+                this.state = { scenario: 'pond', selectedEntity: null, tick: 0, worldtext: null };
+            }
+
+            on(e, cb) { if (!this._listeners.has(e)) this._listeners.set(e, []); this._listeners.get(e).push(cb); }
+            emit(e, d = {}) { this._listeners.get(e)?.forEach(cb => cb(d)); }
+
+            getScenario() { return this.latentLibrary[this.state.scenario]; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            selectEntity(id) { this.state.selectedEntity = id; this.emit('entity:select', { entity: this.getEntity(id) }); }
+            deselectEntity() { this.state.selectedEntity = null; this.emit('entity:deselect', {}); }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getScenario()?.latent?.[this.state.selectedEntity]?.[vector] || 'Response...';
+                this.state.worldtext = worldtext;
+                this.emit('ripple:complete', { entity, vector, worldtext, tick: this.state.tick });
+            }
+        }
+
+        // =========================================
+        // MODULE: Latent Library
+        // =========================================
+        const LATENT_LIBRARY = {
+            pond: {
+                id: 'pond', name: 'Still Pond',
+                entities: [
+                    { id: 'koi', name: 'Koi Fish', color: '#ff6b4a' },
+                    { id: 'lily', name: 'Lily Pad', color: '#4af67a' },
+                    { id: 'ripple', name: 'Ripple', color: '#6bb0ff' },
+                    { id: 'dragonfly', name: 'Dragonfly', color: '#ff6bff' },
+                    { id: 'frog', name: 'Frog', color: '#7aff6b' },
+                    { id: 'moon', name: 'Moon Reflection', color: '#ffffaa' }
+                ],
+                latent: {
+                    'koi': { GOAL: 'Orange scales flash beneath the surface, the koi traces ancient patterns passed down through generations.', OBSTACLE: 'Heron shadow crosses the water. The koi dives deep, hiding in murky depths.', SHIFT: 'The koi changes direction, following some invisible current only it can sense.' },
+                    'lily': { GOAL: 'The pad spreads its waxy surface, collecting dewdrops, providing rest for wanderers.', OBSTACLE: 'Waves from the koi threaten to submerge the pad. It rocks, but holds.', SHIFT: 'A new bud emerges from beneath. The pad prepares to share its space.' },
+                    'ripple': { GOAL: 'Circle expands outward, carrying information across the pond surface.', OBSTACLE: 'The ripple meets the shore. Energy absorbed. Pattern ends.', SHIFT: 'Two ripples intersect. New interference patterns emerge, complex and beautiful.' },
+                    'dragonfly': { GOAL: 'Wings catch light as the dragonfly hunts, compound eyes scanning for movement.', OBSTACLE: 'Sudden gust. The dragonfly clutches a reed, waiting for stillness.', SHIFT: 'The dragonfly moves to a new territory. Different prey, different patterns.' },
+                    'frog': { GOAL: 'Tongue flicks. Patient waiting. The frog is a statue with lethal speed.', OBSTACLE: 'Something larger splashes nearby. The frog dives to safety.', SHIFT: 'The frog croaks. Sound carries across the water, changing the pond\'s atmosphere.' },
+                    'moon': { GOAL: 'The reflection shimmers, constantly reforming as the water moves.', OBSTACLE: 'Clouds cross the sky. The reflection dims, nearly disappears.', SHIFT: 'The moon rises higher. The reflection changes shape, elongates, glows brighter.' }
+                }
+            }
+        };
+
+        // =========================================
+        // MODULE: Layer Renderer
+        // =========================================
+        class LayerRenderer {
+            constructor() {
+                this.layers = {
+                    background: document.getElementById('layer-background'),
+                    grid: document.getElementById('layer-grid'),
+                    connections: document.getElementById('layer-connections'),
+                    entities: document.getElementById('layer-entities'),
+                    effects: document.getElementById('layer-effects')
+                };
+
+                this.ctx = {};
+                for (const [name, canvas] of Object.entries(this.layers)) {
+                    this.ctx[name] = canvas.getContext('2d');
+                }
+
+                this.visibility = {
+                    background: true,
+                    grid: true,
+                    connections: true,
+                    entities: true,
+                    effects: true
+                };
+
+                this.entities = [];
+                this.effects = [];
+                this.selectedId = null;
+
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                for (const canvas of Object.values(this.layers)) {
+                    canvas.width = w;
+                    canvas.height = h;
+                }
+            }
+
+            setVisibility(layer, visible) {
+                this.visibility[layer] = visible;
+                this.layers[layer].style.display = visible ? 'block' : 'none';
+            }
+
+            setEntities(entities) {
+                const cx = this.layers.entities.width / 2;
+                const cy = this.layers.entities.height / 2;
+                const radius = Math.min(cx, cy) * 0.4;
+
+                this.entities = entities.map((e, i) => {
+                    const angle = (i / entities.length) * Math.PI * 2 - Math.PI / 2;
+                    return {
+                        ...e,
+                        x: cx + Math.cos(angle) * radius,
+                        y: cy + Math.sin(angle) * radius,
+                        radius: 30,
+                        phase: Math.random() * Math.PI * 2
+                    };
+                });
+            }
+
+            selectEntity(id) {
+                this.selectedId = id;
+            }
+
+            addEffect(entityId, vector) {
+                const entity = this.entities.find(e => e.id === entityId);
+                if (!entity) return;
+
+                const colors = { GOAL: '#f59e0b', OBSTACLE: '#ef4444', SHIFT: '#a855f7' };
+                this.effects.push({
+                    x: entity.x,
+                    y: entity.y,
+                    radius: 0,
+                    maxRadius: 200,
+                    color: colors[vector],
+                    alpha: 1
+                });
+            }
+
+            render() {
+                this.renderBackground();
+                this.renderGrid();
+                this.renderConnections();
+                this.renderEntities();
+                this.renderEffects();
+            }
+
+            renderBackground() {
+                if (!this.visibility.background) return;
+                const ctx = this.ctx.background;
+                const w = this.layers.background.width;
+                const h = this.layers.background.height;
+
+                // Gradient
+                const grad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) / 2);
+                grad.addColorStop(0, '#141420');
+                grad.addColorStop(1, '#0a0a0f');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            renderGrid() {
+                if (!this.visibility.grid) return;
+                const ctx = this.ctx.grid;
+                const w = this.layers.grid.width;
+                const h = this.layers.grid.height;
+
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'rgba(60, 60, 80, 0.15)';
+                ctx.lineWidth = 1;
+
+                const spacing = 40;
+                for (let x = 0; x < w; x += spacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < h; y += spacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+            }
+
+            renderConnections() {
+                if (!this.visibility.connections) return;
+                const ctx = this.ctx.connections;
+                const w = this.layers.connections.width;
+                const h = this.layers.connections.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // Draw connections between entities
+                ctx.strokeStyle = 'rgba(100, 100, 140, 0.15)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < this.entities.length; i++) {
+                    for (let j = i + 1; j < this.entities.length; j++) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.entities[i].x, this.entities[i].y);
+                        ctx.lineTo(this.entities[j].x, this.entities[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            renderEntities() {
+                if (!this.visibility.entities) return;
+                const ctx = this.ctx.entities;
+                const w = this.layers.entities.width;
+                const h = this.layers.entities.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                for (const entity of this.entities) {
+                    entity.phase += 0.03;
+                    const isSelected = entity.id === this.selectedId;
+                    const pulse = isSelected ? 1 + Math.sin(entity.phase) * 0.1 : 1;
+                    const r = entity.radius * pulse;
+
+                    // Glow
+                    if (isSelected) {
+                        ctx.shadowColor = entity.color;
+                        ctx.shadowBlur = 20;
+                    }
+
+                    // Ring
+                    ctx.strokeStyle = entity.color;
+                    ctx.lineWidth = isSelected ? 3 : 2;
+                    ctx.globalAlpha = isSelected ? 1 : 0.5;
+                    ctx.beginPath();
+                    ctx.arc(entity.x, entity.y, r, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Fill
+                    ctx.fillStyle = entity.color;
+                    ctx.globalAlpha = 0.1;
+                    ctx.fill();
+
+                    // Label
+                    ctx.globalAlpha = 1;
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#666';
+                    ctx.font = '10px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(entity.name, entity.x, entity.y + r + 16);
+                }
+            }
+
+            renderEffects() {
+                if (!this.visibility.effects) return;
+                const ctx = this.ctx.effects;
+                const w = this.layers.effects.width;
+                const h = this.layers.effects.height;
+
+                ctx.clearRect(0, 0, w, h);
+
+                this.effects = this.effects.filter(fx => {
+                    fx.radius += 3;
+                    fx.alpha = 1 - (fx.radius / fx.maxRadius);
+                    if (fx.alpha <= 0) return false;
+
+                    ctx.strokeStyle = fx.color;
+                    ctx.globalAlpha = fx.alpha;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                    return true;
+                });
+            }
+
+            getEntityAt(x, y) {
+                for (const entity of this.entities) {
+                    const dx = x - entity.x;
+                    const dy = y - entity.y;
+                    if (dx * dx + dy * dy < entity.radius * entity.radius) {
+                        return entity;
+                    }
+                }
+                return null;
+            }
+        }
+
+        // =========================================
+        // MAIN
+        // =========================================
+        const engine = new RipplesEngine(LATENT_LIBRARY);
+        const renderer = new LayerRenderer();
+
+        // Setup layer toggles
+        document.getElementById('toggle-bg').addEventListener('change', (e) => renderer.setVisibility('background', e.target.checked));
+        document.getElementById('toggle-grid').addEventListener('change', (e) => renderer.setVisibility('grid', e.target.checked));
+        document.getElementById('toggle-conn').addEventListener('change', (e) => renderer.setVisibility('connections', e.target.checked));
+        document.getElementById('toggle-ent').addEventListener('change', (e) => renderer.setVisibility('entities', e.target.checked));
+        document.getElementById('toggle-fx').addEventListener('change', (e) => renderer.setVisibility('effects', e.target.checked));
+
+        // Setup entity list
+        function updateEntityList() {
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+            const entities = engine.getEntities();
+            entities.forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = `entity-btn ${engine.state.selectedEntity === e.id ? 'selected' : ''}`;
+                btn.style.setProperty('--accent', e.color);
+                btn.innerHTML = `<span style="color: ${e.color}">●</span> ${e.name}`;
+                btn.onclick = () => {
+                    if (engine.state.selectedEntity === e.id) {
+                        engine.deselectEntity();
+                    } else {
+                        engine.selectEntity(e.id);
+                    }
+                };
+                list.appendChild(btn);
+            });
+        }
+
+        // Engine events
+        engine.on('entity:select', ({ entity }) => {
+            renderer.selectEntity(entity.id);
+            updateEntityList();
+            updateVectorButtons(true);
+        });
+
+        engine.on('entity:deselect', () => {
+            renderer.selectEntity(null);
+            updateEntityList();
+            updateVectorButtons(false);
+        });
+
+        engine.on('ripple:complete', ({ entity, vector, worldtext, tick }) => {
+            renderer.addEffect(entity.id, vector);
+            document.getElementById('tick').textContent = tick;
+            const wt = document.getElementById('worldtext');
+            wt.textContent = worldtext;
+            wt.classList.add('visible');
+            setTimeout(() => wt.classList.remove('visible'), 5000);
+        });
+
+        function updateVectorButtons(enabled) {
+            document.getElementById('btn-goal').disabled = !enabled;
+            document.getElementById('btn-obstacle').disabled = !enabled;
+            document.getElementById('btn-shift').disabled = !enabled;
+        }
+
+        // Vector buttons
+        document.getElementById('btn-goal').addEventListener('click', () => engine.triggerVector('GOAL'));
+        document.getElementById('btn-obstacle').addEventListener('click', () => engine.triggerVector('OBSTACLE'));
+        document.getElementById('btn-shift').addEventListener('click', () => engine.triggerVector('SHIFT'));
+
+        // Canvas click handling
+        document.getElementById('layer-entities').style.pointerEvents = 'auto';
+        document.getElementById('layer-entities').addEventListener('click', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const entity = renderer.getEntityAt(e.clientX - rect.left, e.clientY - rect.top);
+            if (entity) {
+                if (engine.state.selectedEntity === entity.id) {
+                    engine.deselectEntity();
+                } else {
+                    engine.selectEntity(entity.id);
+                }
+            }
+        });
+
+        // Initialize
+        renderer.setEntities(engine.getEntities());
+        updateEntityList();
+
+        // Animation loop
+        function animate() {
+            renderer.render();
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+
+</html>

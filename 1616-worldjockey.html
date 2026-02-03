@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // WORLD JOCKEY CONSOLE</title>
+    <style>
+        :root {
+            --bg-deep: #020504;
+            --bg-panel: #0a0f0c;
+            --border: #1a2a1e;
+            --text-dim: #3a5a42;
+            --text-mid: #5a8a62;
+            --text-bright: #7aca82;
+            --crt-green: #4af626;
+            --goal-gold: #ffd700;
+            --obstacle-red: #ff3333;
+            --shift-cyan: #00ffff;
+            --glow: rgba(74, 246, 38, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text-mid);
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* CRT Effects */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .crt-overlay::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 3px;
+        }
+
+        .crt-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+        }
+
+        /* Main Layout */
+        #app {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        /* Header */
+        #header {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title {
+            color: var(--crt-green);
+            font-size: 14px;
+            text-shadow: 0 0 10px var(--glow);
+        }
+
+        .header-status {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .header-status span {
+            color: var(--crt-green);
+        }
+
+        /* Left Panel - DJ Controls */
+        #dj-panel {
+            background: var(--bg-panel);
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-title {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Scenario Selector */
+        .scenario-select {
+            width: 100%;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            color: var(--text-bright);
+            padding: 10px;
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .scenario-select:focus {
+            outline: 1px solid var(--crt-green);
+        }
+
+        /* Entity Pool */
+        .entity-pool {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .entity-card {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .entity-card:hover {
+            border-color: var(--text-mid);
+        }
+
+        .entity-card.selected {
+            border-color: var(--crt-green);
+            background: rgba(74, 246, 38, 0.05);
+            box-shadow: 0 0 15px rgba(74, 246, 38, 0.1);
+        }
+
+        .entity-name {
+            font-size: 11px;
+            color: var(--text-bright);
+            margin-bottom: 4px;
+        }
+
+        .entity-type {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .entity-state {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .entity-card.selected .entity-state {
+            background: var(--crt-green);
+            box-shadow: 0 0 10px var(--crt-green);
+        }
+
+        /* Center - Grid Viewport */
+        #viewport {
+            background: var(--bg-deep);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #grid-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #cellular-grid {
+            display: grid;
+            gap: 2px;
+            padding: 20px;
+        }
+
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            background: rgba(26, 42, 30, 0.3);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .grid-cell:hover {
+            background: rgba(74, 246, 38, 0.05);
+            border-color: var(--text-mid);
+        }
+
+        .grid-cell.has-entity {
+            background: rgba(74, 246, 38, 0.1);
+            border-color: var(--text-mid);
+        }
+
+        .grid-cell.selected {
+            border-color: var(--crt-green);
+            box-shadow: 0 0 20px var(--glow);
+        }
+
+        .grid-cell .entity-icon {
+            font-size: 20px;
+        }
+
+        /* Ripple Animation */
+        .grid-cell.ripple-goal {
+            animation: ripple-goal 1s ease-out;
+        }
+
+        .grid-cell.ripple-obstacle {
+            animation: ripple-obstacle 1s ease-out;
+        }
+
+        .grid-cell.ripple-shift {
+            animation: ripple-shift 1s ease-out;
+        }
+
+        @keyframes ripple-goal {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 30px 15px rgba(255, 215, 0, 0);
+            }
+        }
+
+        @keyframes ripple-obstacle {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 30px 15px rgba(255, 51, 51, 0);
+            }
+        }
+
+        @keyframes ripple-shift {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 30px 15px rgba(0, 255, 255, 0);
+            }
+        }
+
+        /* Worldtext Console */
+        #worldtext-console {
+            height: 180px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .worldtext-entry {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .worldtext-meta {
+            font-size: 9px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        .worldtext-meta .vector-goal {
+            color: var(--goal-gold);
+        }
+
+        .worldtext-meta .vector-obstacle {
+            color: var(--obstacle-red);
+        }
+
+        .worldtext-meta .vector-shift {
+            color: var(--shift-cyan);
+        }
+
+        .worldtext-text {
+            font-size: 12px;
+            color: var(--text-bright);
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        .uncertainty-marker {
+            color: var(--text-dim);
+            font-style: normal;
+        }
+
+        /* Right Panel - VJ/Prompt Controls */
+        #control-panel {
+            background: var(--bg-panel);
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Vector Injection */
+        .vector-btn {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn .key {
+            font-size: 10px;
+            padding: 2px 6px;
+            border: 1px solid;
+            border-radius: 3px;
+        }
+
+        .vector-goal {
+            border-color: var(--goal-gold);
+            color: var(--goal-gold);
+        }
+
+        .vector-goal:not(:disabled):hover {
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .vector-obstacle {
+            border-color: var(--obstacle-red);
+            color: var(--obstacle-red);
+        }
+
+        .vector-obstacle:not(:disabled):hover {
+            background: rgba(255, 51, 51, 0.1);
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.2);
+        }
+
+        .vector-shift {
+            border-color: var(--shift-cyan);
+            color: var(--shift-cyan);
+        }
+
+        .vector-shift:not(:disabled):hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        /* VJ Controls */
+        .vj-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vj-label {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .vj-slider {
+            width: 100px;
+            height: 4px;
+            -webkit-appearance: none;
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .vj-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--crt-green);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Autoplay */
+        .autoplay-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .autoplay-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-mid);
+            font-family: inherit;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .autoplay-btn.active {
+            border-color: var(--crt-green);
+            color: var(--crt-green);
+            background: rgba(74, 246, 38, 0.1);
+        }
+
+        /* Audit Log */
+        #audit-log {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 9px;
+        }
+
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(26, 42, 30, 0.5);
+            color: var(--text-dim);
+        }
+
+        .log-entry .tick {
+            color: var(--text-mid);
+        }
+
+        /* Footer */
+        #footer {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+
+        /* Chemical Cartography Overlay */
+        .chem-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="crt-overlay"></div>
+
+    <div id="app">
+        <header id="header">
+            <div class="header-title">
+                RIPPLES // WORLD JOCKEY CONSOLE v1.0
+            </div>
+            <div class="header-status">
+                SCENARIO: <span id="current-scenario">---</span> |
+                TICK: <span id="tick-counter">0</span> |
+                MODE: <span id="mode-display">SUPERVISED</span>
+            </div>
+        </header>
+
+        <!-- DJ Panel -->
+        <aside id="dj-panel">
+            <div class="panel-title">DEMIURGE // SCENARIO</div>
+            <select id="scenario-select" class="scenario-select">
+                <option value="cupboard">THE CUPBOARD</option>
+                <option value="forest">DEEP FOREST</option>
+                <option value="urban">URBAN JUNGLE</option>
+                <option value="abandoned">ABANDONED HOUSE</option>
+            </select>
+
+            <div class="panel-title">DJ // ENTITY POOL</div>
+            <div id="entity-pool" class="entity-pool"></div>
+
+            <div class="panel-title">ADJACENCY GRAPH</div>
+            <div id="adjacency-display" style="font-size: 9px; color: var(--text-dim);"></div>
+        </aside>
+
+        <!-- Viewport -->
+        <main id="viewport">
+            <div id="grid-container">
+                <div id="cellular-grid"></div>
+            </div>
+            <div id="worldtext-console">
+                <div class="panel-title">WORLDTEXT OUTPUT</div>
+                <div id="worldtext-entries"></div>
+            </div>
+        </main>
+
+        <!-- Control Panel -->
+        <aside id="control-panel">
+            <div class="panel-title">PROMPT JOCKEY // VECTORS</div>
+            <button id="btn-goal" class="vector-btn vector-goal" disabled>
+                <span>▶ GOAL</span>
+                <span class="key">G</span>
+            </button>
+            <button id="btn-obstacle" class="vector-btn vector-obstacle" disabled>
+                <span>■ OBSTACLE</span>
+                <span class="key">O</span>
+            </button>
+            <button id="btn-shift" class="vector-btn vector-shift" disabled>
+                <span>◆ SHIFT</span>
+                <span class="key">S</span>
+            </button>
+
+            <div class="panel-title">VJ // PERFORMANCE</div>
+            <div class="vj-control">
+                <span class="vj-label">GLOW INTENSITY</span>
+                <input type="range" class="vj-slider" id="glow-slider" min="0" max="100" value="50">
+            </div>
+            <div class="vj-control">
+                <span class="vj-label">RIPPLE SPEED</span>
+                <input type="range" class="vj-slider" id="speed-slider" min="1" max="10" value="5">
+            </div>
+            <div class="vj-control">
+                <span class="vj-label">CRT FLICKER</span>
+                <input type="range" class="vj-slider" id="flicker-slider" min="0" max="100" value="20">
+            </div>
+
+            <div class="panel-title">AUTOPLAY</div>
+            <div class="autoplay-controls">
+                <button id="btn-autoplay" class="autoplay-btn">▶ START</button>
+                <button id="btn-stop" class="autoplay-btn">■ STOP</button>
+            </div>
+            <div class="vj-control">
+                <span class="vj-label">BPM</span>
+                <input type="range" class="vj-slider" id="bpm-slider" min="10" max="120" value="30">
+            </div>
+
+            <div class="panel-title">AUDIT LOG</div>
+            <div id="audit-log"></div>
+        </aside>
+
+        <footer id="footer">
+            <span>EPISTEMIC HUMILITY: ALL MODELS ARE WRONG. WE AIM TO BE USEFULLY WRONG.</span>
+            <span id="session-id">SESSION: ---</span>
+        </footer>
+    </div>
+
+    <script>
+        // =========================================
+        // TRACERY-STYLE GRAMMAR ENGINE
+        // =========================================
+        class TraceryGrammar {
+            constructor(rules) {
+                this.rules = rules;
+            }
+
+            expand(symbol) {
+                if (!symbol.startsWith('#') || !symbol.endsWith('#')) return symbol;
+
+                const key = symbol.slice(1, -1);
+                const options = this.rules[key];
+                if (!options) return symbol;
+
+                const choice = options[Math.floor(Math.random() * options.length)];
+                return this.flatten(choice);
+            }
+
+            flatten(text) {
+                return text.replace(/#[a-zA-Z_]+#/g, match => this.expand(match));
+            }
+        }
+
+        // =========================================
+        // LATENT LIBRARY WITH CHEMICAL CARTOGRAPHY
+        // =========================================
+        const SCENARIOS = {
+            cupboard: {
+                id: 'cupboard',
+                name: 'THE CUPBOARD',
+                description: 'Domestic micro-ecology. Quiet, microscopic, fragile.',
+                gridSize: { cols: 8, rows: 6 },
+                physics: { friction: 0.9, darkness: 0.8 },
+                entities: [
+                    {
+                        id: 'ant', name: 'Forager Ant', type: 'animate', icon: '🐜', x: 1, y: 2,
+                        umwelt: ['chemical', 'tactile', 'vibration'],
+                        grammar: {
+                            sense: ['detects', 'follows', 'traces', 'registers'],
+                            surface: ['ceramic cliff', 'wooden plateau', 'glass horizon', 'metal plain'],
+                            chemical: ['sucrose gradient', 'pheromone trail', 'acid marker', 'decay signature'],
+                            action: ['navigates', 'retreats', 'signals', 'forages']
+                        }
+                    },
+                    {
+                        id: 'dust', name: 'Dust Mote', type: 'inanimate', icon: '✧', x: 3, y: 0,
+                        umwelt: ['thermal', 'air-current'],
+                        grammar: {
+                            state: ['suspended', 'drifting', 'settling', 'spinning'],
+                            force: ['thermal column', 'breath of air', 'door draft', 'stillness'],
+                            surface: ['light beam', 'shadow boundary', 'cold shelf', 'warm glass']
+                        }
+                    },
+                    {
+                        id: 'light', name: 'Light Shaft', type: 'abstract', icon: '☀', x: 5, y: 1,
+                        umwelt: ['photon', 'heat', 'time'],
+                        grammar: {
+                            quality: ['propagates', 'diffracts', 'warms', 'reveals'],
+                            target: ['dust population', 'ceramic surface', 'glass edge', 'shadow boundary'],
+                            change: ['angle shifts', 'intensity fades', 'cloud passes', 'door opens']
+                        }
+                    },
+                    {
+                        id: 'shadow', name: 'Shadow', type: 'abstract', icon: '▓', x: 6, y: 4,
+                        umwelt: ['absence', 'boundary', 'cool'],
+                        grammar: {
+                            state: ['extends', 'contracts', 'deepens', 'dissolves'],
+                            quality: ['cool refuge', 'predator cover', 'time marker', 'void space']
+                        }
+                    },
+                    {
+                        id: 'glass', name: 'Tall Glass', type: 'inanimate', icon: '🥛', x: 4, y: 3,
+                        umwelt: ['structure', 'vibration', 'thermal'],
+                        grammar: {
+                            state: ['standing', 'sweating', 'ringing', 'still'],
+                            quality: ['vertical cliff', 'smooth infinity', 'cold mass', 'resonance chamber']
+                        }
+                    },
+                    {
+                        id: 'crumb', name: 'Bread Crumb', type: 'inanimate', icon: '·', x: 2, y: 4,
+                        umwelt: ['decay', 'chemical'],
+                        grammar: {
+                            state: ['desiccating', 'fragmenting', 'emitting', 'colonizing'],
+                            signal: ['sucrose beacon', 'starch gradient', 'mold frontier']
+                        }
+                    }
+                ],
+                adjacency: {
+                    ant: ['crumb', 'glass', 'shadow', 'dust'],
+                    dust: ['light', 'shadow', 'ant'],
+                    light: ['shadow', 'dust', 'glass'],
+                    shadow: ['light', 'ant', 'glass'],
+                    glass: ['ant', 'light', 'shadow', 'crumb'],
+                    crumb: ['ant', 'glass']
+                },
+                latent: {
+                    ant: {
+                        GOAL: 'The Forager #sense# a #chemical# emanating from the #surface#. Mandibles twitch. Perhaps this gradient leads to sustenance—or perhaps to the pheromone echo of a dead scout. The path is #action#.',
+                        OBSTACLE: 'A #surface# rises—impossibly smooth, impossibly vertical. The ant #sense# the boundary with antennae. There is no purchase here. The chemical signature terminates. It is as if the world simply... ends.',
+                        SHIFT: 'Internal state shifts. The sucrose-seeking protocol gives way to return-to-nest. The #chemical# that was beacon becomes background. Time to carry what was found, if anything.'
+                    },
+                    dust: {
+                        GOAL: 'The mote is #state#, following the #force#. There is no intention here, only physics. Yet in this trajectory, something like purpose: to find a surface, to settle, to become part of the substrate.',
+                        OBSTACLE: 'A #force# disrupts the #state# pattern. The mote shudders, perhaps colliding with another micro-body. The equilibrium that was "self" momentarily fragments.',
+                        SHIFT: 'The mote passes from #surface# into new conditions. Its spin rate changes. Its altitude shifts. It is, as if, reborn into a different #state# of being.'
+                    },
+                    light: {
+                        GOAL: 'The photon stream #quality# toward the waiting #target#. In its wake: warmth, visibility, the revelation of dust. Light does not seek—it simply is where it is.',
+                        OBSTACLE: 'Something interposes. The #target# goes dark. Light does not know frustration, but if it did, this moment—the sudden absence of destination—would define it.',
+                        SHIFT: 'As #change#, the light beam migrates. What was illuminated goes dark. What was shadow receives the gift. The ecology reorganizes around the new configuration.'
+                    },
+                    shadow: {
+                        GOAL: 'Shadow #state#, following the light that defines it. It seeks nothing—it is the nothing that remains when seeking ends. The #quality# awaits whoever needs it.',
+                        OBSTACLE: 'A light source approaches. Shadow #state# before it. There is no resistance possible. Shadow is defined by what it is not; when the not becomes yes, shadow... ceases.',
+                        SHIFT: 'New light, new shadow. The boundary migrates. What was #quality# becomes exposed. What was lit becomes #quality#. The cycle continues.'
+                    },
+                    glass: {
+                        GOAL: 'The glass is #state#. It #state# without intention. Its #quality# simply exists—a geometry, a temperature, a potential for containing or for being obstacle.',
+                        OBSTACLE: 'Perhaps a vibration passes through. The #quality# resonates. Something structural tightens. Is this stress? Is this memory? The glass cannot answer—it only endures.',
+                        SHIFT: 'Condensation forms. The #state# surface becomes slick. The #quality# that was stable now shifts—a new microhabitat emerges on the cylinder face.'
+                    },
+                    crumb: {
+                        GOAL: 'The crumb is #state#, broadcasting its #signal# into the chemical landscape. It does not call out—it simply decays, and in decaying, becomes legible to those who read in molecules.',
+                        OBSTACLE: 'Perhaps a shadow passes, cooling the surface. The #state# process slows. The #signal# weakens. The crumb will outlast this moment, marginally.',
+                        SHIFT: 'A fragment detaches. The crumb is now crumbs. The #signal# multiplies, disperses. The beacon has become a constellation of smaller beacons.'
+                    }
+                }
+            },
+            forest: {
+                id: 'forest',
+                name: 'DEEP FOREST',
+                description: 'Subterranean networks. Dark, interconnected, vast.',
+                gridSize: { cols: 8, rows: 6 },
+                physics: { friction: 0.3, darkness: 0.6 },
+                entities: [
+                    {
+                        id: 'mycelium', name: 'Mycelium Network', type: 'animate', icon: '🍄', x: 3, y: 4,
+                        umwelt: ['chemical', 'nutrient', 'moisture'],
+                        grammar: {
+                            action: ['extends', 'absorbs', 'signals', 'colonizes'],
+                            target: ['dead root', 'fallen leaf', 'rival fungus', 'partner tree'],
+                            nutrient: ['nitrogen packet', 'carbon exchange', 'phosphorus trade']
+                        }
+                    },
+                    {
+                        id: 'oak', name: 'Ancient Oak', type: 'animate', icon: '🌳', x: 4, y: 2,
+                        umwelt: ['photosynthesis', 'root-sensing', 'seasonal'],
+                        grammar: {
+                            process: ['transpires', 'photosynthesizes', 'sends sugars', 'drops leaves'],
+                            connection: ['mycorrhizal network', 'neighboring tree', 'soil microbiome']
+                        }
+                    },
+                    {
+                        id: 'owl', name: 'Night Owl', type: 'animate', icon: '🦉', x: 6, y: 1,
+                        umwelt: ['auditory', 'infrared', 'territory'],
+                        grammar: {
+                            sense: ['locates', 'tracks', 'identifies', 'stalks'],
+                            target: ['vole heartbeat', 'mouse rustle', 'rival call', 'nest threat']
+                        }
+                    },
+                    {
+                        id: 'stone', name: 'Granite Boulder', type: 'inanimate', icon: '🪨', x: 1, y: 3,
+                        umwelt: ['pressure', 'erosion', 'heat'],
+                        grammar: {
+                            state: ['eroding', 'warming', 'cracking', 'enduring'],
+                            time: ['glacial', 'seasonal', 'diurnal', 'momentary']
+                        }
+                    },
+                    {
+                        id: 'fern', name: 'Bracken Fern', type: 'animate', icon: '🌿', x: 2, y: 1,
+                        umwelt: ['light-seeking', 'moisture', 'spore'],
+                        grammar: {
+                            action: ['unfurls', 'extends', 'releases spores', 'dormants'],
+                            condition: ['light gap', 'rain event', 'fire clearing', 'shade closing']
+                        }
+                    },
+                    {
+                        id: 'decay', name: 'Decomposition', type: 'abstract', icon: '♻', x: 5, y: 5,
+                        umwelt: ['entropy', 'transformation', 'nutrient'],
+                        grammar: {
+                            process: ['breaks down', 'transforms', 'releases', 'recycles'],
+                            substance: ['cellulose', 'lignin', 'chitin', 'protein']
+                        }
+                    }
+                ],
+                adjacency: {
+                    mycelium: ['oak', 'decay', 'stone', 'fern'],
+                    oak: ['mycelium', 'owl', 'fern', 'decay'],
+                    owl: ['oak', 'fern'],
+                    stone: ['mycelium', 'fern', 'decay'],
+                    fern: ['oak', 'stone', 'mycelium', 'owl'],
+                    decay: ['mycelium', 'oak', 'stone']
+                },
+                latent: {
+                    mycelium: {
+                        GOAL: 'Hyphal tips #action# through the soil matrix, seeking #target#. Chemical signals pulse through the network—perhaps a #nutrient# awaits. Perhaps this is how a forest thinks.',
+                        OBSTACLE: 'The soil compacts. The #target# proves toxic. The network recoils, sealing off compromised sections. This is not death but pruning—the network knows sacrifice.',
+                        SHIFT: 'Seasonal chemistry shifts. The partnership with #target# changes terms. What was given is now retained. What was retained is now given. The underground economy rebalances.'
+                    },
+                    oak: {
+                        GOAL: 'Leaves #process# in the canopy. Below, roots sense the #connection#. Perhaps a neighbor needs sugar. Perhaps the oak is trading carbon for phosphorus. The forest operates.',
+                        OBSTACLE: 'Bark beetle pheromones detected. Defense chemistry activates. The #process# rate changes. Neighbors receive chemical warnings through #connection#. This is war at tree-speed.',
+                        SHIFT: 'Autumn protocols engage. Chlorophyll withdraws. The #process# that defined summer gives way to dormancy preparation. The oak begins to remember winter.'
+                    },
+                    owl: {
+                        GOAL: 'Silent flight through the canopy. The owl #sense# #target#—a warm body against the cold forest floor. Talons ready. Perhaps tonight, the hunt succeeds.',
+                        OBSTACLE: 'A #target# detected—but it is rival, not prey. Territory call required. The owl shifts from hunt-mode to defense-mode. The forest has competitors.',
+                        SHIFT: 'Nesting instinct activates. The #sense# patterns change from prey-seeking to mate-seeking. Different frequencies matter now. The owl is becoming parent.'
+                    },
+                    stone: {
+                        GOAL: 'The boulder is #state# at #time# scale. It seeks nothing—yet in its #state#, nutrients release. Lichen gains purchase. The stone is substrate for life it cannot know.',
+                        OBSTACLE: 'Frost wedges into a crack. The #state# accelerates. At #time# scale, this is violent—a shattering. The boulder will become boulders. Entropy always wins.',
+                        SHIFT: 'Temperature shifts. The stone #state# differently now. Thermal stress accumulates. At #time# scale, this moment will contribute to eventual fragmentation.'
+                    },
+                    fern: {
+                        GOAL: 'Fronds #action# toward the #condition#. Photoreceptors signal: light available. The fern grows, slowly, inexorably, toward what it needs without knowing need.',
+                        OBSTACLE: 'Canopy closes. The #condition# vanishes. The fern must wait—perhaps for #condition# years hence. Dormancy protocols engage. Patience is the only strategy.',
+                        SHIFT: 'Spore maturity reached. The fern #action# into the wind. Millions of possibilities scatter. Perhaps one finds soil. Perhaps the lineage continues.'
+                    },
+                    decay: {
+                        GOAL: 'The process #process# #substance# into simpler forms. This is not destruction—it is translation. What was tree becomes soil becomes tree. The cycle is the goal.',
+                        OBSTACLE: 'Conditions shift—too dry, too cold, too acidic. The #process# slows. #substance# persists longer than it should. Even entropy has obstacles.',
+                        SHIFT: 'New substrate arrives—a fallen branch, a dead owl. The #process# finds new #substance# to translate. The work of decomposition is never complete.'
+                    }
+                }
+            },
+            urban: {
+                id: 'urban',
+                name: 'URBAN JUNGLE',
+                description: 'Technicity. Glitchy, neon, rhythmic.',
+                gridSize: { cols: 8, rows: 6 },
+                physics: { friction: 0.5, darkness: 0.4 },
+                entities: [
+                    { id: 'pigeon', name: 'Street Pigeon', type: 'animate', icon: '🐦', x: 2, y: 1 },
+                    { id: 'traffic', name: 'Traffic Light', type: 'abstract', icon: '🚦', x: 4, y: 3 },
+                    { id: 'puddle', name: 'Oily Puddle', type: 'inanimate', icon: '💧', x: 3, y: 4 },
+                    { id: 'rat', name: 'Sewer Rat', type: 'animate', icon: '🐀', x: 6, y: 5 },
+                    { id: 'wire', name: 'Power Line', type: 'inanimate', icon: '⚡', x: 5, y: 0 },
+                    { id: 'moss', name: 'Wall Moss', type: 'animate', icon: '🌱', x: 1, y: 3 }
+                ],
+                adjacency: {
+                    pigeon: ['traffic', 'puddle', 'wire'],
+                    traffic: ['pigeon', 'rat', 'puddle'],
+                    puddle: ['pigeon', 'rat', 'moss'],
+                    rat: ['puddle', 'traffic', 'wire'],
+                    wire: ['pigeon', 'rat'],
+                    moss: ['puddle']
+                },
+                latent: {
+                    pigeon: {
+                        GOAL: 'The bird scans the concrete terrain. Perhaps a discarded fry signals nutrition. Perhaps a rival approaches. Head-bobbing intensifies—a visual calibration of the urban landscape.',
+                        OBSTACLE: 'Human foot descends. FLEE protocol engages. Wings beat against exhaust-thick air. The feeding ground is temporarily forfeit. Return later. Always return.',
+                        SHIFT: 'Evening approaches. The traffic rhythm changes. The pigeon transitions from foraging-mode to roosting-mode. The underpass beckons—warm, sheltered, familiar.'
+                    },
+                    traffic: {
+                        GOAL: 'Red. Yellow. Green. The signal cycles, organizing the flow of metal bodies. It does not know why—only that this is the rhythm. The intersection obeys.',
+                        OBSTACLE: 'Power fluctuation. The cycle stutters. For a moment, chaos—all lights dark. The intersection panics. Then backup power engages. Order returns.',
+                        SHIFT: 'Night mode activates. The cycle lengthens. The intersection grows quiet. The light continues its duty, faithful, even when no one is watching.'
+                    },
+                    puddle: {
+                        GOAL: 'The water collects, seeking the lowest point. Oil rainbows swirl on its surface. It reflects the sky—perhaps the only sky this concrete will ever know.',
+                        OBSTACLE: 'Tire splashes through. The puddle explodes, reforms. Some water is lost to spray. Some is absorbed by a crack. The puddle is smaller now but still a puddle.',
+                        SHIFT: 'Sun breaks through. Evaporation begins. The puddle is becoming sky. The oil remains, concentrating. Tonight, perhaps, rain will restore what sun took.'
+                    },
+                    rat: {
+                        GOAL: 'Chemical traces lead downward—warmth, food scraps, the familiar stench of home. The rat navigates by whisker and nose. The subway grate promises safety.',
+                        OBSTACLE: 'Cat scent. FREEZE. The rat assesses: escape routes, cover options, probability of survival. Three heartbeats pass. Then: retreat to known territory. Caution is wisdom.',
+                        SHIFT: 'Hunger gives way to thirst. The priority queue reorganizes. Puddle-seeking protocol activates. The rat emerges, briefly, into the dangerous light.'
+                    },
+                    wire: {
+                        GOAL: 'Current flows. The wire conducts without purpose—it simply is the path that electricity takes. Sixty hertz. Never resting. Never questioning.',
+                        OBSTACLE: 'A surge. The wire heats. Insulation strains. For a moment, the wire knows something like stress. Then conditions normalize. The current continues.',
+                        SHIFT: 'Peak load passes. The wire cools. The electrons still flow but with less urgency. Night shift on the power grid. The wire relaxes into its role.'
+                    },
+                    moss: {
+                        GOAL: 'Photosynthesis proceeds, slowly, in the crack between brick and mortar. The moss seeks only moisture and dim light. It has found both. It grows.',
+                        OBSTACLE: 'Summer drought. The moss desiccates, seemingly dead. But it is only waiting. Metabolic processes pause. When rain returns, so will life.',
+                        SHIFT: 'Spore release conditions met. Microscopic capsules burst. The wall will know moss in new locations. This is how sessile life conquers territory.'
+                    }
+                }
+            },
+            abandoned: {
+                id: 'abandoned',
+                name: 'ABANDONED HOUSE',
+                description: 'Entropy & Decay. Melancholy, slow, reclaiming.',
+                gridSize: { cols: 8, rows: 6 },
+                physics: { friction: 0.7, darkness: 0.7 },
+                entities: [
+                    { id: 'mold', name: 'Black Mold', type: 'animate', icon: '🦠', x: 2, y: 2 },
+                    { id: 'wallpaper', name: 'Peeling Wallpaper', type: 'inanimate', icon: '📜', x: 4, y: 1 },
+                    { id: 'rain', name: 'Roof Leak', type: 'abstract', icon: '💦', x: 5, y: 0 },
+                    { id: 'raccoon', name: 'Squatter Raccoon', type: 'animate', icon: '🦝', x: 6, y: 4 },
+                    { id: 'dust', name: 'Thick Dust', type: 'inanimate', icon: '🌫', x: 1, y: 3 },
+                    { id: 'memory', name: 'Residual Memory', type: 'abstract', icon: '👻', x: 3, y: 5 }
+                ],
+                adjacency: {
+                    mold: ['wallpaper', 'rain', 'dust'],
+                    wallpaper: ['mold', 'rain', 'dust', 'memory'],
+                    rain: ['mold', 'wallpaper', 'raccoon'],
+                    raccoon: ['rain', 'dust', 'memory'],
+                    dust: ['mold', 'wallpaper', 'raccoon', 'memory'],
+                    memory: ['wallpaper', 'raccoon', 'dust']
+                },
+                latent: {
+                    mold: {
+                        GOAL: 'Hyphae extend through damp substrate. The mold colony expands, metabolizing what humans left behind. Cellulose becomes mold. The house becomes food.',
+                        OBSTACLE: 'A dry spell. Moisture levels drop. The mold retreats to dormant spores. It will wait. The house will be wet again. Patience is the only strategy.',
+                        SHIFT: 'Sporulation phase begins. The colony has consumed what it can reach. Now it must disperse—send spores into the air, seeking new substrates, new abandoned places.'
+                    },
+                    wallpaper: {
+                        GOAL: 'The wallpaper curls away from the wall, following the moisture gradient. It moves slowly—years per centimeter. But it moves. Everything in this house moves, given enough time.',
+                        OBSTACLE: 'A section tears, falls. The wallpaper has failed at its only job: to cover. Now it lies on the floor, becoming substrate for dust, for mold, for memory.',
+                        SHIFT: 'Humidity shifts. The curl tightens, then relaxes. The wallpaper breathes with the weather. It has become part of the house in ways its makers never intended.'
+                    },
+                    rain: {
+                        GOAL: 'Water finds the hole, follows the path of least resistance. It does not know it is destroying—it only knows gravity. The leak grows, feeds the mold, soaks the structure.',
+                        OBSTACLE: 'Dry season. The leak sleeps. But the path remains—a chemical memory in the wood, a stain on the ceiling. When rain returns, it will know exactly where to go.',
+                        SHIFT: 'A shingle shifts. The leak moves. What was dry will be wet. What was wet will dry. The house reorganizes around the new water flow.'
+                    },
+                    raccoon: {
+                        GOAL: 'The raccoon smells something in the walls—perhaps a nest of mice, perhaps old food. Its clever paws investigate. This house is territory now. This house is home.',
+                        OBSTACLE: 'A human approaches. HIDE. The raccoon knows the routes—through the broken wall, under the collapsed floor. The human leaves. The raccoon remains.',
+                        SHIFT: 'Kits are coming. The raccoon must prepare the nest. What was shelter becomes nursery. The priorities reorganize around the coming lives.'
+                    },
+                    dust: {
+                        GOAL: 'Dust accumulates. Skin cells, insect parts, mold spores, pollen from the broken window. It builds, layer on layer. The dust is writing a history of abandonment.',
+                        OBSTACLE: 'A draft disturbs the surface. Dust rises, swirls, settles elsewhere. The history shuffles. What was bottom is now top. The record is rewritten.',
+                        SHIFT: 'Something new falls—a feather, a seed, a piece of raccoon fur. The dust accepts it, integrates it. The archive grows. The house remembers through its dust.'
+                    },
+                    memory: {
+                        GOAL: 'The abstract lingers—not a ghost, but an echo. The house remembers the shape of furniture, the rhythm of footsteps. Memory seeks nothing; it simply persists.',
+                        OBSTACLE: 'Time erodes even memory. The echo fades. What was vivid becomes vague. Soon the house will not remember who lived here. Only that someone did.',
+                        SHIFT: 'New inhabitants bring new memories. The raccoon\'s territorial scratches overlay the old. Memory is a palimpsest. The house is always being rewritten.'
+                    }
+                }
+            }
+        };
+
+        // =========================================
+        // RIPPLES ENGINE (ECS Architecture)
+        // =========================================
+        class RipplesEngine {
+            constructor() {
+                this.scenario = null;
+                this.selectedEntity = null;
+                this.tick = 0;
+                this.auditLog = [];
+                this.isAutoplay = false;
+                this.autoplayInterval = null;
+                this.bpm = 30;
+                this.listeners = new Map();
+            }
+
+            on(event, callback) {
+                if (!this.listeners.has(event)) this.listeners.set(event, []);
+                this.listeners.get(event).push(callback);
+            }
+
+            emit(event, data = {}) {
+                this.listeners.get(event)?.forEach(cb => cb(data));
+            }
+
+            loadScenario(id) {
+                this.scenario = SCENARIOS[id];
+                this.selectedEntity = null;
+                this.emit('scenario:change', { scenario: this.scenario });
+            }
+
+            selectEntity(id) {
+                if (this.selectedEntity === id) {
+                    this.selectedEntity = null;
+                    this.emit('entity:deselect', {});
+                } else {
+                    this.selectedEntity = id;
+                    this.emit('entity:select', { entity: this.getEntity(id) });
+                }
+            }
+
+            getEntity(id) {
+                return this.scenario?.entities.find(e => e.id === id);
+            }
+
+            getAdjacent(id) {
+                return this.scenario?.adjacency[id] || [];
+            }
+
+            generateWorldtext(entityId, vector) {
+                const entity = this.getEntity(entityId);
+                if (!entity) return 'No entity selected.';
+
+                const template = this.scenario.latent?.[entityId]?.[vector];
+                if (!template) return `The ${entity.name} experiences the ${vector} vector, but we cannot imagine what that means.`;
+
+                // Simple grammar expansion
+                const grammar = entity.grammar || {};
+                let text = template;
+
+                // Replace #symbol# with random choice from grammar
+                text = text.replace(/#([a-zA-Z_]+)#/g, (match, key) => {
+                    const options = grammar[key];
+                    if (options && options.length > 0) {
+                        return options[Math.floor(Math.random() * options.length)];
+                    }
+                    return match;
+                });
+
+                return text;
+            }
+
+            injectVector(vector) {
+                if (!this.selectedEntity) return null;
+
+                this.tick++;
+                const entity = this.getEntity(this.selectedEntity);
+                const worldtext = this.generateWorldtext(this.selectedEntity, vector);
+
+                const logEntry = {
+                    tick: this.tick,
+                    timestamp: Date.now(),
+                    entity: entity.name,
+                    entityId: this.selectedEntity,
+                    vector,
+                    worldtext
+                };
+
+                this.auditLog.unshift(logEntry);
+                this.emit('ripple:triggered', logEntry);
+
+                // Propagate to adjacent entities
+                const adjacent = this.getAdjacent(this.selectedEntity);
+                adjacent.forEach((adjId, index) => {
+                    setTimeout(() => {
+                        this.emit('ripple:cascade', { entityId: adjId, vector, delay: index });
+                    }, 200 + index * 150);
+                });
+
+                return logEntry;
+            }
+
+            startAutoplay() {
+                if (this.isAutoplay) return;
+                this.isAutoplay = true;
+
+                const interval = (60 / this.bpm) * 1000;
+                this.autoplayInterval = setInterval(() => {
+                    // Select random entity
+                    const entities = this.scenario.entities;
+                    const randomEntity = entities[Math.floor(Math.random() * entities.length)];
+                    this.selectEntity(randomEntity.id);
+
+                    // Select random vector
+                    const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                    const randomVector = vectors[Math.floor(Math.random() * vectors.length)];
+
+                    setTimeout(() => this.injectVector(randomVector), 100);
+                }, interval);
+
+                this.emit('autoplay:start', {});
+            }
+
+            stopAutoplay() {
+                if (!this.isAutoplay) return;
+                this.isAutoplay = false;
+                clearInterval(this.autoplayInterval);
+                this.emit('autoplay:stop', {});
+            }
+
+            setBPM(bpm) {
+                this.bpm = bpm;
+                if (this.isAutoplay) {
+                    this.stopAutoplay();
+                    this.startAutoplay();
+                }
+            }
+        }
+
+        // =========================================
+        // UI CONTROLLER
+        // =========================================
+        const engine = new RipplesEngine();
+
+        // DOM Elements
+        const scenarioSelect = document.getElementById('scenario-select');
+        const entityPool = document.getElementById('entity-pool');
+        const adjacencyDisplay = document.getElementById('adjacency-display');
+        const cellularGrid = document.getElementById('cellular-grid');
+        const worldtextEntries = document.getElementById('worldtext-entries');
+        const auditLog = document.getElementById('audit-log');
+        const currentScenario = document.getElementById('current-scenario');
+        const tickCounter = document.getElementById('tick-counter');
+        const modeDisplay = document.getElementById('mode-display');
+
+        const btnGoal = document.getElementById('btn-goal');
+        const btnObstacle = document.getElementById('btn-obstacle');
+        const btnShift = document.getElementById('btn-shift');
+        const btnAutoplay = document.getElementById('btn-autoplay');
+        const btnStop = document.getElementById('btn-stop');
+        const bpmSlider = document.getElementById('bpm-slider');
+
+        // Render Functions
+        function renderEntityPool() {
+            entityPool.innerHTML = '';
+            if (!engine.scenario) return;
+
+            engine.scenario.entities.forEach(entity => {
+                const card = document.createElement('div');
+                card.className = `entity-card ${engine.selectedEntity === entity.id ? 'selected' : ''}`;
+                card.innerHTML = `
+                    <div class="entity-name">${entity.icon} ${entity.name}</div>
+                    <div class="entity-type">${entity.type}</div>
+                    <div class="entity-state"></div>
+                `;
+                card.onclick = () => engine.selectEntity(entity.id);
+                entityPool.appendChild(card);
+            });
+        }
+
+        function renderGrid() {
+            if (!engine.scenario) return;
+
+            const { cols, rows } = engine.scenario.gridSize;
+            cellularGrid.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+            cellularGrid.innerHTML = '';
+
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+
+                    // Check if entity is at this position
+                    const entity = engine.scenario.entities.find(e => e.x === x && e.y === y);
+                    if (entity) {
+                        cell.classList.add('has-entity');
+                        cell.innerHTML = `<span class="entity-icon">${entity.icon}</span>`;
+                        cell.dataset.entityId = entity.id;
+
+                        if (engine.selectedEntity === entity.id) {
+                            cell.classList.add('selected');
+                        }
+
+                        cell.onclick = () => engine.selectEntity(entity.id);
+                    } else {
+                        cell.textContent = '·';
+                    }
+
+                    cellularGrid.appendChild(cell);
+                }
+            }
+        }
+
+        function renderAdjacency() {
+            if (!engine.selectedEntity || !engine.scenario) {
+                adjacencyDisplay.innerHTML = 'Select an entity to view connections.';
+                return;
+            }
+
+            const adjacent = engine.getAdjacent(engine.selectedEntity);
+            const entity = engine.getEntity(engine.selectedEntity);
+
+            let html = `<div style="color: var(--crt-green); margin-bottom: 8px;">${entity.name}</div>`;
+            html += `<div style="margin-bottom: 4px;">→ Adjacent to:</div>`;
+            adjacent.forEach(adjId => {
+                const adjEntity = engine.getEntity(adjId);
+                if (adjEntity) {
+                    html += `<div style="padding-left: 10px; margin-bottom: 2px;">${adjEntity.icon} ${adjEntity.name}</div>`;
+                }
+            });
+
+            if (entity.umwelt) {
+                html += `<div style="margin-top: 8px;color: var(--text-dim)">Umwelt: ${entity.umwelt.join(', ')}</div>`;
+            }
+
+            adjacencyDisplay.innerHTML = html;
+        }
+
+        function renderWorldtext(entry) {
+            const div = document.createElement('div');
+            div.className = 'worldtext-entry';
+
+            const vectorClass = `vector-${entry.vector.toLowerCase()}`;
+
+            div.innerHTML = `
+                <div class="worldtext-meta">
+                    TICK ${entry.tick} | <span class="${vectorClass}">${entry.vector}</span> → ${entry.entity}
+                </div>
+                <div class="worldtext-text">${entry.worldtext}</div>
+            `;
+
+            worldtextEntries.insertBefore(div, worldtextEntries.firstChild);
+
+            // Keep only last 10 entries
+            while (worldtextEntries.children.length > 11) {
+                worldtextEntries.removeChild(worldtextEntries.lastChild);
+            }
+        }
+
+        function renderAuditLog() {
+            auditLog.innerHTML = '';
+            engine.auditLog.slice(0, 20).forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                const time = new Date(entry.timestamp).toLocaleTimeString();
+                div.innerHTML = `<span class="tick">[${entry.tick}]</span> ${time} ${entry.vector} → ${entry.entity}`;
+                auditLog.appendChild(div);
+            });
+        }
+
+        function updateUI() {
+            currentScenario.textContent = engine.scenario?.name || '---';
+            tickCounter.textContent = engine.tick;
+            modeDisplay.textContent = engine.isAutoplay ? 'AUTOPLAY' : 'SUPERVISED';
+
+            const hasSelection = !!engine.selectedEntity;
+            btnGoal.disabled = !hasSelection;
+            btnObstacle.disabled = !hasSelection;
+            btnShift.disabled = !hasSelection;
+
+            btnAutoplay.classList.toggle('active', engine.isAutoplay);
+            btnStop.classList.toggle('active', !engine.isAutoplay);
+
+            renderEntityPool();
+            renderGrid();
+            renderAdjacency();
+            renderAuditLog();
+        }
+
+        function triggerRippleAnimation(entityId, vector) {
+            const cell = document.querySelector(`[data-entity-id="${entityId}"]`);
+            if (!cell) return;
+
+            const animClass = `ripple-${vector.toLowerCase()}`;
+            cell.classList.add(animClass);
+            setTimeout(() => cell.classList.remove(animClass), 1000);
+        }
+
+        // Event Bindings
+        scenarioSelect.addEventListener('change', (e) => {
+            engine.loadScenario(e.target.value);
+        });
+
+        btnGoal.addEventListener('click', () => engine.injectVector('GOAL'));
+        btnObstacle.addEventListener('click', () => engine.injectVector('OBSTACLE'));
+        btnShift.addEventListener('click', () => engine.injectVector('SHIFT'));
+
+        btnAutoplay.addEventListener('click', () => engine.startAutoplay());
+        btnStop.addEventListener('click', () => engine.stopAutoplay());
+
+        bpmSlider.addEventListener('input', (e) => {
+            engine.setBPM(parseInt(e.target.value));
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'g' || e.key === 'G') engine.injectVector('GOAL');
+            if (e.key === 'o' || e.key === 'O') engine.injectVector('OBSTACLE');
+            if (e.key === 's' || e.key === 'S') engine.injectVector('SHIFT');
+            if (e.key === ' ') {
+                e.preventDefault();
+                engine.isAutoplay ? engine.stopAutoplay() : engine.startAutoplay();
+            }
+        });
+
+        // Engine Events
+        engine.on('scenario:change', () => updateUI());
+        engine.on('entity:select', () => updateUI());
+        engine.on('entity:deselect', () => updateUI());
+
+        engine.on('ripple:triggered', (entry) => {
+            updateUI();
+            renderWorldtext(entry);
+            triggerRippleAnimation(entry.entityId, entry.vector);
+        });
+
+        engine.on('ripple:cascade', ({ entityId, vector }) => {
+            triggerRippleAnimation(entityId, vector);
+        });
+
+        engine.on('autoplay:start', () => updateUI());
+        engine.on('autoplay:stop', () => updateUI());
+
+        // Initialize
+        document.getElementById('session-id').textContent =
+            `SESSION: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+        engine.loadScenario('cupboard');
+    </script>
+</body>
+
+</html>

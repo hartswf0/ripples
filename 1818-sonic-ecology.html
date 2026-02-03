@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // SONIC ECOLOGY DEMO</title>
+    <style>
+        :root {
+            --bg: #050a05;
+            --green: #4af626;
+            --green-dim: #1e5c12;
+            --amber: #f5a623;
+            --red: #ff4444;
+            --cyan: #00ffff;
+            --text: #ccffcc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: var(--bg);
+            color: var(--green);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* CRT effect */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0.1) 0px,
+                    rgba(0, 0, 0, 0.1) 1px,
+                    transparent 1px,
+                    transparent 2px);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            gap: 1px;
+            background: var(--green-dim);
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--green-dim);
+        }
+
+        .header h1 {
+            font-size: 14px;
+            letter-spacing: 0.15em;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header-controls button {
+            background: transparent;
+            border: 1px solid var(--green-dim);
+            color: var(--green);
+            padding: 6px 16px;
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-controls button:hover {
+            background: var(--green-dim);
+            border-color: var(--green);
+        }
+
+        .header-controls button.active {
+            background: var(--green);
+            color: var(--bg);
+        }
+
+        /* Main Canvas Area */
+        .canvas-area {
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #mainCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid var(--green-dim);
+            padding: 12px;
+        }
+
+        .panel-section h3 {
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            color: var(--green-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Orca Grid Display */
+        .orca-grid {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background: #0a0f0a;
+            padding: 8px;
+            border: 1px solid var(--green-dim);
+            white-space: pre;
+            overflow: hidden;
+        }
+
+        .orca-grid .bang {
+            color: var(--amber);
+        }
+
+        .orca-grid .operator {
+            color: var(--cyan);
+        }
+
+        .orca-grid .output {
+            color: var(--green);
+        }
+
+        /* Voice Status */
+        .voices {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .voice {
+            aspect-ratio: 1;
+            border: 1px solid var(--green-dim);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all 0.1s;
+        }
+
+        .voice.active {
+            background: var(--green);
+            color: var(--bg);
+            border-color: var(--green);
+        }
+
+        .voice .note {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Entity Legend */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .legend-item .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-item.animate .dot {
+            background: var(--green);
+        }
+
+        .legend-item.inanimate .dot {
+            background: var(--amber);
+        }
+
+        .legend-item.abstract .dot {
+            background: var(--cyan);
+        }
+
+        /* Worldtext Output */
+        .worldtext-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .worldtext-line {
+            margin-bottom: 8px;
+            padding-left: 8px;
+            border-left: 2px solid var(--green-dim);
+        }
+
+        .worldtext-line.new {
+            border-left-color: var(--green);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Footer */
+        .footer {
+            grid-column: 1 / -1;
+            background: var(--bg);
+            padding: 8px 20px;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            color: var(--green-dim);
+            border-top: 1px solid var(--green-dim);
+        }
+
+        /* Waveform visualizer */
+        .waveform {
+            height: 60px;
+            background: #0a0f0a;
+            border: 1px solid var(--green-dim);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #waveformCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* BPM / Frame display */
+        .stats {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        .stat {
+            display: flex;
+            gap: 4px;
+        }
+
+        .stat-label {
+            color: var(--green-dim);
+        }
+
+        .stat-value {
+            color: var(--green);
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>RIPPLES // SONIC ECOLOGY DEMO</h1>
+            <div class="header-controls">
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-label">BPM</span>
+                        <span class="stat-value" id="bpmDisplay">120</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">FRAME</span>
+                        <span class="stat-value" id="frameDisplay">0000</span>
+                    </div>
+                </div>
+                <button id="startBtn">▶ START</button>
+                <button id="stopBtn">■ STOP</button>
+            </div>
+        </header>
+
+        <div class="canvas-area">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-section">
+                <h3>Orca Pattern</h3>
+                <div class="orca-grid" id="orcaGrid">
+                    .............
+                    .D4..........
+                    ..<span class="output">:04Cf</span>.....
+                    .............
+                    .D8..........
+                    ..<span class="output">:14Ef</span>.....
+                    .............
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Pilot Voices</h3>
+                <div class="voices" id="voices">
+                    <div class="voice" data-channel="0"><span class="note">C</span><span>ch0</span></div>
+                    <div class="voice" data-channel="1"><span class="note">E</span><span>ch1</span></div>
+                    <div class="voice" data-channel="2"><span class="note">G</span><span>ch2</span></div>
+                    <div class="voice" data-channel="3"><span class="note">A</span><span>ch3</span></div>
+                    <div class="voice" data-channel="4"><span class="note">-</span><span>ch4</span></div>
+                    <div class="voice" data-channel="5"><span class="note">-</span><span>ch5</span></div>
+                    <div class="voice" data-channel="6"><span class="note">-</span><span>ch6</span></div>
+                    <div class="voice" data-channel="7"><span class="note">-</span><span>ch7</span></div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Waveform</h3>
+                <div class="waveform">
+                    <canvas id="waveformCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Entity → Sound</h3>
+                <div class="legend">
+                    <div class="legend-item animate">
+                        <div class="dot"></div><span>Animate → Sine (soft)</span>
+                    </div>
+                    <div class="legend-item inanimate">
+                        <div class="dot"></div><span>Inanimate → Square (hard)</span>
+                    </div>
+                    <div class="legend-item abstract">
+                        <div class="dot"></div><span>Abstract → Sawtooth (cutting)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="worldtext-output" id="worldtextOutput">
+                <div class="worldtext-line">// Sonic Ecology initialized</div>
+                <div class="worldtext-line">// Click START to begin</div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <span>RIPPLES × ORCA × PILOT // Sonic Ecology Demo</span>
+            <span>Click entities to trigger sounds</span>
+        </footer>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // WEB AUDIO ENGINE (simulating Pilot)
+        // ═══════════════════════════════════════════════════════════════
+        class PilotSynth {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.analyser = null;
+                this.voices = new Map();
+                this.initialized = false;
+            }
+
+            async init() {
+                if (this.initialized) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3;
+
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+
+                this.masterGain.connect(this.analyser);
+                this.analyser.connect(this.ctx.destination);
+
+                this.initialized = true;
+            }
+
+            // Play a note: channel, octave, note, velocity, length
+            play(channel, octave, note, velocity = 0.5, length = 0.2) {
+                if (!this.initialized) return;
+
+                const freq = this.noteToFreq(note, octave);
+                const waveform = this.channelToWaveform(channel);
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = waveform;
+                osc.frequency.value = freq;
+
+                // ADSR envelope
+                const now = this.ctx.currentTime;
+                const attack = 0.01;
+                const decay = 0.1;
+                const sustain = velocity * 0.5;
+                const release = length;
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(velocity, now + attack);
+                gain.gain.linearRampToValueAtTime(sustain, now + attack + decay);
+                gain.gain.linearRampToValueAtTime(0, now + attack + decay + release);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start(now);
+                osc.stop(now + attack + decay + release + 0.1);
+
+                // Track active voice
+                this.voices.set(channel, { note, active: true });
+                setTimeout(() => {
+                    this.voices.set(channel, { note, active: false });
+                }, (attack + decay + release) * 1000);
+
+                return { freq, waveform };
+            }
+
+            noteToFreq(note, octave) {
+                const notes = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+                const semitone = notes[note.toUpperCase()] || 0;
+                return 440 * Math.pow(2, (semitone - 9) / 12 + (octave - 4));
+            }
+
+            channelToWaveform(channel) {
+                const waveforms = ['sine', 'sine', 'square', 'square', 'sawtooth', 'sawtooth', 'triangle', 'triangle'];
+                return waveforms[channel % waveforms.length];
+            }
+
+            getAnalyserData() {
+                if (!this.analyser) return new Uint8Array(128);
+                const data = new Uint8Array(this.analyser.frequencyBinCount);
+                this.analyser.getByteTimeDomainData(data);
+                return data;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ENTITY SIMULATION
+        // ═══════════════════════════════════════════════════════════════
+        class Entity {
+            constructor(x, y, type, name) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'animate', 'inanimate', 'abstract'
+                this.name = name;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = type === 'abstract' ? 8 : (type === 'animate' ? 12 : 10);
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.lastSound = 0;
+            }
+
+            update(width, height, frame) {
+                if (this.type === 'animate') {
+                    // Animate entities move with purpose
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Bounce off walls
+                    if (this.x < this.radius || this.x > width - this.radius) this.vx *= -1;
+                    if (this.y < this.radius || this.y > height - this.radius) this.vy *= -1;
+
+                    // Slight random direction change
+                    if (Math.random() < 0.02) {
+                        this.vx += (Math.random() - 0.5) * 0.5;
+                        this.vy += (Math.random() - 0.5) * 0.5;
+                    }
+                } else if (this.type === 'abstract') {
+                    // Abstract entities drift slowly
+                    this.x += Math.sin(frame * 0.02 + this.pulsePhase) * 0.5;
+                    this.y += Math.cos(frame * 0.015 + this.pulsePhase) * 0.3;
+                }
+                // Inanimate entities don't move
+
+                this.pulsePhase += 0.05;
+
+                // Clamp to bounds
+                this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
+            }
+
+            draw(ctx, frame) {
+                const pulse = Math.sin(this.pulsePhase) * 0.2 + 1;
+                const r = this.radius * pulse;
+
+                ctx.beginPath();
+
+                if (this.type === 'animate') {
+                    ctx.fillStyle = '#4af626';
+                    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+                } else if (this.type === 'inanimate') {
+                    ctx.fillStyle = '#f5a623';
+                    ctx.rect(this.x - r, this.y - r, r * 2, r * 2);
+                } else {
+                    ctx.fillStyle = '#00ffff';
+                    // Draw triangle for abstract
+                    ctx.moveTo(this.x, this.y - r);
+                    ctx.lineTo(this.x + r, this.y + r);
+                    ctx.lineTo(this.x - r, this.y + r);
+                    ctx.closePath();
+                }
+
+                ctx.fill();
+
+                // Draw name
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.font = '9px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.name, this.x, this.y + r + 12);
+            }
+
+            contains(px, py) {
+                const dx = px - this.x;
+                const dy = py - this.y;
+                return Math.sqrt(dx * dx + dy * dy) < this.radius + 10;
+            }
+
+            getSound() {
+                // Map entity type to sound parameters
+                const sounds = {
+                    'animate': { channel: 0, octave: 4, notes: ['C', 'E', 'G'] },
+                    'inanimate': { channel: 2, octave: 3, notes: ['C', 'D', 'F'] },
+                    'abstract': { channel: 4, octave: 5, notes: ['G', 'A', 'B'] }
+                };
+                const s = sounds[this.type];
+                const note = s.notes[Math.floor(Math.random() * s.notes.length)];
+                return { channel: s.channel, octave: s.octave, note };
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // RIPPLE EFFECT
+        // ═══════════════════════════════════════════════════════════════
+        class Ripple {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 100;
+                this.color = color;
+                this.alpha = 1;
+            }
+
+            update() {
+                this.radius += 3;
+                this.alpha = 1 - (this.radius / this.maxRadius);
+                return this.alpha > 0;
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color.replace(')', `, ${this.alpha})`).replace('rgb', 'rgba');
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // GRID COMPILER (Ported from engine/compiler/grid-compiler.js)
+        // ═══════════════════════════════════════════════════════════════
+        class RipplesGridCompiler {
+            constructor(width = 13, height = 7) {
+                this.width = width;
+                this.height = height;
+                this.grid = new Array(width * height).fill('.');
+
+                this.operatorMap = {
+                    'animate': ['N', 'S', 'E', 'W'],
+                    'inanimate': ['H', '*', '+', '-'],
+                    'abstract': ['Y', 'J', 'V', 'T']
+                };
+
+                this.specialMap = {
+                    'ant': 'N',
+                    'spider': 'E',
+                    'crumb': 'I',
+                    'wall': 'H',
+                    'shadow': 'V',
+                    'ripple': '@'
+                };
+            }
+
+            clear() {
+                this.grid.fill('.');
+            }
+
+            compile(entities, canvasWidth, canvasHeight) {
+                this.clear();
+
+                // Add static base pattern (optional)
+                const centerIdx = Math.floor(this.height / 2) * this.width + Math.floor(this.width / 2);
+                this.grid[centerIdx] = '*'; // Central bang
+
+                entities.forEach(entity => {
+                    // Map canvas coordinates to grid coordinates
+                    const gx = Math.floor((entity.x / canvasWidth) * this.width);
+                    const gy = Math.floor((entity.y / canvasHeight) * this.height);
+                    const idx = gy * this.width + gx;
+
+                    let char = '.';
+                    if (this.specialMap[entity.name.toLowerCase()]) {
+                        char = this.specialMap[entity.name.toLowerCase()];
+                    } else {
+                        const possibleOps = this.operatorMap[entity.type] || ['?'];
+                        const hash = entity.name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                        char = possibleOps[hash % possibleOps.length];
+                    }
+
+                    if (idx >= 0 && idx < this.grid.length) {
+                        this.grid[idx] = char;
+
+                        // Inject value if applicable (simulated here based on y-pos)
+                        const valIdx = idx + 1;
+                        if (valIdx % this.width !== 0) {
+                            const val = Math.floor((entity.y / canvasHeight) * 35).toString(36).toUpperCase();
+                            this.grid[valIdx] = val;
+                        }
+                    }
+                });
+
+                return this.toHTML();
+            }
+
+            toHTML() {
+                let html = '';
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const idx = y * this.width + x;
+                        const char = this.grid[idx];
+                        let className = '';
+                        if (char === '*') className = 'bang';
+                        else if (char === '.') className = 'dim';
+                        else if (/[0-9A-Z]/.test(char) && char !== '.') className = 'output';
+                        else className = 'operator';
+
+                        html += `<span class="${className}">${char}</span>`;
+                    }
+                    html += '\n';
+                }
+                return html;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MAIN APPLICATION
+        // ═══════════════════════════════════════════════════════════════
+        class SonicEcologyDemo {
+            constructor() {
+                this.canvas = document.getElementById('mainCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.waveCanvas = document.getElementById('waveformCanvas');
+                this.waveCtx = this.waveCanvas.getContext('2d');
+
+                this.synth = new PilotSynth();
+                this.compiler = new RipplesGridCompiler(13, 7); // Match the ASCII display size
+
+                this.entities = [];
+                this.ripples = [];
+                this.frame = 0;
+                this.bpm = 120;
+                this.running = false;
+                this.lastBeat = 0;
+
+                this.worldtextOutput = document.getElementById('worldtextOutput');
+                this.frameDisplay = document.getElementById('frameDisplay');
+                this.bpmDisplay = document.getElementById('bpmDisplay');
+                this.orcaGrid = document.getElementById('orcaGrid');
+
+                this.init();
+            }
+
+            init() {
+                // ... (resize logic same as before)
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                this.createEntities();
+
+                this.canvas.addEventListener('click', async (e) => {
+                    await this.synth.init();
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+                    const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+                    this.handleClick(x, y);
+                });
+
+                document.getElementById('startBtn').addEventListener('click', async () => {
+                    await this.synth.init();
+                    this.running = true;
+                    document.getElementById('startBtn').classList.add('active');
+                    document.getElementById('stopBtn').classList.remove('active');
+                    this.addWorldtext('// Sonic ecology running...');
+                });
+
+                document.getElementById('stopBtn').addEventListener('click', () => {
+                    this.running = false;
+                    document.getElementById('stopBtn').classList.add('active');
+                    document.getElementById('startBtn').classList.remove('active');
+                    this.addWorldtext('// Paused');
+                });
+
+                this.render();
+            }
+
+            // ... (createEntities key methods retained)
+
+            createEntities() {
+                // Same implementation as previous step
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                this.entities.push(new Entity(w * 0.3, h * 0.4, 'animate', 'ant'));
+                this.entities.push(new Entity(w * 0.7, h * 0.6, 'animate', 'spider'));
+                this.entities.push(new Entity(w * 0.5, h * 0.3, 'animate', 'moth'));
+                this.entities.push(new Entity(w * 0.2, h * 0.7, 'inanimate', 'crumb'));
+                this.entities.push(new Entity(w * 0.8, h * 0.3, 'inanimate', 'splinter'));
+                this.entities.push(new Entity(w * 0.5, h * 0.8, 'inanimate', 'dust'));
+                this.entities.push(new Entity(w * 0.4, h * 0.5, 'abstract', 'shadow'));
+                this.entities.push(new Entity(w * 0.6, h * 0.5, 'abstract', 'draft'));
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width * window.devicePixelRatio;
+                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                const waveRect = this.waveCanvas.parentElement.getBoundingClientRect();
+                this.waveCanvas.width = waveRect.width * window.devicePixelRatio;
+                this.waveCanvas.height = waveRect.height * window.devicePixelRatio;
+            }
+
+            handleClick(x, y) {
+                x /= window.devicePixelRatio;
+                y /= window.devicePixelRatio;
+                for (const entity of this.entities) {
+                    if (entity.contains(x, y)) {
+                        this.triggerEntitySound(entity);
+                        return;
+                    }
+                }
+                this.synth.play(6, 3, 'C', 0.2, 0.5);
+                this.ripples.push(new Ripple(x, y, 'rgb(30, 92, 18)'));
+            }
+
+            triggerEntitySound(entity) {
+                const sound = entity.getSound();
+                this.synth.play(sound.channel, sound.octave, sound.note, 0.6, 0.3);
+
+                const colors = {
+                    'animate': 'rgb(74, 246, 38)',
+                    'inanimate': 'rgb(245, 166, 35)',
+                    'abstract': 'rgb(0, 255, 255)'
+                };
+                this.ripples.push(new Ripple(entity.x, entity.y, colors[entity.type]));
+                this.updateVoiceDisplay(sound.channel, sound.note);
+
+                const worldtexts = {
+                    'animate': [`The ${entity.name} pulses.`, `${entity.name} signals.`, `Signal from ${entity.name}.`],
+                    'inanimate': [`${entity.name} resonates.`, `${entity.name} vibrates.`, `Matter: ${entity.name}.`],
+                    'abstract': [`${entity.name} ripples.`, `${entity.name} shifts.`, `${entity.name} moves.`]
+                };
+                const texts = worldtexts[entity.type];
+                this.addWorldtext(texts[Math.floor(Math.random() * texts.length)]);
+            }
+
+            // ... (helper methods like updateVoiceDisplay, addWorldtext same as before)
+            updateVoiceDisplay(channel, note) {
+                const voices = document.querySelectorAll('.voice');
+                voices.forEach((v, i) => {
+                    if (i === channel) {
+                        v.classList.add('active');
+                        v.querySelector('.note').textContent = note;
+                        setTimeout(() => v.classList.remove('active'), 200);
+                    }
+                });
+            }
+
+            addWorldtext(text) {
+                const line = document.createElement('div');
+                line.className = 'worldtext-line new';
+                line.textContent = text;
+                this.worldtextOutput.appendChild(line);
+                this.worldtextOutput.scrollTop = this.worldtextOutput.scrollHeight;
+                setTimeout(() => line.classList.remove('new'), 300);
+                while (this.worldtextOutput.children.length > 20) this.worldtextOutput.removeChild(this.worldtextOutput.firstChild);
+            }
+
+            render() {
+                const w = this.canvas.width / window.devicePixelRatio;
+                const h = this.canvas.height / window.devicePixelRatio;
+
+                this.ctx.fillStyle = '#050a05';
+                this.ctx.fillRect(0, 0, w, h);
+
+                // Draw grid lines
+                this.ctx.strokeStyle = 'rgba(30, 92, 18, 0.3)';
+                this.ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < w; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, h);
+                    this.ctx.stroke();
+                }
+                for (let y = 0; y < h; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(w, y);
+                    this.ctx.stroke();
+                }
+
+                this.ripples = this.ripples.filter(r => {
+                    const alive = r.update();
+                    if (alive) r.draw(this.ctx);
+                    return alive;
+                });
+
+                if (this.running) {
+                    this.frame++;
+                    this.frameDisplay.textContent = String(this.frame).padStart(4, '0');
+                    const beatInterval = 60000 / this.bpm;
+                    const now = performance.now();
+                    if (now - this.lastBeat > beatInterval) {
+                        this.lastBeat = now;
+                        this.onBeat();
+                    }
+                }
+
+                for (const entity of this.entities) {
+                    entity.update(w, h, this.frame);
+                    entity.draw(this.ctx, this.frame);
+                }
+
+                // NEW: Update Orca Grid
+                // Only update every few frames to avoid DOM thrashing
+                if (this.frame % 5 === 0) {
+                    this.orcaGrid.innerHTML = this.compiler.compile(this.entities, w, h);
+                }
+
+                this.drawWaveform();
+
+                requestAnimationFrame(() => this.render());
+            }
+
+            // ... (rest of methods)
+            onBeat() {
+                if (this.frame % 4 === 0) {
+                    const entity = this.entities[Math.floor(Math.random() * this.entities.length)];
+                    this.triggerEntitySound(entity);
+                }
+            }
+
+            drawWaveform() {
+                const w = this.waveCanvas.width;
+                const h = this.waveCanvas.height;
+                const ctx = this.waveCtx;
+                ctx.fillStyle = '#0a0f0a';
+                ctx.fillRect(0, 0, w, h);
+                const data = this.synth.getAnalyserData();
+                ctx.strokeStyle = '#4af626';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                const sliceWidth = w / data.length;
+                let x = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const v = data[i] / 128.0;
+                    const y = v * h / 2;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            new SonicEcologyDemo();
+        });
+    </script>
+</body>
+
+</html>

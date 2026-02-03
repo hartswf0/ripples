@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES: Modular Engine Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: #000;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"></div>
+
+    <script type="module">
+        /**
+         * RIPPLES: Modular Engine Demo
+         * =============================
+         * This file demonstrates the modular engine architecture.
+         * 
+         * ARCHITECTURE:
+         * 1. RipplesEngine (headless) — pure state machine
+         * 2. VisualizationAdapter — bridges engine events to renderer
+         * 3. GridRenderer — CRT-style grid visualization
+         * 
+         * CONTEXT WINDOW DOCUMENTATION:
+         * - Engine state: ~2KB serialized
+         * - Latent library per scenario: ~8KB
+         * - Total for LLM context: ~15KB
+         * 
+         * TOKEN EFFICIENCY:
+         * - Use engine.exportState() to get minimal state snapshot
+         * - Pass only selected entity + scenario baseline for prompts
+         * - Worldtext responses should be 150-300 words
+         */
+
+        // Import the engine modules
+        import { RipplesEngine } from './engine/ripples-engine.js';
+        import { VisualizationAdapter } from './engine/visualization-adapter.js';
+        import { GridRenderer } from './engine/renderers/grid-renderer.js';
+
+        // Import the latent library data
+        // Note: JSON import requires type assertion in some environments
+        // For broader compatibility, we'll fetch it
+        async function init() {
+            // Load the latent library
+            const response = await fetch('./engine/data/latent-library.json');
+            const latentLibrary = await response.json();
+
+            // Create the headless engine
+            const engine = new RipplesEngine({
+                latentLibrary,
+                autoplayInterval: 3000,
+                maxAuditEntries: 50
+            });
+
+            // Create the grid renderer
+            const container = document.getElementById('app');
+            const renderer = new GridRenderer(container, {
+                showCRTEffects: true,
+                showLatentPanel: true
+            });
+
+            // Create the adapter to bridge engine ↔ renderer
+            const adapter = new VisualizationAdapter(engine, renderer);
+
+            // Bind UI events to adapter
+            renderer.bindAdapter(adapter);
+
+            // Load the default scenario
+            engine.loadScenario('cupboard');
+
+            // Expose to console for debugging
+            window.ripples = { engine, adapter, renderer };
+
+            console.log(`
+╔═══════════════════════════════════════════════════════════════════════════╗
+║  RIPPLES: Modular Engine Demo                                             ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║  Architecture:                                                            ║
+║    • Engine: headless state machine with event system                     ║
+║    • Adapter: bridges engine events → renderer methods                    ║
+║    • Renderer: CRT-style grid visualization                               ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║  Console API:                                                             ║
+║    ripples.engine.loadScenario('deep_forest')                             ║
+║    ripples.engine.selectEntity('deer')                                    ║
+║    ripples.engine.triggerVector('GOAL')                                   ║
+║    ripples.engine.exportState()                                           ║
+║    ripples.engine.startAutoplay()                                         ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║  Keyboard Shortcuts:                                                      ║
+║    [G] GOAL   [O] OBSTACLE   [S] SHIFT   [SPACE] Toggle Autoplay          ║
+║    [1-6] Select entity   [←/→] Cycle scenarios                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+            `);
+
+            // Log state changes for debugging
+            engine.on('state:change', ({ event, data }) => {
+                if (event !== 'autoplay:tick') {
+                    console.log(`[Engine] ${event}`, data);
+                }
+            });
+        }
+
+        // Initialize the application
+        init().catch(console.error);
+    </script>
+</body>
+
+</html>

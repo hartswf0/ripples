@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIPPLES // INFINITE GRID</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            background: #08080a;
+            color: #a0a0a0;
+            overflow: hidden;
+        }
+
+        :root {
+            --bg-dark: #08080a;
+            --bg-panel: #111114;
+            --border: #222;
+            --text-dim: #555;
+            --text: #999;
+            --accent: #4af626;
+            --goal: #f59e0b;
+            --obstacle: #ef4444;
+            --shift: #a855f7;
+        }
+
+        #app {
+            display: grid;
+            grid-template-columns: 220px 1fr 260px;
+            grid-template-rows: 40px 1fr 24px;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+        }
+
+        #header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 11px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #sidebar {
+            grid-row: 2;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        #viewport {
+            grid-row: 2;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #inspector {
+            grid-row: 2;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        #footer {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 9px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .entity-btn {
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            font-size: 10px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+
+        .entity-btn:hover {
+            border-color: var(--border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .entity-btn.selected {
+            border-color: var(--accent);
+            background: rgba(74, 246, 38, 0.05);
+            color: var(--accent);
+        }
+
+        .vector-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.15s;
+        }
+
+        .vector-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .vector-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .vector-btn.goal {
+            border-color: var(--goal);
+            color: var(--goal);
+        }
+
+        .vector-btn.goal:hover:not(:disabled) {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .vector-btn.obstacle {
+            border-color: var(--obstacle);
+            color: var(--obstacle);
+        }
+
+        .vector-btn.obstacle:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .vector-btn.shift {
+            border-color: var(--shift);
+            color: var(--shift);
+        }
+
+        .vector-btn.shift:hover:not(:disabled) {
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .log-entry {
+            font-size: 9px;
+            padding: 8px;
+            border-left: 2px solid var(--border);
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .log-entry.goal {
+            border-color: var(--goal);
+        }
+
+        .log-entry.obstacle {
+            border-color: var(--obstacle);
+        }
+
+        .log-entry.shift {
+            border-color: var(--shift);
+        }
+
+        .minimap {
+            width: 100%;
+            height: 100px;
+            background: #000;
+            border: 1px solid var(--border);
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 1px solid var(--accent);
+            background: rgba(74, 246, 38, 0.1);
+        }
+
+        #zoom-display {
+            font-size: 10px;
+            color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <header id="header" class="panel">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="color: var(--accent); font-weight: 600;">RIPPLES//INFINITE</span>
+                <select id="scenario-select"
+                    style="background: var(--bg-dark); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; font-size: 10px; font-family: inherit;">
+                    <option value="cupboard">THE CUPBOARD</option>
+                    <option value="forest">DEEP FOREST</option>
+                    <option value="void">SECTOR VOID ZERO</option>
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span id="zoom-display">ZOOM: 1.00x</span>
+                <button id="autoplay-btn"
+                    style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 4px 12px; font-size: 10px; cursor: pointer;">▶
+                    MANUAL</button>
+                <span id="tick-display">TICK: 0</span>
+            </div>
+        </header>
+
+        <aside id="sidebar" class="panel">
+            <div class="section-title">Entities</div>
+            <div id="entity-list"></div>
+            <div style="margin-top: 16px;">
+                <div class="section-title">Inject Vector</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <button id="btn-goal" class="vector-btn goal" disabled>GOAL</button>
+                    <button id="btn-obstacle" class="vector-btn obstacle" disabled>OBSTACLE</button>
+                    <button id="btn-shift" class="vector-btn shift" disabled>SHIFT</button>
+                </div>
+            </div>
+        </aside>
+
+        <div id="viewport">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <aside id="inspector" class="panel">
+            <div class="section-title">Minimap</div>
+            <div class="minimap" id="minimap">
+                <div class="minimap-viewport" id="minimap-viewport"></div>
+            </div>
+            <div class="section-title">Worldtext</div>
+            <div id="worldtext"
+                style="font-size: 11px; line-height: 1.5; color: var(--text); min-height: 80px; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);">
+                Select entity → Inject vector
+            </div>
+            <div style="margin-top: 16px;">
+                <div class="section-title">Audit Log</div>
+                <div id="audit-log" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        </aside>
+
+        <footer id="footer" class="panel">
+            <div>PAN: Drag | ZOOM: Scroll | CELLS: <span id="cell-count">0</span></div>
+            <div>ENGINE_DRIVEN // INFINITE_GRID v1.0</div>
+        </footer>
+    </div>
+
+    <script>
+        // =========================================
+        // RIPPLES ENGINE (Inline)
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, isAutoplay: false, auditLog: [], worldtext: null, lastRipple: null };
+                this._autoplayTimer = null;
+            }
+
+            on(event, callback) {
+                if (!this._listeners.has(event)) this._listeners.set(event, []);
+                this._listeners.get(event).push(callback);
+            }
+
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+            }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario(), scenarioId: id });
+            }
+
+            selectEntity(id) {
+                this.state.selectedEntity = id;
+                this.emit('entity:select', { entity: this.getEntity(id), entityId: id });
+            }
+
+            deselectEntity() {
+                this.state.selectedEntity = null;
+                this.emit('entity:deselect', {});
+            }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `${this.getEntity(entityId)?.name || 'Entity'} responds to ${vector}...`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, timestamp: Date.now(), entity, vector, worldtext };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.state.auditLog.unshift({ tick: ripple.tick, entityName: entity.name, vector, result: worldtext.substring(0, 80) + '...' });
+                if (this.state.auditLog.length > 20) this.state.auditLog = this.state.auditLog.slice(0, 20);
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+
+            startAutoplay() {
+                if (this._autoplayTimer) return;
+                this.state.isAutoplay = true;
+                this._autoplayTimer = setInterval(() => {
+                    const entities = this.getEntities();
+                    if (!entities.length) return;
+                    const entity = entities[Math.floor(Math.random() * entities.length)];
+                    const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                    this.selectEntity(entity.id);
+                    this.triggerVector(vectors[Math.floor(Math.random() * vectors.length)]);
+                }, 3000);
+                this.emit('autoplay:start', {});
+            }
+
+            stopAutoplay() {
+                if (!this._autoplayTimer) return;
+                clearInterval(this._autoplayTimer);
+                this._autoplayTimer = null;
+                this.state.isAutoplay = false;
+                this.emit('autoplay:stop', {});
+            }
+
+            toggleAutoplay() { this.state.isAutoplay ? this.stopAutoplay() : this.startAutoplay(); }
+        }
+
+        // =========================================
+        // LATENT LIBRARY
+        // =========================================
+        const LATENT_LIBRARY = {
+            cupboard: {
+                id: "cupboard", name: "The Cupboard",
+                entities: [
+                    { id: "ant-scout", name: "Ant Scout", icon: "🐜", color: "#4af626" },
+                    { id: "dust-mote", name: "Dust Mote", icon: "✧", color: "#888888" },
+                    { id: "light-beam", name: "Light Beam", icon: "◈", color: "#ffdd00" },
+                    { id: "spider", name: "Spider", icon: "🕷️", color: "#aa4444" },
+                    { id: "plate-stack", name: "Plates", icon: "⬡", color: "#6688aa" },
+                    { id: "draft", name: "Draft", icon: "〰️", color: "#44aaff" }
+                ],
+                latent: {
+                    "ant-scout": { GOAL: "The scout traces pheromone echoes, antennae sweeping for sugar signatures.", OBSTACLE: "A ceramic cliff blocks passage. The scout retreats, recalculating.", SHIFT: "Chemical signals rewire. Role transforms from forager to guard." },
+                    "dust-mote": { GOAL: "The mote drifts toward light, carried by thermal currents.", OBSTACLE: "Static charge pins it to glass. Movement ceases.", SHIFT: "Bonding with others, the mote aggregates into something larger." },
+                    "light-beam": { GOAL: "The beam seeks surface, bouncing deeper into shadow territory.", OBSTACLE: "Plate edge cuts the stream. Light fragments.", SHIFT: "Dawn rotation shifts the beam's path entirely." },
+                    "spider": { GOAL: "Vibration detected. The spider calibrates for prey.", OBSTACLE: "Web torn by draft. Structural damage assessed.", SHIFT: "Cold settles. Metabolism slows. Waiting-mode engaged." },
+                    "plate-stack": { GOAL: "The stack settles, seeking equilibrium.", OBSTACLE: "Vibration threatens. Balance becomes precarious.", SHIFT: "One plate removed. New stability in absence." },
+                    "draft": { GOAL: "The draft threads through gaps, seeking equilibrium.", OBSTACLE: "Door sealed. The draft disperses.", SHIFT: "Temperature reverses. Direction inverts." }
+                }
+            },
+            forest: {
+                id: "forest", name: "Deep Forest",
+                entities: [
+                    { id: "mycelium", name: "Mycelium", icon: "◎", color: "#ffffff" },
+                    { id: "fox", name: "Fox", icon: "🦊", color: "#ff8844" },
+                    { id: "dewdrop", name: "Dew Drop", icon: "◉", color: "#88ccff" },
+                    { id: "moonlight", name: "Moonlight", icon: "◐", color: "#ccccff" },
+                    { id: "oak", name: "Oak", icon: "⬢", color: "#228844" },
+                    { id: "mushroom", name: "Mushroom", icon: "🍄", color: "#cc6644" }
+                ],
+                latent: {
+                    "mycelium": { GOAL: "Network extends, threads seeking root contact.", OBSTACLE: "Dry patch. Hyphae retreat from desiccation.", SHIFT: "Stress triggers fruiting. Preparing to spore." },
+                    "fox": { GOAL: "Tracking vole tunnels, ears rotating like dishes.", OBSTACLE: "Human scent. Weighing curiosity against wariness.", SHIFT: "Territory boundaries blur. Adapting patrol routes." },
+                    "dewdrop": { GOAL: "Swelling, gathering humidity toward release.", OBSTACLE: "Tension holds. Surface forces winning.", SHIFT: "Temperature drops. Becoming ice crystal." },
+                    "moonlight": { GOAL: "Filtering through canopy, painting silver paths.", OBSTACLE: "Clouds mass. Forest returns to darkness.", SHIFT: "Phase advances. Intensity wanes." },
+                    "oak": { GOAL: "Reaching, growth rings accumulating.", OBSTACLE: "Fungal infection probes bark. Defenses marshal.", SHIFT: "Autumn signals. Withdrawal begins." },
+                    "mushroom": { GOAL: "Pushing upward, cap unfurling.", OBSTACLE: "Slug nibbles edge. Tolerating damage.", SHIFT: "Maturation complete. Spores ready." }
+                }
+            },
+            void: {
+                id: "void", name: "Sector Void Zero",
+                entities: [
+                    { id: "satellite", name: "Satellite", icon: "◇", color: "#88aacc" },
+                    { id: "asteroid", name: "Asteroid", icon: "◆", color: "#aa8866" },
+                    { id: "nebula-gas", name: "Nebula", icon: "◌", color: "#ff66aa" },
+                    { id: "solar-flare", name: "Solar Flare", icon: "✦", color: "#ffaa00" },
+                    { id: "space-junk", name: "Debris", icon: "◈", color: "#666666" },
+                    { id: "gravity-well", name: "Gravity Well", icon: "◎", color: "#4444ff" }
+                ],
+                latent: {
+                    "satellite": { GOAL: "Maintaining orbit, panels tracking distant sun.", OBSTACLE: "Debris field enters trajectory. Avoidance begins.", SHIFT: "Software update. Becoming different machine." },
+                    "asteroid": { GOAL: "Following ancient path, inertia preserved.", OBSTACLE: "Gravitational perturbation. Orbit bends.", SHIFT: "Thermal stress fractures. Shedding material." },
+                    "nebula-gas": { GOAL: "Drifting toward density, collapsing toward starhood.", OBSTACLE: "Stellar wind scatters. Remaining diffuse.", SHIFT: "Radiation ionizes. Glowing new colors." },
+                    "solar-flare": { GOAL: "Erupting, plasma arcing along magnetic lines.", OBSTACLE: "Field snaps back. Escape curtailed.", SHIFT: "Polarity inverts. Direction changes." },
+                    "space-junk": { GOAL: "Tumbling, reflecting sunlight randomly.", OBSTACLE: "Impact. Fragments multiply.", SHIFT: "Atmosphere grazes. Beginning to fall." },
+                    "gravity-well": { GOAL: "Deepening as mass accumulates.", OBSTACLE: "Nearby mass disrupts gradient.", SHIFT: "Mass ejection. Well shallows." }
+                }
+            }
+        };
+
+        // =========================================
+        // INFINITE GRID RENDERER
+        // =========================================
+        class InfiniteGridRenderer {
+            constructor(canvas, engine) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.engine = engine;
+                this.cellSize = 40;
+                this.view = { x: 0, y: 0, zoom: 1 };
+                this.cells = new Map();
+                this.ripples = [];
+                this.entityPositions = new Map();
+                this.isDragging = false;
+                this.lastMouse = { x: 0, y: 0 };
+                this.hoveredCell = null;
+
+                this.resize();
+                this.setupEvents();
+                this.subscribeToEngine();
+                this.animate();
+            }
+
+            resize() {
+                const parent = this.canvas.parentElement;
+                this.canvas.width = parent.clientWidth;
+                this.canvas.height = parent.clientHeight;
+            }
+
+            setupEvents() {
+                window.addEventListener('resize', () => this.resize());
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDragging = true;
+                    this.lastMouse = { x: e.clientX, y: e.clientY };
+                });
+
+                window.addEventListener('mouseup', () => this.isDragging = false);
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.isDragging) {
+                        this.view.x += (e.clientX - this.lastMouse.x) / this.view.zoom;
+                        this.view.y += (e.clientY - this.lastMouse.y) / this.view.zoom;
+                        this.lastMouse = { x: e.clientX, y: e.clientY };
+                    }
+                    // Update hovered cell
+                    const worldPos = this.screenToWorld(e.offsetX, e.offsetY);
+                    this.hoveredCell = { x: Math.floor(worldPos.x / this.cellSize), y: Math.floor(worldPos.y / this.cellSize) };
+                });
+
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newZoom = Math.max(0.1, Math.min(5, this.view.zoom * delta));
+
+                    // Zoom toward mouse position
+                    const worldBefore = this.screenToWorld(e.offsetX, e.offsetY);
+                    this.view.zoom = newZoom;
+                    const worldAfter = this.screenToWorld(e.offsetX, e.offsetY);
+
+                    this.view.x += worldAfter.x - worldBefore.x;
+                    this.view.y += worldAfter.y - worldBefore.y;
+
+                    document.getElementById('zoom-display').textContent = `ZOOM: ${this.view.zoom.toFixed(2)}x`;
+                });
+
+                this.canvas.addEventListener('click', (e) => {
+                    if (this.isDragging) return;
+                    const worldPos = this.screenToWorld(e.offsetX, e.offsetY);
+                    const cellX = Math.floor(worldPos.x / this.cellSize);
+                    const cellY = Math.floor(worldPos.y / this.cellSize);
+
+                    // Check if clicked on entity
+                    for (const [entityId, pos] of this.entityPositions) {
+                        if (pos.x === cellX && pos.y === cellY) {
+                            this.engine.selectEntity(entityId);
+                            return;
+                        }
+                    }
+                });
+            }
+
+            subscribeToEngine() {
+                this.engine.on('scenario:change', () => {
+                    this.placeEntities();
+                    this.cells.clear();
+                });
+
+                this.engine.on('ripple:complete', ({ entity, vector }) => {
+                    const pos = this.entityPositions.get(entity.id);
+                    if (pos) {
+                        this.ripples.push({
+                            x: pos.x * this.cellSize + this.cellSize / 2,
+                            y: pos.y * this.cellSize + this.cellSize / 2,
+                            radius: 0,
+                            maxRadius: this.cellSize * 8,
+                            vector,
+                            alpha: 1
+                        });
+                    }
+                });
+            }
+
+            placeEntities() {
+                const entities = this.engine.getEntities();
+                this.entityPositions.clear();
+
+                // Place entities in a spiral pattern
+                let angle = 0;
+                let radius = 2;
+                entities.forEach((entity, i) => {
+                    const x = Math.round(Math.cos(angle) * radius);
+                    const y = Math.round(Math.sin(angle) * radius);
+                    this.entityPositions.set(entity.id, { x, y });
+                    angle += 2.4; // Golden angle
+                    if (i % 3 === 2) radius += 1.5;
+                });
+
+                // Center view on entities
+                this.view.x = this.canvas.width / 2 / this.view.zoom;
+                this.view.y = this.canvas.height / 2 / this.view.zoom;
+            }
+
+            screenToWorld(sx, sy) {
+                return {
+                    x: (sx / this.view.zoom) - this.view.x,
+                    y: (sy / this.view.zoom) - this.view.y
+                };
+            }
+
+            worldToScreen(wx, wy) {
+                return {
+                    x: (wx + this.view.x) * this.view.zoom,
+                    y: (wy + this.view.y) * this.view.zoom
+                };
+            }
+
+            animate() {
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                // Clear
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, w, h);
+
+                ctx.save();
+                ctx.scale(this.view.zoom, this.view.zoom);
+                ctx.translate(this.view.x, this.view.y);
+
+                // Draw grid
+                const cs = this.cellSize;
+                const topLeft = this.screenToWorld(0, 0);
+                const bottomRight = this.screenToWorld(w, h);
+
+                const startX = Math.floor(topLeft.x / cs) - 1;
+                const startY = Math.floor(topLeft.y / cs) - 1;
+                const endX = Math.ceil(bottomRight.x / cs) + 1;
+                const endY = Math.ceil(bottomRight.y / cs) + 1;
+
+                // Grid lines
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 1 / this.view.zoom;
+                ctx.beginPath();
+                for (let x = startX; x <= endX; x++) {
+                    ctx.moveTo(x * cs, startY * cs);
+                    ctx.lineTo(x * cs, endY * cs);
+                }
+                for (let y = startY; y <= endY; y++) {
+                    ctx.moveTo(startX * cs, y * cs);
+                    ctx.lineTo(endX * cs, y * cs);
+                }
+                ctx.stroke();
+
+                // Draw ripples
+                const vectorColors = { GOAL: '#f59e0b', OBSTACLE: '#ef4444', SHIFT: '#a855f7' };
+                this.ripples = this.ripples.filter(r => {
+                    r.radius += 3;
+                    r.alpha = 1 - (r.radius / r.maxRadius);
+                    if (r.alpha <= 0) return false;
+
+                    ctx.strokeStyle = vectorColors[r.vector] || '#fff';
+                    ctx.globalAlpha = r.alpha * 0.5;
+                    ctx.lineWidth = 2 / this.view.zoom;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                    return true;
+                });
+
+                // Draw entities
+                const selectedId = this.engine.getState().selectedEntity;
+                for (const [entityId, pos] of this.entityPositions) {
+                    const entity = this.engine.getEntity(entityId);
+                    if (!entity) continue;
+
+                    const x = pos.x * cs + cs / 2;
+                    const y = pos.y * cs + cs / 2;
+                    const isSelected = entityId === selectedId;
+
+                    // Selection highlight
+                    if (isSelected) {
+                        ctx.strokeStyle = '#4af626';
+                        ctx.lineWidth = 2 / this.view.zoom;
+                        ctx.strokeRect(pos.x * cs + 2, pos.y * cs + 2, cs - 4, cs - 4);
+                    }
+
+                    // Entity cell background
+                    ctx.fillStyle = entity.color || '#333';
+                    ctx.globalAlpha = 0.2;
+                    ctx.fillRect(pos.x * cs + 1, pos.y * cs + 1, cs - 2, cs - 2);
+                    ctx.globalAlpha = 1;
+
+                    // Entity icon
+                    ctx.font = `${cs * 0.5}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(entity.icon, x, y);
+
+                    // Entity name (if zoomed in enough)
+                    if (this.view.zoom > 0.8) {
+                        ctx.font = `${8 / this.view.zoom}px JetBrains Mono`;
+                        ctx.fillStyle = '#666';
+                        ctx.fillText(entity.name, x, y + cs * 0.35);
+                    }
+                }
+
+                // Hover highlight
+                if (this.hoveredCell) {
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 1 / this.view.zoom;
+                    ctx.strokeRect(this.hoveredCell.x * cs, this.hoveredCell.y * cs, cs, cs);
+                }
+
+                ctx.restore();
+
+                // Update cell count
+                const visibleCells = (endX - startX) * (endY - startY);
+                document.getElementById('cell-count').textContent = visibleCells;
+
+                // Update minimap
+                this.updateMinimap();
+            }
+
+            updateMinimap() {
+                const mm = document.getElementById('minimap');
+                const mv = document.getElementById('minimap-viewport');
+                if (!mm || !mv) return;
+
+                const mmW = mm.clientWidth;
+                const mmH = mm.clientHeight;
+
+                // Calculate viewport rectangle in minimap space
+                const scale = 0.01;
+                const vpW = (this.canvas.width / this.view.zoom) * scale;
+                const vpH = (this.canvas.height / this.view.zoom) * scale;
+                const vpX = (mmW / 2) - (this.view.x * scale) - vpW / 2;
+                const vpY = (mmH / 2) - (this.view.y * scale) - vpH / 2;
+
+                mv.style.left = `${Math.max(0, Math.min(mmW - vpW, vpX))}px`;
+                mv.style.top = `${Math.max(0, Math.min(mmH - vpH, vpY))}px`;
+                mv.style.width = `${Math.min(mmW, vpW)}px`;
+                mv.style.height = `${Math.min(mmH, vpH)}px`;
+            }
+        }
+
+        // =========================================
+        // MAIN
+        // =========================================
+        const engine = new RipplesEngine({ latentLibrary: LATENT_LIBRARY });
+        let renderer;
+
+        function init() {
+            const canvas = document.getElementById('canvas');
+            renderer = new InfiniteGridRenderer(canvas, engine);
+
+            // Scenario select
+            document.getElementById('scenario-select').addEventListener('change', (e) => {
+                engine.loadScenario(e.target.value);
+            });
+
+            // Autoplay
+            document.getElementById('autoplay-btn').addEventListener('click', () => {
+                engine.toggleAutoplay();
+                document.getElementById('autoplay-btn').textContent = engine.getState().isAutoplay ? '⏸ AUTOPLAY' : '▶ MANUAL';
+            });
+
+            // Vector buttons
+            document.getElementById('btn-goal').addEventListener('click', () => engine.triggerVector('GOAL'));
+            document.getElementById('btn-obstacle').addEventListener('click', () => engine.triggerVector('OBSTACLE'));
+            document.getElementById('btn-shift').addEventListener('click', () => engine.triggerVector('SHIFT'));
+
+            // Engine events
+            engine.on('scenario:change', updateEntityList);
+            engine.on('entity:select', updateUI);
+            engine.on('entity:deselect', updateUI);
+            engine.on('ripple:complete', updateUI);
+            engine.on('state:change', () => {
+                document.getElementById('tick-display').textContent = `TICK: ${engine.getState().tick}`;
+            });
+
+            // Load initial scenario
+            engine.loadScenario('cupboard');
+        }
+
+        function updateEntityList() {
+            const list = document.getElementById('entity-list');
+            list.innerHTML = '';
+            const entities = engine.getEntities();
+            const selectedId = engine.getState().selectedEntity;
+
+            entities.forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = `entity-btn ${e.id === selectedId ? 'selected' : ''}`;
+                btn.innerHTML = `<span>${e.icon}</span><span>${e.name}</span>`;
+                btn.onclick = () => e.id === selectedId ? engine.deselectEntity() : engine.selectEntity(e.id);
+                list.appendChild(btn);
+            });
+        }
+
+        function updateUI() {
+            const state = engine.getState();
+            const hasSelection = state.selectedEntity !== null;
+
+            // Update entity list selection
+            updateEntityList();
+
+            // Update vector buttons
+            document.getElementById('btn-goal').disabled = !hasSelection;
+            document.getElementById('btn-obstacle').disabled = !hasSelection;
+            document.getElementById('btn-shift').disabled = !hasSelection;
+
+            // Update worldtext
+            document.getElementById('worldtext').textContent = state.worldtext || 'Select entity → Inject vector';
+
+            // Update audit log
+            const logEl = document.getElementById('audit-log');
+            logEl.innerHTML = '';
+            state.auditLog.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry ${entry.vector.toLowerCase()}`;
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="font-weight: 600;">${entry.entityName}</span>
+                        <span style="color: var(--${entry.vector.toLowerCase()})">${entry.vector}</span>
+                    </div>
+                    <div style="color: #666;">${entry.result}</div>
+                `;
+                logEl.appendChild(div);
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

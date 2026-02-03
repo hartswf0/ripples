@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // 1776 GALLERY</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IM Fell English', serif;
+            background: #1a1714;
+            color: #c9b896;
+            min-height: 100vh;
+        }
+
+        .gallery {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 60px;
+            border-bottom: 2px solid #3d352a;
+            padding-bottom: 40px;
+        }
+
+        .gallery-title {
+            font-family: 'Cinzel', serif;
+            font-size: 48px;
+            font-weight: 600;
+            color: #d4af37;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .gallery-subtitle {
+            font-style: italic;
+            font-size: 20px;
+            color: #8a7a60;
+        }
+
+        .artwork {
+            background: #252118;
+            border: 8px solid #3d352a;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 60px;
+        }
+
+        .artwork-frame {
+            background: linear-gradient(135deg, #5c4d38 0%, #3d352a 50%, #2a241c 100%);
+            padding: 20px;
+        }
+
+        .artwork-image {
+            width: 100%;
+            display: block;
+            border: 1px solid #1a1714;
+        }
+
+        .artwork-info {
+            padding: 30px;
+            background: #1f1b16;
+            border-top: 1px solid #3d352a;
+        }
+
+        .artwork-title {
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            color: #d4af37;
+            margin-bottom: 12px;
+        }
+
+        .artwork-description {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #a89878;
+        }
+
+        .artwork-meta {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #3d352a;
+            font-size: 14px;
+            color: #6a5a48;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .proclamation {
+            background: #252118;
+            border: 4px double #3d352a;
+            padding: 40px;
+            margin: 60px 0;
+            text-align: center;
+        }
+
+        .proclamation-header {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: #6a5a48;
+            letter-spacing: 0.3em;
+            margin-bottom: 20px;
+        }
+
+        .proclamation-text {
+            font-size: 20px;
+            line-height: 1.8;
+            font-style: italic;
+        }
+
+        .proclamation-signature {
+            margin-top: 30px;
+            font-family: 'Cinzel', serif;
+            color: #d4af37;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .gallery-thumb {
+            background: #252118;
+            border: 4px solid #3d352a;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .gallery-thumb:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .thumb-image {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            display: block;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .gallery-thumb:hover .thumb-image {
+            opacity: 1;
+        }
+
+        .thumb-label {
+            padding: 12px;
+            font-size: 14px;
+            text-align: center;
+            background: #1f1b16;
+            border-top: 1px solid #3d352a;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 2px solid #3d352a;
+            color: #5a4a38;
+            font-size: 14px;
+        }
+
+        .footer-ornament {
+            color: #d4af37;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* Placeholder for when image isn't loaded */
+        .placeholder-art {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: linear-gradient(145deg, #352d24 0%, #252118 50%, #1a1612 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #5a4a38;
+            font-style: italic;
+        }
+
+        .placeholder-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="gallery">
+        <header class="gallery-header">
+            <h1 class="gallery-title">RIPPLES GALLERY</h1>
+            <p class="gallery-subtitle">Imaginary Ecologies of the Cupboard Revolution — Anno Domini 1776</p>
+        </header>
+
+        <main>
+            <!-- Featured Artwork -->
+            <article class="artwork">
+                <div class="artwork-frame">
+                    <img src="assets/ant_1776_independence.png" alt="The Ant's Declaration of Independence"
+                        class="artwork-image">
+                </div>
+                <div class="artwork-info">
+                    <h2 class="artwork-title">The Ant's Declaration of Independence</h2>
+                    <p class="artwork-description">
+                        Upon the sugar crystal summit, the scout stands triumphant. Behind, a procession of the colony's
+                        finest,
+                        bearing provisions for the long journey ahead. The golden light of a kitchen dawn streams
+                        through
+                        gaps in the cupboard doors, illuminating this moment of historic courage.
+                        <br><br>
+                        In the manner of Emanuel Leutze, this work captures the heroic spirit of those who dare to
+                        explore
+                        beyond the familiar territories of the pantry shelf.
+                    </p>
+                    <div class="artwork-meta">
+                        <span>Oil on Canvas (Digital)</span>
+                        <span>RIPPLES Engine Collection</span>
+                        <span>2024</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Proclamation -->
+            <div class="proclamation">
+                <div class="proclamation-header">A PROCLAMATION</div>
+                <p class="proclamation-text">
+                    "We hold these truths to be self-evident, that all entities within the Cupboard
+                    are created with equal vectors—GOAL, OBSTACLE, and SHIFT—and that they are
+                    endowed by their Creator with certain unalienable Latent Descriptions..."
+                </p>
+                <p class="proclamation-signature">— The Ripples Engine, Anno MMXXIV</p>
+            </div>
+
+            <!-- Thumbnail Grid - Links to Other Visualizations -->
+            <h2 style="font-family: 'Cinzel', serif; color: #d4af37; margin-bottom: 30px; text-align: center;">
+                The Complete Engine Collection
+            </h2>
+
+            <div class="gallery-grid">
+                <a href="22.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">⚪</div>
+                    <div class="thumb-label">Particle Simulation</div>
+                </a>
+                <a href="44.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">▣</div>
+                    <div class="thumb-label">Pure Canvas</div>
+                </a>
+                <a href="55.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">◫</div>
+                    <div class="thumb-label">Layered Rendering</div>
+                </a>
+                <a href="66.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">⌨</div>
+                    <div class="thumb-label">CRT Terminal + LLM</div>
+                </a>
+                <a href="1010.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">✦</div>
+                    <div class="thumb-label">Glassmorphism</div>
+                </a>
+                <a href="1111.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">☁</div>
+                    <div class="thumb-label">Heavenly</div>
+                </a>
+                <a href="1212.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">💬</div>
+                    <div class="thumb-label">Cartoon</div>
+                </a>
+                <a href="1313.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">▮</div>
+                    <div class="thumb-label">CRT Final Form</div>
+                </a>
+                <a href="1414.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">∞</div>
+                    <div class="thumb-label">Infinite Grid</div>
+                </a>
+                <a href="1515.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">♫</div>
+                    <div class="thumb-label">Sound Ecology</div>
+                </a>
+                <a href="engine-demo.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">⚙</div>
+                    <div class="thumb-label">Engine Demo</div>
+                </a>
+                <a href="index.html" class="gallery-thumb">
+                    <div class="placeholder-art" style="aspect-ratio: 4/3; font-size: 48px;">🏠</div>
+                    <div class="thumb-label">Original Index</div>
+                </a>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-ornament">❧</div>
+            <p>RIPPLES ENGINE · IMAGINARY ECOLOGIES</p>
+            <p style="margin-top: 10px;">Engine-Driven Narrative Simulation</p>
+        </footer>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES-CORE // UNIFIED ENGINE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg: #050505;
+            --grid-bg: #0a0a0a;
+            --fg: #4af626;
+            --dim: #1a5c0d;
+            --gold: #ffcc00;
+            --red: #ff3333;
+            --cyan: #00ffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- CRT FX --- */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .glow { text-shadow: 0 0 5px var(--fg); }
+        .glow-gold { text-shadow: 0 0 8px var(--gold); color: var(--gold); }
+        .glow-red { text-shadow: 0 0 8px var(--red); color: var(--red); }
+        .glow-cyan { text-shadow: 0 0 8px var(--cyan); color: var(--cyan); }
+
+        /* --- LAYOUT --- */
+        #app {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+        }
+
+        header {
+            grid-column: 1 / 3;
+            border-bottom: 1px solid var(--dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            background: var(--bg);
+        }
+
+        #grid-canvas {
+            grid-column: 1 / 2;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            background: var(--grid-bg);
+        }
+
+        aside {
+            grid-column: 2 / 3;
+            border-left: 1px solid var(--dim);
+            background: #080808;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* --- COMPONENTS --- */
+        .terminal-log {
+            font-size: 12px;
+            line-height: 1.4;
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        
+        .log-entry {
+            margin-bottom: 12px;
+            border-left: 2px solid var(--dim);
+            padding-left: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--dim);
+            color: var(--dim);
+            padding: 8px;
+            margin-top: 4px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { border-color: var(--fg); color: var(--fg); }
+        
+        .active-btn { background: var(--dim); color: #fff; }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div id="app">
+        <header>
+            <div class="flex gap-4 items-center">
+                <span class="text-xl font-bold glow">RIPPLES-CORE</span>
+                <span class="text-xs opacity-50">ORCA_LOGIC // PILOT_AUDIO // GULL_GRANULAR</span>
+            </div>
+            <div class="text-xs font-mono opacity-70 flex gap-4">
+                <span id="clock">TICK: 0000</span>
+                <span id="status" class="text-red-500">AUDIO_OFFLINE (CLICK GRID)</span>
+            </div>
+        </header>
+
+        <canvas id="grid-canvas"></canvas>
+
+        <aside>
+            <div class="mb-4">
+                <div class="text-xs opacity-50 mb-2">OPERATOR CONSOLE</div>
+                <div class="flex gap-2">
+                    <button class="btn flex-1 glow-gold" id="btn-g">[G] GOAL</button>
+                    <button class="btn flex-1 glow-red" id="btn-o">[O] OBSTACLE</button>
+                    <button class="btn flex-1 glow-cyan" id="btn-s">[S] SHIFT</button>
+                </div>
+                <div class="text-[10px] mt-2 opacity-40">KEYBOARD: G / O / S to inject at cursor</div>
+            </div>
+
+            <div class="text-xs opacity-50 mb-2 border-t border-dim pt-4">WORLDTEXT BUFFER</div>
+            <div id="terminal" class="terminal-log"></div>
+        </aside>
+    </div>
+
+<script>
+/**
+ * RIPPLES CORE - UNIFIED ENGINE
+ * Merging Orca (Logic), Pilot (Synth), Gull (Sample)
+ */
+
+// --- 1. CONFIGURATION & STATE ---
+const CONFIG = {
+    cols: 40,
+    rows: 24,
+    cellSize: 24,
+    bpm: 180, // Orca tick speed
+};
+
+const STATE = {
+    tick: 0,
+    grid: [], // The Operator Grid (Orca)
+    entities: [], // The "Social" Agents
+    ripples: [], // Visual wave effects
+    activeVector: 'G', // Current selected vector
+    audioReady: false,
+    cursor: { x: 0, y: 0 }
+};
+
+// --- 2. LATENT LIBRARY (NARRATIVE DB) ---
+const LATENT = {
+    'A': { name: 'FORMICIDAE', type: 'ANIMATE', 
+           G: "Chemical gradient recognized. The scout aligns with the probability of sucrose.",
+           O: "Ceramic cliff face detected. Vertical traversal impossible. Route recalibration.",
+           S: "Metabolic rate slows. The scout enters a state of waiting, becoming a statue of chitin." },
+    'M': { name: 'MYCELIUM', type: 'ANIMATE', 
+           G: "Hyphae extension triggered. Resource packet forwarded to the root network.",
+           O: "Compacted soil density. Growth arrest. Signal sent: 'Path Blocked'.",
+           S: "Fruiting body initiation. Spores prepare for atmospheric release." },
+    'W': { name: 'WINDOW_PANE', type: 'INANIMATE', 
+           G: "Photons permitted entry. The glass warms, expanding microscopically.",
+           O: "Vibration detected. A heavy truck passes outside. The glass sings in resonance.",
+           S: "Condensation point reached. Transparency shifts to opacity." }
+};
+
+// --- 3. PILOT / GULL AUDIO ENGINE (TONE.JS) ---
+const AUDIO = {
+    synths: {},
+    effects: {},
+    drone: null,
+
+    init: async () => {
+        if (STATE.audioReady) return;
+        await Tone.start();
+        STATE.audioReady = true;
+        document.getElementById('status').innerText = "AUDIO_ONLINE";
+        document.getElementById('status').classList.replace('text-red-500', 'text-green-500');
+
+        // Pilot: FM Synths for Entities
+        AUDIO.synths.A = new Tone.FMSynth({
+            harmonicity: 3, modulationIndex: 10, envelope: { attack: 0.01, decay: 0.1 }
+        }).toDestination(); // Ant: Jittery
+
+        AUDIO.synths.M = new Tone.AMSynth({
+            harmonicity: 2, envelope: { attack: 0.5, release: 1 }
+        }).toDestination(); // Mycelium: Swelling
+
+        AUDIO.synths.W = new Tone.MembraneSynth().toDestination(); // Window: Thud/Glassy
+
+        // Pilot: Background Drone (Black Noise)
+        const drone = new Tone.Oscillator(55, "sawtooth").toDestination();
+        const filter = new Tone.Filter(200, "lowpass").toDestination();
+        drone.connect(filter);
+        drone.volume.value = -20;
+        drone.start();
+        AUDIO.drone = { osc: drone, filter: filter };
+
+        // Gull: Granular "Texture" (Simulated with Noise)
+        AUDIO.texture = new Tone.Noise("pink").start();
+        AUDIO.texture.volume.value = -Infinity; // Silent start
+        AUDIO.texture.toDestination();
+    },
+
+    trigger: (char, vector) => {
+        if (!STATE.audioReady) return;
+        
+        // Map Vector to Musical Parameter
+        let freq = 'C4';
+        if (vector === 'G') freq = 'E4'; // Major 3rd (Goal)
+        if (vector === 'O') freq = 'A#3'; // Dissonant (Obstacle)
+        if (vector === 'S') freq = 'D4'; // Shift
+
+        // Play Voice
+        if (AUDIO.synths[char]) {
+            AUDIO.synths[char].triggerAttackRelease(freq, '16n');
+        }
+
+        // Modulate Drone based on "Ripple"
+        AUDIO.drone.filter.frequency.rampTo(Math.random() * 500 + 100, 0.1);
+        setTimeout(() => AUDIO.drone.filter.frequency.rampTo(200, 1), 200);
+    }
+};
+
+// --- 4. ORCA LOGIC LAYER (GRID) ---
+class GridCell {
+    constructor(char = '.') {
+        this.char = char;
+        this.type = 'EMPTY'; // EMPTY, ENTITY, VECTOR, BANG
+        this.age = 0;
+        this.locked = false;
+    }
+}
+
+function initGrid() {
+    STATE.grid = new Array(CONFIG.rows).fill(0).map(() => 
+        new Array(CONFIG.cols).fill(0).map(() => new GridCell())
+    );
+
+    // Seed Entities (The "Social Grid")
+    spawnEntity(10, 10, 'A'); // Ant
+    spawnEntity(12, 10, 'A');
+    spawnEntity(25, 15, 'M'); // Mycelium
+    spawnEntity(30, 5, 'W');  // Window
+}
+
+function spawnEntity(x, y, char) {
+    if(isValid(x,y)) {
+        STATE.grid[y][x].char = char;
+        STATE.grid[y][x].type = 'ENTITY';
+        STATE.entities.push({x, y, char});
+    }
+}
+
+function isValid(x, y) {
+    return x >= 0 && x < CONFIG.cols && y >= 0 && y < CONFIG.rows;
+}
+
+// THE GAME LOOP
+function tick() {
+    STATE.tick++;
+    document.getElementById('clock').innerText = `TICK: ${STATE.tick.toString().padStart(4,'0')}`;
+
+    // 1. Logic Pass (Bottom-Right to Top-Left to prevent overwrite issues in simple implementation)
+    let nextGrid = JSON.parse(JSON.stringify(STATE.grid)); // Deep copy for double buffering logic
+    
+    // We actually need to iterate and move vectors "East" or towards targets
+    // For this demo, Vectors (G,O,S) move randomly like Brownian motion (Gull logic)
+    
+    for (let y = 0; y < CONFIG.rows; y++) {
+        for (let x = 0; x < CONFIG.cols; x++) {
+            const cell = STATE.grid[y][x];
+            
+            // Cleanup Bangs
+            if (cell.char === '*') {
+                nextGrid[y][x] = new GridCell('.');
+                continue;
+            }
+
+            // Move Vectors (G, O, S)
+            if (['G','O','S'].includes(cell.char)) {
+                // Stochastic movement
+                let dx = Math.floor(Math.random() * 3) - 1; 
+                let dy = Math.floor(Math.random() * 3) - 1;
+                let nx = x + dx;
+                let ny = y + dy;
+
+                if (isValid(nx, ny)) {
+                    const target = STATE.grid[ny][nx];
+                    
+                    // COLLISION LOGIC (The "Bang")
+                    if (target.type === 'ENTITY') {
+                        // HIT! Trigger Ripple, Sound, Text
+                        triggerEvent(nx, ny, target.char, cell.char);
+                        nextGrid[y][x] = new GridCell('.'); // Consume Vector
+                    } 
+                    else if (target.char === '.') {
+                        // Move
+                        nextGrid[ny][nx] = cell;
+                        nextGrid[y][x] = new GridCell('.'); 
+                    }
+                }
+            }
+        }
+    }
+    
+    STATE.grid = nextGrid;
+
+    // 2. Ripple Physics (Visuals)
+    STATE.ripples = STATE.ripples.filter(r => r.age < r.maxAge);
+    STATE.ripples.forEach(r => r.age++);
+
+    draw();
+}
+
+function triggerEvent(x, y, entityChar, vectorChar) {
+    // 1. Visual Ripple
+    STATE.ripples.push({x, y, age: 0, maxAge: 20, type: vectorChar});
+    
+    // 2. Audio (Pilot)
+    AUDIO.trigger(entityChar, vectorChar);
+
+    // 3. Text (Worldtext)
+    const latent = LATENT[entityChar];
+    const text = latent ? latent[vectorChar] : "ERR: UMWELT_404";
+    
+    logToTerminal(entityChar, vectorChar, text);
+    
+    // 4. Orca Visual Feedback
+    // Temporarily replace entity with Bang '*' in rendering logic (handled in draw)
+}
+
+function logToTerminal(entity, vector, text) {
+    const term = document.getElementById('terminal');
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    
+    let vColor = vector === 'G' ? 'var(--gold)' : vector === 'O' ? 'var(--red)' : 'var(--cyan)';
+    
+    div.innerHTML = `
+        <div style="opacity:0.5; font-size:10px;">TICK ${STATE.tick} | [${entity}] INTERCEPT</div>
+        <div><span style="color:${vColor}; font-weight:bold;">${vector}</span> >> ${text}</div>
+    `;
+    term.prepend(div);
+}
+
+// --- 5. VISUALIZATION (CANVAS) ---
+const cvs = document.getElementById('grid-canvas');
+const ctx = cvs.getContext('2d');
+
+function resize() {
+    cvs.width = cvs.parentElement.offsetWidth;
+    cvs.height = cvs.parentElement.offsetHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function draw() {
+    // Clear
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+    // Draw Grid
+    ctx.font = `${CONFIG.cellSize}px "Share Tech Mono"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const offsetX = (cvs.width - (CONFIG.cols * CONFIG.cellSize)) / 2;
+    const offsetY = (cvs.height - (CONFIG.rows * CONFIG.cellSize)) / 2;
+
+    // Draw Characters
+    for (let y = 0; y < CONFIG.rows; y++) {
+        for (let x = 0; x < CONFIG.cols; x++) {
+            const cell = STATE.grid[y][x];
+            if (cell.char === '.') continue;
+
+            const px = offsetX + x * CONFIG.cellSize + CONFIG.cellSize/2;
+            const py = offsetY + y * CONFIG.cellSize + CONFIG.cellSize/2;
+
+            // Color Coding
+            if (cell.type === 'ENTITY') ctx.fillStyle = '#fff';
+            else if (cell.char === 'G') ctx.fillStyle = '#ffcc00';
+            else if (cell.char === 'O') ctx.fillStyle = '#ff3333';
+            else if (cell.char === 'S') ctx.fillStyle = '#00ffff';
+            else ctx.fillStyle = '#4af626';
+
+            // Jitter effect for active vectors (Gull/Pilot aesthetic)
+            const jitter = cell.type === 'VECTOR' ? Math.random() * 2 : 0;
+            ctx.fillText(cell.char, px + jitter, py + jitter);
+        }
+    }
+
+    // Draw Ripples (Visuals only, no logic)
+    STATE.ripples.forEach(r => {
+        const px = offsetX + r.x * CONFIG.cellSize + CONFIG.cellSize/2;
+        const py = offsetY + r.y * CONFIG.cellSize + CONFIG.cellSize/2;
+        
+        ctx.beginPath();
+        ctx.arc(px, py, r.age * (CONFIG.cellSize * 0.8), 0, Math.PI * 2);
+        
+        if (r.type === 'G') ctx.strokeStyle = `rgba(255, 204, 0, ${1 - r.age/r.maxAge})`;
+        else if (r.type === 'O') ctx.strokeStyle = `rgba(255, 51, 51, ${1 - r.age/r.maxAge})`;
+        else ctx.strokeStyle = `rgba(0, 255, 255, ${1 - r.age/r.maxAge})`;
+        
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+    
+    // Draw Cursor
+    const cx = offsetX + STATE.cursor.x * CONFIG.cellSize;
+    const cy = offsetY + STATE.cursor.y * CONFIG.cellSize;
+    ctx.strokeStyle = '#4af626';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx, cy, CONFIG.cellSize, CONFIG.cellSize);
+}
+
+// --- 6. INPUT HANDLING ---
+window.addEventListener('mousedown', (e) => {
+    AUDIO.init(); // Initialize audio context
+    
+    // Calculate Grid Pos
+    const rect = cvs.getBoundingClientRect();
+    const offsetX = (cvs.width - (CONFIG.cols * CONFIG.cellSize)) / 2;
+    const offsetY = (cvs.height - (CONFIG.rows * CONFIG.cellSize)) / 2;
+    
+    const gx = Math.floor((e.clientX - rect.left - offsetX) / CONFIG.cellSize);
+    const gy = Math.floor((e.clientY - rect.top - offsetY) / CONFIG.cellSize);
+
+    if (isValid(gx, gy)) {
+        // Inject Vector at Click
+        STATE.grid[gy][gx] = new GridCell(STATE.activeVector);
+        STATE.grid[gy][gx].type = 'VECTOR';
+        
+        // Play small trigger sound
+        const osc = new Tone.Oscillator(880, "sine").toDestination().start();
+        osc.stop("+0.05");
+    }
+});
+
+window.addEventListener('mousemove', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const offsetX = (cvs.width - (CONFIG.cols * CONFIG.cellSize)) / 2;
+    const offsetY = (cvs.height - (CONFIG.rows * CONFIG.cellSize)) / 2;
+    STATE.cursor.x = Math.floor((e.clientX - rect.left - offsetX) / CONFIG.cellSize);
+    STATE.cursor.y = Math.floor((e.clientY - rect.top - offsetY) / CONFIG.cellSize);
+});
+
+window.addEventListener('keydown', (e) => {
+    if (['g','o','s'].includes(e.key.toLowerCase())) {
+        STATE.activeVector = e.key.toUpperCase();
+        // Update Buttons UI
+        document.querySelectorAll('.btn').forEach(b => b.style.background = 'transparent');
+        document.getElementById(`btn-${e.key.toLowerCase()}`).style.background = 'var(--dim)';
+    }
+});
+
+// Boot
+initGrid();
+setInterval(tick, 1000 / (CONFIG.bpm / 60 * 4)); // Orca timing
+
+</script>
+</body>
+</html>

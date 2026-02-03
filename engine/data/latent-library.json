@@ -1,0 +1,326 @@
+{
+    "cupboard": {
+        "id": "cupboard",
+        "name": "THE CUPBOARD",
+        "baseline": "The cupboard space is pressurized by stillness. Light seeps only through marginal cracks between door and frame. Objects maintain rigid proximity. Six tall glasses (silica/dust coated) delimit the left boundary. A stack of twenty ceramic plates compresses the lower shelf space. The air is stagnant. Particles drift in slow Brownian motion, suspended in the amber light that filters through the crack.",
+        "entities": [
+            {
+                "id": "ant",
+                "name": "Formicidae Scout",
+                "type": "animate",
+                "state": "foraging",
+                "icon": "🐜"
+            },
+            {
+                "id": "dust-mote",
+                "name": "Dust Mote",
+                "type": "inanimate",
+                "state": "suspended",
+                "icon": "✧"
+            },
+            {
+                "id": "tall-glass",
+                "name": "Tall Glass",
+                "type": "inanimate",
+                "state": "empty",
+                "icon": "🥛"
+            },
+            {
+                "id": "plate-stack",
+                "name": "Plate Stack",
+                "type": "inanimate",
+                "state": "compressed",
+                "icon": "🍽"
+            },
+            {
+                "id": "light-shaft",
+                "name": "Light Shaft",
+                "type": "abstract",
+                "state": "filtering",
+                "icon": "☀"
+            },
+            {
+                "id": "shadow",
+                "name": "Shadow",
+                "type": "abstract",
+                "state": "expanding",
+                "icon": "◐"
+            }
+        ],
+        "latent": {
+            "ant": {
+                "GOAL": "The Formicidae Scout abandons the boundary cracks, navigating the ceramic topography of the plate stack. It traces an invisible chemical scent-line toward the tall glasses where a residue of dried liquid remains. Antennae process gradients. The world becomes a map of sugar probability. Six legs traverse glazed surfaces. Each step is a data point in the search algorithm. The colony's memory flows through this solitary scout—ancestral knowledge of foraging encoded in its nervous system.",
+                "OBSTACLE": "The Formicidae Scout encounters a vertical cliff of ceramic: the edge of a plate. Its path is blocked. It pauses, antennae waving in frustrated inquiry, before beginning the long circumnavigation. The ceramic surface offers no purchase for climbing. Adhesive pads meet glazed impermeability—a frictionless interface between organic need and mineral indifference. The obstacle is not merely physical but temporal: the ant must wait for conditions to shift.",
+                "SHIFT": "The Formicidae Scout enters a state of torpor. Its metabolic rate drops, its movements slow to glacial patience. It is no longer seeking but waiting, transformed from agent to object. The ant becomes a tiny sculpture of itself, legs folded, antennae retracted. Time dilates. What was a journey becomes a meditation. What was a search becomes a dwelling. The scout has become a monk."
+            },
+            "dust-mote": {
+                "GOAL": "The Dust Mote catches a thermal rising from the shelf below. It ascends in a lazy spiral, drawn toward the crack of light where the air moves. The mote is a constellation of skin cells, fiber fragments, mineral specks—seeking the sun. It dreams of dispersal, of becoming part of the light itself, of dissolving into photons and escaping the cupboard's gravity well.",
+                "OBSTACLE": "The Dust Mote encounters a downdraft. The convection current reverses. It spirals downward, away from the light shaft. The air becomes opposition. It settles on the rim of a glass, adhering to residual moisture. Stillness replaces motion. The obstacle is permanence: having stuck, the mote will likely never move again.",
+                "SHIFT": "The Dust Mote absorbs moisture from the air, swelling slightly. Its composition shifts: what was dry and light becomes damp and heavy. The mote's components begin to separate: organic matter absorbing water, minerals remaining dry, fibers swelling like tiny sponges. Gravity asserts itself more strongly. The heavier mote begins to descend, its Brownian dance becoming a slow fall."
+            },
+            "tall-glass": {
+                "GOAL": "The Tall Glass dreams of being filled. Its emptiness aches for liquid, for the weight of water or wine, for the meniscus that would crown its rim. The glass remembers the last liquid it held—a residue still stains its base. Its interior surface is a landscape of desire: every microscopic imperfection a potential nucleation point where liquid might gather.",
+                "OBSTACLE": "The Tall Glass is blocked by its neighbors. Five identical vessels press against it, preventing movement. It is trapped in the rank and file of its own kind. The glass cannot fall without taking others with it; it cannot rise without displacing its kin. The obstacle is identity: to move, the glass must become different from the others.",
+                "SHIFT": "The Tall Glass undergoes a phase transition in its crystalline structure. The silica network relaxes slightly, settling into a new configuration. A micro-crack appears at the rim, invisible to unaided eyes. The glass has crossed a threshold; it is no longer pristine, no longer new. Its transparency shifts: where it was perfectly clear, it now carries a faint haze."
+            },
+            "plate-stack": {
+                "GOAL": "The Plate Stack dreams of dispersion. Compressed into vertical unity, the twenty plates long to be spread across a table, to receive food, to serve their purpose. Each plate carries the memory of meals past, the ghost-grease of forgotten feasts. The stack is a hierarchy: the top plate is king, the bottom plate is foundation.",
+                "OBSTACLE": "The Plate Stack is held in place by gravity and friction. To remove one is to risk the collapse of all; they are bound by their own weight. The obstacle is the stack itself: the plates have become so accustomed to their compression that separation has become unthinkable. A plate near the middle feels pressure from above and below equally—perfect equilibrium.",
+                "SHIFT": "The Plate Stack settles further, microscopically compressing. The air between them is squeezed out; they move closer to true contact. The plates' edges, once perfectly aligned, have shifted slightly. The stack is no longer straight; it leans, it curves, it develops character. Dust fills the microscopic gaps, cementing them together."
+            },
+            "light-shaft": {
+                "GOAL": "The Light Shaft seeks expansion. Entering through the crack, it wants to fill the entire cupboard, to illuminate every corner, to banish shadow. It carries information from outside: the color of the sky, the angle of the sun, the time of day. Photons bounce from surface to surface, losing energy with each reflection but persisting, spreading.",
+                "OBSTACLE": "The Light Shaft is blocked by the glasses. Their silica surfaces reflect and refract, scattering the photons, breaking the beam into fragments. The obstacle is materiality itself: the light, immaterial, meets the glass's crystalline density and is turned aside. Shadows form behind the glasses—negative spaces where light cannot reach.",
+                "SHIFT": "The Light Shaft's wavelength shifts as it passes through dust-filled air. Scattered by particles, it changes color, becoming warmer, more golden, more diffuse. The angle changes as the sun moves outside. What was a vertical beam becomes diagonal, then horizontal. The light pulses, breathes, becomes alive with the rhythm of the sky."
+            },
+            "shadow": {
+                "GOAL": "The Shadow seeks depth. It wants to become darker, denser, more absolute. It dreams of perfect blackness, of the complete absence of light. Behind the plates is the darkest place in the cupboard. The Shadow wants to expand, to claim more territory. Shadows merge where objects meet, creating pools of darkness deeper than the sum of their parts.",
+                "OBSTACLE": "The Shadow is pierced by a beam of light. Where it was absolute, it is now gradient; where it was pure, it is now contaminated by illumination. The obstacle is the crack itself—that narrow opening through which light enters, the wound in the cupboard's darkness. The Shadow shrinks as the sun rises, retreating to corners and crevices.",
+                "SHIFT": "The Shadow's edges blur as dust scatters the light. It is no longer a sharp boundary but a gradient, a zone of transition, a liminal space. The Shadow moves as the light source shifts—not static but dynamic, a dancer in counterpoint to light's choreography. Its color shifts: where it was pure black, it now carries hints of brown, of blue."
+            }
+        }
+    },
+    "abandoned_house": {
+        "id": "abandoned_house",
+        "name": "ABANDONED HOUSE",
+        "baseline": "The abandoned house breathes through broken windows. Wind moves through rooms like blood through veins, carrying dust, leaves, the scent of rain. Floorboards have warped into waves, frozen tides of wood. Wallpaper hangs in strips like shed skin. In the kitchen, a table holds the ghost of meals. Upstairs, a mattress has become a garden of mold. Rain enters through the roof's wounds. Nature has begun its reclamation.",
+        "entities": [
+            {
+                "id": "raccoon",
+                "name": "Raccoon",
+                "type": "animate",
+                "state": "foraging",
+                "icon": "🦝"
+            },
+            {
+                "id": "mold",
+                "name": "Mold Colony",
+                "type": "animate",
+                "state": "colonizing",
+                "icon": "🍄"
+            },
+            {
+                "id": "ivy",
+                "name": "Ivy",
+                "type": "animate",
+                "state": "climbing",
+                "icon": "🌿"
+            },
+            {
+                "id": "rain",
+                "name": "Rain",
+                "type": "abstract",
+                "state": "infiltrating",
+                "icon": "🌧"
+            },
+            {
+                "id": "wallpaper",
+                "name": "Wallpaper",
+                "type": "inanimate",
+                "state": "peeling",
+                "icon": "📜"
+            },
+            {
+                "id": "door",
+                "name": "Door",
+                "type": "inanimate",
+                "state": "swollen",
+                "icon": "🚪"
+            }
+        ],
+        "latent": {
+            "raccoon": {
+                "GOAL": "The Raccoon seeks the attic's treasures. Its paws remember the texture of shiny objects, the weight of metal. It climbs the downspout with practiced ease, claws finding purchase on rusted metal. The attic window is its target, its promised land. In its mind, the attic is a trove: aluminum foil, glass beads, copper wire—treasures beyond measure.",
+                "OBSTACLE": "The Raccoon encounters a boarded window. The wood is old but strong, the nails rusted but holding. The attic remains inaccessible. The obstacle is human intention: someone, long ago, sealed this window against intruders. The Raccoon faces not just wood but will. It circles the house, seeking another entrance.",
+                "SHIFT": "The Raccoon enters a state of vigilance. It freezes, ears rotating, nose testing the air. Something has changed; the house is not as it was. Adrenaline floods its bloodstream. It is becoming a different animal, a prey animal. Its identity fragments: no longer thief but fugitive, no longer agent but object."
+            },
+            "mold": {
+                "GOAL": "The Mold Colony seeks expansion. From its stronghold on the mattress, it sends hyphae outward, exploring, colonizing. The ceiling is its goal: the plaster there is damp, perfect for colonization. Hyphae reach upward like fingers, like prayers. Each spore is a potential colony; the Mold dreams in numbers that dwarf human imagination.",
+                "OBSTACLE": "The Mold Colony encounters dry plaster. The wall above the mattress is too arid; hyphae cannot penetrate, cannot establish. The obstacle is the house's architecture: the roof's repair, the window's sealing. The Mold retreats to the mattress, its stronghold. It will wait, it will spore, it will hope for wetter times.",
+                "SHIFT": "The Mold Colony enters reproductive phase. Hyphae rise, swell, and burst, releasing clouds of spores that fill the room like smoke. The Mold is no longer growing but disseminating, spreading its genetic code. The spores are its message in a bottle, its genetic astronauts—each carrying potential for new colonies."
+            },
+            "ivy": {
+                "GOAL": "The Ivy seeks the roof. From its base at the foundation, it climbs the wall, tendrils finding cracks, roots secreting acid. Each leaf is a solar panel, each tendril a cable, each root an anchor. The Ivy is a machine for converting light into growth. Its goal is not the house but the sun, not the wall but the sky.",
+                "OBSTACLE": "The Ivy encounters painted wall. The surface is too smooth, the paint too intact; tendrils cannot grip, roots cannot penetrate. The obstacle is temporary: paint cracks, paint peels. The Ivy waits, growing thicker at the base. It searches for alternative routes: a window frame, a crack in mortar, a loose shingle.",
+                "SHIFT": "The Ivy's leaves change shape. Lower leaves, in shadow, become larger, broader, more efficient at capturing scarce light. The plant adapts. Stems become woody at the base, supporting years of growth. It is becoming a tree, a permanent feature. The Ivy has shifted from invader to inhabitant."
+            },
+            "rain": {
+                "GOAL": "The Rain seeks the lowest point. Entering through the roof's wound, it flows downward, following gravity, seeking the center of the earth. Each drop carries memory of its journey: evaporation from ocean, condensation in cloud, fall through sky. The Rain's goal is the basement, the foundation, the soil beneath.",
+                "OBSTACLE": "The Rain encounters the floor. The wood is dry, thirsty, absorbent; water soaks in, spreads, is swallowed by the house's hunger. The obstacle is the house's age: wood is cracked, porous, desperate for moisture. The Rain's path is diverted by floorboards, by furniture, by topography of decay.",
+                "SHIFT": "The Rain becomes ice. Temperature drops; water on the attic floor crystallizes, expands, becomes solid. The shift is destructive: ice expands, cracks, splits. The roof's wound grows wider. The ice is the Rain's memory, its preserved form. When warmth returns, it will flow again, but changed."
+            },
+            "wallpaper": {
+                "GOAL": "The Wallpaper seeks freedom. It has been glued to plaster for decades, suffocating, unable to breathe. Now it peels in strips, reaching toward the floor. Each strip is a liberation. The Wallpaper dreams of complete detachment, of floating to the floorboards, of becoming litter rather than decor.",
+                "OBSTACLE": "The Wallpaper encounters stubborn adhesive. In places, the glue still holds; the paper tears rather than releases. The obstacle is its own history: once it wanted to stay, once it was applied with care and intention. Now that same care prevents its escape.",
+                "SHIFT": "The Wallpaper changes color. Where it was floral, it is now brown; where it was bright, it is now dim. Water damage creates new patterns—Rorschach blots of decay. The Wallpaper has become abstract art, unintentional beauty. It is no longer what was chosen but what has happened."
+            },
+            "door": {
+                "GOAL": "The Door seeks closure. It has hung open for years, unable to seal the frame, unable to perform its function. Now it wants to shut, to latch, to protect what remains inside. The Door dreams of the click of the latch, the solidity of wood against frame.",
+                "OBSTACLE": "The Door encounters its own swelling. Moisture has expanded the wood; the door no longer fits its frame. The obstacle is time and weather, the slow distortion of material. It pushes against the jamb but cannot close. The gap remains—a permanent invitation.",
+                "SHIFT": "The Door settles on its hinges. Years of gravity have pulled it downward; it now rests at an angle, neither open nor closed. The shift is geological in slowness. The Door has become a monument to indecision, to the state between states."
+            }
+        }
+    },
+    "deep_forest": {
+        "id": "deep_forest",
+        "name": "DEEP FOREST",
+        "baseline": "The deep forest is a cathedral of verticality. Trunks rise like columns, branches arch like vaults. Light filters down in shafts, illuminating dust. The forest floor is a tapestry: fallen leaves, rotting wood, fungal threads. Sound moves differently here—muffled by moss, absorbed by bark. The air is thick with chemistry: oxygen, terpenes, the musk of animals. Each tree is a city; the forest is a network.",
+        "entities": [
+            {
+                "id": "mycelium",
+                "name": "Mycelium Network",
+                "type": "animate",
+                "state": "networking",
+                "icon": "🕸"
+            },
+            {
+                "id": "deer",
+                "name": "Deer",
+                "type": "animate",
+                "state": "grazing",
+                "icon": "🦌"
+            },
+            {
+                "id": "owl",
+                "name": "Owl",
+                "type": "animate",
+                "state": "hunting",
+                "icon": "🦉"
+            },
+            {
+                "id": "seedling",
+                "name": "Seedling",
+                "type": "animate",
+                "state": "reaching",
+                "icon": "🌱"
+            },
+            {
+                "id": "fallen-oak",
+                "name": "Fallen Oak",
+                "type": "inanimate",
+                "state": "decaying",
+                "icon": "🪵"
+            },
+            {
+                "id": "moonlight",
+                "name": "Moonlight",
+                "type": "abstract",
+                "state": "filtering",
+                "icon": "🌙"
+            }
+        ],
+        "latent": {
+            "mycelium": {
+                "GOAL": "The Mycelium Network seeks connection. Hyphae extend through soil, searching for roots, for other fungi, for the network that is the forest's true brain. Each hypha is a cable, a wire, a connection. The Mycelium dreams in chemicals, in signals, in the slow language of molecular exchange. Its goal is symbiosis: partnership with tree roots, exchange of nutrients for sugars.",
+                "OBSTACLE": "The Mycelium Network encounters compacted soil. The hyphae cannot penetrate dense clay; growth is arrested, network fragmented. The obstacle is ancient: a path, a road, human footprint compressed into permanence. One side cannot speak to the other; information is trapped. The forest's brain is split.",
+                "SHIFT": "The Mycelium Network enters fruiting phase. Hyphae gather, swell, and rise, becoming mushroom, becoming visible. The shift is triggered by rain, by temperature, by mysterious internal clock. The mushroom is the Mycelium's voice: I am here, I am alive, I am ready to spread, to colonize, to persist."
+            },
+            "deer": {
+                "GOAL": "The Deer seeks the clearing. Its stomach is empty, its need urgent; tender shoots of new growth call from the forest's edge. The Deer's nose tests the air: scent of grass, scent of clover, scent of danger. Each step is calculated—move in bursts, freeze, listen, move again.",
+                "OBSTACLE": "The Deer encounters the stream. Water is high, current strong, far bank steep and slippery. The clearing is beyond, unreachable. The obstacle is fear: memory of hooves on stone, shock of cold water, predator's advantage in the open. The Deer follows the stream, seeking a ford, a fallen log.",
+                "SHIFT": "The Deer enters alert mode. Ears rotate, nostrils flare, muscles tense. Something has changed; the forest is not as it was. The shift is ancient: nervous system evolved over millennia responds to cues invisible to human perception. Consciousness narrows: clearing forgotten, goal is survival, world reduced to threat assessment."
+            },
+            "owl": {
+                "GOAL": "The Owl seeks prey. Ears, asymmetrically placed, triangulate scurrying of mice beneath snow, rustling of voles in leaves. Flight is soundless: fringed feathers muffle air, soft plumage absorbs turbulence. The Owl is a ghost, a shadow, a whisper. Each hunt is calculation: distance, angle, wind speed, prey movement.",
+                "OBSTACLE": "The Owl encounters wind. Gusts disrupt flight, push it off course, make silent approach impossible. Prey is warned. The obstacle is the forest's own architecture: gaps in canopy create wind tunnels, turbulence zones. The Owl abandons hunt, perches, waits. Wind will die, silence will return.",
+                "SHIFT": "The Owl molts. Feathers fall like soft rain, revealing new plumage beneath—fresh, functional, ready for demands of flight. The shift is necessary: old feathers wear, lose silence, insulation, camouflage. The Owl is between states, vulnerable, grounded. It is rebuilding itself, feather by feather."
+            },
+            "seedling": {
+                "GOAL": "The Seedling seeks light. Cotyledons are small, stem is thin, but need is absolute: photons or death, light or oblivion. The Seedling's goal is a gap in canopy, a shaft of sunlight, temporary abundance in perpetual twilight. Each leaf is a solar panel; each cell a factory.",
+                "OBSTACLE": "The Seedling encounters shade. A mature tree has expanded canopy, blocking light, claiming photons. Growth slows, leaves pale, stem stretches desperately toward dimness. The obstacle is the forest's own success: past generations filled available space, claimed available light.",
+                "SHIFT": "The Seedling enters dormancy. Growth stops, metabolism slows; it becomes a statue of itself, waiting, preserving, enduring. The shift is triggered by stress: too little light, too much competition. Leaves yellow, fall, are absorbed. It retreats to essential self: stem, root, core of being."
+            },
+            "fallen-oak": {
+                "GOAL": "The Fallen Oak seeks dissolution. It has fallen; now it wants to complete the cycle, to return to soil, to feed the forest that fed it. The Oak dreams of decomposition, of becoming substrate for fungi, of releasing stored nutrients. Its goal is not survival but generosity.",
+                "OBSTACLE": "The Fallen Oak encounters resistance. The wood is dense, slow to rot; bark still protects the core. The obstacle is its own strength: what made it stand for centuries now delays its return to earth. Insects work at the surface but cannot penetrate the heartwood.",
+                "SHIFT": "The Fallen Oak becomes nurse log. Moss colonizes the bark; seedlings take root in the crumbling wood. Fungi thread through the xylem, extracting nutrients, sharing with the network. The Oak has shifted from individual to infrastructure, from tree to ecosystem."
+            },
+            "moonlight": {
+                "GOAL": "The Moonlight seeks the forest floor. It filters through canopy, dodges leaves, weaves between branches. Its goal is to touch what sunlight cannot reach: the nocturnal world, the creatures of darkness, the hidden life. The Moonlight is a spy, an infiltrator, a silver messenger.",
+                "OBSTACLE": "The Moonlight encounters cloud. The sky closes; silver becomes gray, then black. The obstacle is weather, the unpredictable cover of atmosphere. The Moonlight waits, patient, knowing that clouds pass and its work will resume.",
+                "SHIFT": "The Moonlight changes phase. From full to new, from bright to dim, its character shifts with the month. The forest learns these rhythms: predators hunt more in darkness, prey hides more in brightness. The Moonlight has become a clock, a calendar, a regulator of behavior."
+            }
+        }
+    },
+    "urban_jungle": {
+        "id": "urban_jungle",
+        "name": "URBAN JUNGLE",
+        "baseline": "The urban jungle is a forest of verticality. Buildings rise like cliffs, streets run like rivers. Concrete is the dominant geology. The air carries unique chemistry: exhaust, cooking, metallic tang of industry. Sound is constant: engines, voices, construction. Light is artificial: streetlamps, neon, LED. The city has its own ecology: pigeons, rats, the hardy species that thrive in cracks.",
+        "entities": [
+            {
+                "id": "pigeon",
+                "name": "Pigeon",
+                "type": "animate",
+                "state": "foraging",
+                "icon": "🐦"
+            },
+            {
+                "id": "rat",
+                "name": "Rat",
+                "type": "animate",
+                "state": "scavenging",
+                "icon": "🐀"
+            },
+            {
+                "id": "graffiti",
+                "name": "Graffiti",
+                "type": "abstract",
+                "state": "visible",
+                "icon": "🎨"
+            },
+            {
+                "id": "traffic-light",
+                "name": "Traffic Light",
+                "type": "inanimate",
+                "state": "cycling",
+                "icon": "🚦"
+            },
+            {
+                "id": "rain-puddle",
+                "name": "Rain Puddle",
+                "type": "inanimate",
+                "state": "evaporating",
+                "icon": "💧"
+            },
+            {
+                "id": "sidewalk-weed",
+                "name": "Sidewalk Weed",
+                "type": "animate",
+                "state": "growing",
+                "icon": "🌿"
+            }
+        ],
+        "latent": {
+            "pigeon": {
+                "GOAL": "The Pigeon seeks crumbs. Its eyes scan pavement, benches, hands of humans—searching for scattered debris of human eating. The Pigeon's goal is the plaza, the park, where humans gather, where food is consumed, where opportunity concentrates. Each step is calculation: approach too closely and human flees; stay too distant and crumb is lost.",
+                "OBSTACLE": "The Pigeon encounters a child. The small human runs, arms waving, voice shouting, disrupting plaza's peace. The obstacle is unpredictable: children do not follow adult patterns, do not respect pigeon space. Pigeons take flight, coordinated explosion of wings, circling, regrouping, waiting for disturbance to pass.",
+                "SHIFT": "The Pigeon enters courtship. Neck swells, feathers iridesce, it struts and coos—transformed from forager to suitor. The shift is hormonal: testosterone floods bloodstream, changing behavior, changing priorities. Movements become performance: the bow, the coo, display of plumage."
+            },
+            "rat": {
+                "GOAL": "The Rat seeks the dumpster. Its nose has detected scent of food waste, rich aroma of discarded meals. The Rat's goal is the alley behind the restaurant, the gap in the fence, the path through shadows. Each movement is silent, swift, efficient. The Rat knows the city's secret routes: sewers, gaps, spaces between walls.",
+                "OBSTACLE": "The Rat encounters poison. Bait is placed, trap is set; human war against rat-kind has escalated to chemical warfare. The obstacle is intelligence: humans studied rat behavior, learned preferences, designed baits that appeal, deceive, kill. The Rat avoids, marks location, communicates danger to kin.",
+                "SHIFT": "The Rat enters maternal mode. Female has given birth; behavior changes, territory contracts, world narrows to nest, young, future. The shift is hormonal: prolactin, oxytocin, chemistry of care. Movements become patterns: same routes, same times, same careful checks for danger."
+            },
+            "graffiti": {
+                "GOAL": "The Graffiti seeks visibility. The artist's tag wants to be seen, to be known, to claim space in urban visual field. The Graffiti's goal is the high wall, the visible corner, where eyes pass, where tag will be read, remembered, respected. Each line is risk: artist works fast, at night, in fear of police, property owners, rival crews.",
+                "OBSTACLE": "The Graffiti encounters the buffer. City's anti-graffiti squad arrives with paint, with rollers, mandate to erase, to clean, to restore blankness. The obstacle is institutional: city has resources, laws, power to enforce aesthetic conformity. The Graffiti is covered, hidden, made invisible—as if it never was.",
+                "SHIFT": "The Graffiti fades. Sun bleaches colors, rain washes pigment, time erodes inscription. What was vibrant becomes ghost. The shift is natural: all things fade, all colors dull. Faded Graffiti acquires new meaning: it becomes history, memory, marker of time passed."
+            },
+            "traffic-light": {
+                "GOAL": "The Traffic Light seeks order. Its cycles of red, yellow, green are rhythm, dance, attempt to impose pattern on chaos of vehicles. The Traffic Light's goal is smooth flow: no jams, no accidents, no conflicts. Each change is decision: who moves, who stops, who waits. It is judge, dispensing permission and prohibition.",
+                "OBSTACLE": "The Traffic Light encounters blackout. Power fails; light goes dark. Intersection becomes zone of negotiation, of chaos, of danger. The obstacle is grid's fragility: wires, transformers, complex infrastructure that delivers electricity. Drivers hesitate, confused, uncertain.",
+                "SHIFT": "The Traffic Light changes program. Rush hour demands longer greens, shorter reds, pattern optimized for volume. The shift is programmed: sensors detect traffic, computers calculate optimal timing. The Light adapts to conditions, to demand, to reality. It learns, optimizes, becomes node in smart city network."
+            },
+            "rain-puddle": {
+                "GOAL": "The Rain Puddle seeks absorption. It wants to sink into concrete, to find cracks, to return to the earth beneath the city. The Puddle dreams of evaporation too—of becoming vapor, rising, joining clouds, falling again elsewhere. Its goal is cycle, continuity, the endless round of water.",
+                "OBSTACLE": "The Rain Puddle encounters oil. A slick spreads across its surface, rainbow sheen of petroleum products. The obstacle is human residue: what the city discards settles in low places. The Puddle cannot breathe through the film; evaporation slows, life within suffocates.",
+                "SHIFT": "The Rain Puddle shrinks. Sun and wind work together, pulling molecules into air. The shift is imperceptible to human eyes but constant: the Puddle is always becoming smaller, shallower, closer to disappearance. It leaves behind its memory: a dark stain on concrete, minerals and dirt."
+            },
+            "sidewalk-weed": {
+                "GOAL": "The Sidewalk Weed seeks soil. It has found a crack, a gap between concrete slabs, a thin line of dirt accumulated over years. Now it wants more: deeper roots, wider spread, the chance to flower and seed. The Weed dreams of the crack widening, of concrete crumbling, of forest returning.",
+                "OBSTACLE": "The Sidewalk Weed encounters foot traffic. Human shoes press down, compact soil, break stems. The obstacle is constant: the sidewalk is a thoroughfare, the crack is in the path. The Weed is trampled, flattened, but not killed. It grows sideways, stays low, adapts.",
+                "SHIFT": "The Sidewalk Weed flowers. Despite everything—concrete, compression, neglect—it produces blooms, then seeds. The shift is defiance: in the most hostile environment, life persists. The seeds will scatter, find other cracks, continue the work of slowly dismantling the city."
+            }
+        }
+    }
+}

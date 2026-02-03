@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // OPERATIVE ECOLOGY</title>
+    
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- REACT CORE -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- BABEL (For JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --color-bg: #050a05;
+            --color-term: #4af626;
+            --color-dim: #1a5c0d;
+            --color-gold: #ffd700;
+            --color-red: #ff3333;
+            --color-cyan: #00ffff;
+        }
+
+        body { 
+            background-color: var(--color-bg); 
+            color: var(--color-term); 
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+        }
+
+        /* CRT Effects */
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            15% { opacity: 0.95; }
+            20% { opacity: 0.99; }
+            100% { opacity: 0.97; }
+        }
+        
+        .screen-flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* Utility Classes */
+        .glass-panel {
+            background: rgba(10, 20, 10, 0.85);
+            border: 1px solid var(--color-dim);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(74, 246, 38, 0.1);
+        }
+
+        .text-glow { text-shadow: 0 0 5px var(--color-term); }
+        .gold-glow { text-shadow: 0 0 8px var(--color-gold); color: var(--color-gold); }
+        .red-glow { text-shadow: 0 0 8px var(--color-red); color: var(--color-red); }
+        .cyan-glow { text-shadow: 0 0 8px var(--color-cyan); color: var(--color-cyan); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--color-dim); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-term); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- INLINED ICONS (Replaces Lucide dependency to prevent crash) ---
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const Activity = (p) => <Icon {...p} path={<><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></>} />;
+        const Zap = (p) => <Icon {...p} path={<><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>} />;
+        const BoxIcon = (p) => <Icon {...p} path={<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>} />;
+        const Cpu = (p) => <Icon {...p} path={<><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></>} />;
+        const Crosshair = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></>} />;
+        const Eye = (p) => <Icon {...p} path={<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>} />;
+
+        // --- LATENT LIBRARY (DATA) ---
+        const LATENT_DATA = {
+            cupboard: {
+                name: "THE CUPBOARD",
+                baseline: "The cupboard space is pressurized by stillness. Light seeps only through marginal cracks. Objects maintain rigid proximity.",
+                entities: [
+                    { id: "ant", name: "Formicidae Scout", type: "animate", icon: "🐜", x: 2, y: 2 },
+                    { id: "glass", name: "Tall Glass", type: "inanimate", icon: "Ui", x: 4, y: 3 }, 
+                    { id: "dust", name: "Dust Mote", type: "inanimate", icon: ".:", x: 3, y: 4 },
+                    { id: "shadow", name: "Shadow", type: "abstract", icon: "░▒", x: 5, y: 5 }
+                ],
+                text: {
+                    ant: {
+                        GOAL: "The Formicidae Scout abandons boundary cracks. The world becomes a map of sugar probability. Each step is a data point in the search algorithm.",
+                        OBSTACLE: "Vertical cliff of ceramic. The Scout pauses, antennae waving in frustrated inquiry. A frictionless interface between organic need and mineral indifference.",
+                        SHIFT: "Metabolic torpor initiated. The Scout becomes a tiny sculpture of itself. Time dilates. What was a journey becomes a dwelling."
+                    },
+                    glass: {
+                        GOAL: "The Glass dreams of the meniscus. Its interior surface aches for liquid weight, for the closure of being filled.",
+                        OBSTACLE: "Blocked by neighbors. Five identical vessels press against it. To move is to shatter. The obstacle is identity.",
+                        SHIFT: "Silica network relaxes. A micro-crack appears at the rim. Transparency shifts to haze. It is no longer pristine."
+                    },
+                    shadow: {
+                        GOAL: "The Shadow seeks depth. It crawls toward the corner, desiring perfect blackness, the complete absence of photons.",
+                        OBSTACLE: "Pierced by a beam of light. Absolute darkness becomes gradient. The Shadow shrinks, retreating to crevices.",
+                        SHIFT: "Edges blur into penumbra. The Shadow detaches from its object, becoming an independent zone of cool temperature."
+                    }
+                }
+            },
+            forest: {
+                name: "DEEP FOREST",
+                baseline: "A cathedral of verticality. Trunks rise like columns. The air is thick with terpenes and fungal signals.",
+                entities: [
+                    { id: "mycelium", name: "Mycelium Network", type: "animate", icon: "WM", x: 4, y: 4 },
+                    { id: "owl", name: "Owl", type: "animate", icon: "Ov", x: 6, y: 2 },
+                    { id: "moon", name: "Moonlight", type: "abstract", icon: "()", x: 1, y: 1 }
+                ],
+                text: {
+                    mycelium: {
+                        GOAL: "Hyphae extend through soil, seeking the sugar-roots of the Oak. The network dreams in chemical signals.",
+                        OBSTACLE: "Compacted clay. The path is blocked by stone density. Growth arrests; the network fragments.",
+                        SHIFT: "Fruiting phase triggered. Hyphae swell and rise, bursting into air as mushrooms. The underground becomes visible."
+                    },
+                    owl: {
+                        GOAL: "The Owl triangulates. Asymmetrical ears map the rustle of a vole. The forest is a geometry of sound.",
+                        OBSTACLE: "Wind turbulence disrupts the auditory map. The signal is lost in the noise of the canopy.",
+                        SHIFT: "Plumage settles. The Owl enters a state of conservation, becoming indistinguishable from the bark."
+                    },
+                    moon: {
+                        GOAL: "Photons seek the forest floor, threading the needle between overlapping oak leaves.",
+                        OBSTACLE: "Cloud cover creates total occlusion. The silver thread is cut.",
+                        SHIFT: "Phase change. The light becomes colder, bluer. Shadows lengthen and merge."
+                    }
+                }
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        // 1. OSCILLOSCOPE VISUALIZER
+        const Oscilloscope = ({ activeVector }) => {
+            const canvasRef = useRef(null);
+            
+            useEffect(() => {
+                const cvs = canvasRef.current;
+                const ctx = cvs.getContext('2d');
+                let frameId;
+                let t = 0;
+
+                const draw = () => {
+                    t += 0.2;
+                    ctx.clearRect(0,0,cvs.width, cvs.height);
+                    ctx.fillStyle = 'rgba(5, 10, 5, 0.4)';
+                    ctx.fillRect(0, 0, cvs.width, cvs.height);
+                    
+                    ctx.beginPath();
+                    ctx.lineWidth = 2;
+                    
+                    // Color based on vector
+                    if (activeVector === 'GOAL') ctx.strokeStyle = '#ffd700';
+                    else if (activeVector === 'OBSTACLE') ctx.strokeStyle = '#ff3333';
+                    else if (activeVector === 'SHIFT') ctx.strokeStyle = '#00ffff';
+                    else ctx.strokeStyle = '#4af626';
+
+                    const amplitude = activeVector ? 30 : 5;
+                    const frequency = activeVector ? 0.3 : 0.1;
+
+                    for (let x = 0; x < cvs.width; x++) {
+                        const y = cvs.height / 2 + 
+                                  Math.sin(x * frequency + t) * amplitude * Math.sin(t * 0.5) +
+                                  (activeVector ? (Math.random() - 0.5) * 10 : 0); 
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    frameId = requestAnimationFrame(draw);
+                };
+                draw();
+                return () => cancelAnimationFrame(frameId);
+            }, [activeVector]);
+
+            return <canvas ref={canvasRef} width={300} height={60} className="w-full h-full opacity-80" />;
+        };
+
+        // 2. ISOMETRIC TEXT TERRAIN (THE CORE ENGINE)
+        const OperativeGrid = ({ scenario, selectedEntity, rippleEvent }) => {
+            const canvasRef = useRef(null);
+            const requestRef = useRef();
+            const timeRef = useRef(0);
+            
+            // Grid Settings
+            const GRID_SIZE = 12;
+            const CELL_SIZE = 30;
+            
+            // Ripple Physics State
+            const ripplesRef = useRef([]); // [{x, y, age, type}]
+
+            useEffect(() => {
+                if (rippleEvent) {
+                    ripplesRef.current.push({
+                        x: rippleEvent.x,
+                        y: rippleEvent.y,
+                        age: 0,
+                        type: rippleEvent.type // GOAL, OBSTACLE, SHIFT
+                    });
+                }
+            }, [rippleEvent]);
+
+            const draw = () => {
+                const cvs = canvasRef.current;
+                if (!cvs) return;
+                const ctx = cvs.getContext('2d');
+                
+                // Clear & Background
+                ctx.fillStyle = '#050a05';
+                ctx.fillRect(0, 0, cvs.width, cvs.height);
+                
+                timeRef.current += 0.05;
+
+                // Update Ripples
+                ripplesRef.current = ripplesRef.current.filter(r => r.age < 100);
+                ripplesRef.current.forEach(r => r.age += 1.5);
+
+                // Isometric Projection Helpers
+                const isoX = (x, y) => (x - y) * CELL_SIZE + cvs.width / 2;
+                const isoY = (x, y, z) => (x + y) * CELL_SIZE * 0.5 - z * 10 + cvs.height / 3;
+
+                // Draw Grid Mesh
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        
+                        // Calculate Terrain Height (Z)
+                        let z = 0;
+                        
+                        // 1. Ambient Breathing
+                        z += Math.sin(x * 0.5 + timeRef.current) * Math.cos(y * 0.5 + timeRef.current) * 2;
+
+                        // 2. Ripple Displacement
+                        let rColor = null;
+                        ripplesRef.current.forEach(r => {
+                            const dist = Math.sqrt((x - r.x)**2 + (y - r.y)**2);
+                            // Shockwave function
+                            const wave = Math.sin(dist - r.age * 0.5) * Math.exp(-dist * 0.2) * Math.exp(-r.age * 0.05);
+                            
+                            if (dist < r.age * 0.6 && dist > r.age * 0.4) {
+                                z += wave * 30; // Spikes
+                                if (r.type === 'GOAL') rColor = '#ffd700';
+                                if (r.type === 'OBSTACLE') rColor = '#ff3333';
+                                if (r.type === 'SHIFT') rColor = '#00ffff';
+                            }
+                        });
+
+                        // 3. Entity Presence (Local Hump)
+                        const ent = scenario.entities.find(e => e.x === x && e.y === y);
+                        if (ent) z += 5;
+
+                        // Selection Focus
+                        if (selectedEntity && selectedEntity.x === x && selectedEntity.y === y) {
+                            z += Math.sin(timeRef.current * 10) * 2; // Vibrate selected
+                        }
+
+                        // Project to 2D
+                        const px = isoX(x, y);
+                        const py = isoY(x, y, z);
+
+                        // Draw Character/Node
+                        ctx.font = ent ? "bold 16px monospace" : "10px monospace";
+                        
+                        if (ent) {
+                            ctx.fillStyle = rColor || (selectedEntity?.id === ent.id ? '#fff' : '#4af626');
+                            ctx.fillText(ent.icon, px - 8, py);
+                            
+                            // Draw Entity Label if selected
+                            if (selectedEntity?.id === ent.id) {
+                                ctx.font = "10px monospace";
+                                ctx.fillStyle = "rgba(74, 246, 38, 0.7)";
+                                ctx.fillText(`[${ent.name.toUpperCase()}]`, px + 15, py - 5);
+                            }
+                        } else {
+                            // Empty grid point
+                            ctx.fillStyle = rColor || 'rgba(26, 92, 13, 0.4)';
+                            ctx.fillText('+', px, py);
+                        }
+
+                        // Draw Connections (Wireframe effect)
+                        if (x < GRID_SIZE - 1) {
+                            const nx = x + 1;
+                            const ny = y;
+                            let nz = Math.sin(nx * 0.5 + timeRef.current) * Math.cos(ny * 0.5 + timeRef.current) * 2;
+                            ripplesRef.current.forEach(r => {
+                                const dist = Math.sqrt((nx - r.x)**2 + (ny - r.y)**2);
+                                const wave = Math.sin(dist - r.age * 0.5) * Math.exp(-dist * 0.2) * Math.exp(-r.age * 0.05);
+                                if (dist < r.age * 0.6 && dist > r.age * 0.4) nz += wave * 30;
+                            });
+                            
+                            const pnx = isoX(nx, ny);
+                            const pny = isoY(nx, ny, nz);
+
+                            ctx.beginPath();
+                            ctx.strokeStyle = rColor || 'rgba(26, 92, 13, 0.15)';
+                            ctx.moveTo(px + 4, py - 2);
+                            ctx.lineTo(pnx, pny - 2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                
+                requestRef.current = requestAnimationFrame(draw);
+            };
+
+            useEffect(() => {
+                // Initial size set
+                const cvs = canvasRef.current;
+                if(cvs) {
+                    cvs.width = cvs.parentElement.offsetWidth;
+                    cvs.height = cvs.parentElement.offsetHeight;
+                }
+                requestRef.current = requestAnimationFrame(draw);
+                return () => cancelAnimationFrame(requestRef.current);
+            }, [scenario, selectedEntity, rippleEvent]); 
+
+            return (
+                <div className="relative w-full h-full bg-[#050a05] overflow-hidden">
+                    <canvas 
+                        ref={canvasRef} 
+                        className="w-full h-full object-cover opacity-90"
+                    />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_40%,#000000_100%)] pointer-events-none"></div>
+                </div>
+            );
+        };
+
+        // 3. TYPEWRITER LOG
+        const AuditLog = ({ logs }) => {
+            const bottomRef = useRef(null);
+            
+            useEffect(() => {
+                bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [logs]);
+
+            return (
+                <div className="h-full overflow-y-auto font-mono text-sm p-4 space-y-3 pb-10">
+                    {logs.map((log, i) => (
+                        <div key={i} className={`border-l-2 pl-3 py-1 animate-[pulse_0.2s_ease-in-out]
+                            ${log.type === 'GOAL' ? 'border-yellow-500 text-yellow-100' : 
+                              log.type === 'OBSTACLE' ? 'border-red-500 text-red-100' : 
+                              log.type === 'SHIFT' ? 'border-cyan-500 text-cyan-100' : 'border-green-800 text-green-400'}`}>
+                            <div className="text-[10px] opacity-50 mb-1 flex justify-between">
+                                <span>TICK: {log.tick.toString().padStart(6, '0')}</span>
+                                <span>CONFIDENCE: {Math.floor(Math.random() * 20 + 80)}%</span>
+                            </div>
+                            <div className="leading-relaxed">
+                                <span className="font-bold">[{log.entity}]</span> {log.text}
+                            </div>
+                        </div>
+                    ))}
+                    <div ref={bottomRef} />
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const RipplesEngine = () => {
+            const [scenarioKey, setScenarioKey] = useState('cupboard');
+            const [selectedEntityId, setSelectedEntityId] = useState('ant');
+            const [logs, setLogs] = useState([]);
+            const [tick, setTick] = useState(1042);
+            const [rippleEvent, setRippleEvent] = useState(null); 
+            const [activeVector, setActiveVector] = useState(null);
+
+            const currentScenario = LATENT_DATA[scenarioKey];
+            const selectedEntity = currentScenario.entities.find(e => e.id === selectedEntityId) || currentScenario.entities[0];
+
+            useEffect(() => {
+                // Ensure valid selection when switching scenes
+                if (!currentScenario.entities.find(e => e.id === selectedEntityId)) {
+                    setSelectedEntityId(currentScenario.entities[0].id);
+                }
+                setLogs([{ tick: tick, type: 'SYSTEM', entity: 'KERNEL', text: `Loaded scenario: ${currentScenario.name}. Waiting for vectors.` }]);
+            }, [scenarioKey]);
+
+            const handleInject = (type) => {
+                if (!selectedEntity) return;
+                
+                // 1. Trigger Visuals
+                setActiveVector(type);
+                setRippleEvent({ 
+                    x: selectedEntity.x, 
+                    y: selectedEntity.y, 
+                    type: type 
+                });
+                
+                setTimeout(() => setActiveVector(null), 500);
+
+                // 2. Generate Text
+                const latentText = currentScenario.text[selectedEntity.id]?.[type] || "Data corrupted. No latent description found.";
+                
+                // 3. Update Logs
+                setTick(t => t + Math.floor(Math.random() * 10));
+                setLogs(prev => [...prev, {
+                    tick: tick + 1,
+                    type: type,
+                    entity: selectedEntity.name.toUpperCase(),
+                    text: latentText
+                }]);
+            };
+
+            return (
+                <div className="relative w-full h-full flex flex-col screen-flicker">
+                    
+                    {/* GLOBAL OVERLAYS */}
+                    <div className="absolute inset-0 crt-overlay z-50 pointer-events-none"></div>
+                    
+                    {/* HEADER */}
+                    <header className="h-12 border-b border-green-900 bg-[#0a140a] flex items-center justify-between px-4 z-40">
+                        <div className="flex items-center gap-3">
+                            <Activity className="w-5 h-5 text-green-500 animate-pulse" />
+                            <h1 className="text-xl tracking-widest font-bold text-glow">RIPPLES <span className="text-xs font-normal opacity-60">OPERATIVE_BILDER_v1.0</span></h1>
+                        </div>
+                        <div className="flex gap-4 text-xs font-mono opacity-70">
+                            <span>MEM: 64TB</span>
+                            <span>LATENCY: 12ms</span>
+                            <span className="text-gold-glow">UMWELT: ACTIVE</span>
+                        </div>
+                    </header>
+
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 flex overflow-hidden">
+                        
+                        {/* LEFT: CONTROLS & LOGS */}
+                        <aside className="w-[400px] flex flex-col border-r border-green-900 bg-[#080f08] z-30 relative">
+                            
+                            {/* SCENARIO SELECTOR */}
+                            <div className="p-4 border-b border-green-900">
+                                <label className="text-[10px] tracking-widest opacity-50 block mb-2">TARGET ECOLOGY</label>
+                                <div className="flex gap-2">
+                                    {Object.keys(LATENT_DATA).map(key => (
+                                        <button 
+                                            key={key}
+                                            onClick={() => setScenarioKey(key)}
+                                            className={`px-3 py-1 text-xs border ${scenarioKey === key ? 'bg-green-900 border-green-500 text-white' : 'border-green-900 text-green-700 hover:border-green-700'}`}
+                                        >
+                                            {LATENT_DATA[key].name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* ENTITY SELECTOR */}
+                            <div className="p-4 border-b border-green-900 bg-green-950/10">
+                                <label className="text-[10px] tracking-widest opacity-50 block mb-2">PHANTOM PERSPECTIVE LOCK</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {currentScenario.entities.map(ent => (
+                                        <button
+                                            key={ent.id}
+                                            onClick={() => setSelectedEntityId(ent.id)}
+                                            className={`flex items-center gap-2 p-2 border text-left transition-all
+                                                ${selectedEntityId === ent.id 
+                                                    ? 'border-green-500 bg-green-500/10 text-white shadow-[0_0_10px_rgba(74,246,38,0.3)]' 
+                                                    : 'border-green-900/50 text-green-700 hover:border-green-700'}`}
+                                        >
+                                            <span className="text-lg">{ent.icon}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold">{ent.name}</span>
+                                                <span className="text-[9px] opacity-60 uppercase">{ent.type}</span>
+                                            </div>
+                                            {selectedEntityId === ent.id && <Crosshair className="w-3 h-3 ml-auto text-green-400" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* AUDIT LOG */}
+                            <div className="flex-1 overflow-hidden relative bg-black/40">
+                                <AuditLog logs={logs} />
+                                <div className="absolute top-0 left-0 w-full h-1 bg-green-500/20 blur-sm animate-[scan_4s_linear_infinite] pointer-events-none"></div>
+                            </div>
+
+                            {/* VECTOR CONTROLS */}
+                            <div className="p-4 border-t border-green-900 bg-[#0a140a]">
+                                <div className="mb-2 flex justify-between items-end">
+                                    <label className="text-[10px] tracking-widest opacity-50">VECTOR INJECTION</label>
+                                    <div className="h-8 w-32 border border-green-900 rounded overflow-hidden">
+                                        <Oscilloscope activeVector={activeVector} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <button 
+                                        onClick={() => handleInject('GOAL')}
+                                        className="group relative h-16 border border-yellow-900/50 bg-yellow-900/10 hover:bg-yellow-900/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-1"
+                                    >
+                                        <Zap className="w-5 h-5 text-yellow-500 group-hover:drop-shadow-[0_0_5px_rgba(255,215,0,0.8)]" />
+                                        <span className="text-[10px] text-yellow-500 font-bold tracking-wider">GOAL</span>
+                                        <div className="absolute inset-0 bg-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => handleInject('OBSTACLE')}
+                                        className="group relative h-16 border border-red-900/50 bg-red-900/10 hover:bg-red-900/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-1"
+                                    >
+                                        <BoxIcon className="w-5 h-5 text-red-500 group-hover:drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" />
+                                        <span className="text-[10px] text-red-500 font-bold tracking-wider">OBSTACLE</span>
+                                        <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => handleInject('SHIFT')}
+                                        className="group relative h-16 border border-cyan-900/50 bg-cyan-900/10 hover:bg-cyan-900/20 active:scale-95 transition-all flex flex-col items-center justify-center gap-1"
+                                    >
+                                        <Cpu className="w-5 h-5 text-cyan-500 group-hover:drop-shadow-[0_0_5px_rgba(0,255,255,0.8)]" />
+                                        <span className="text-[10px] text-cyan-500 font-bold tracking-wider">SHIFT</span>
+                                        <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    </button>
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* RIGHT: TEXT AS TERRAIN */}
+                        <main className="flex-1 relative bg-black">
+                            <OperativeGrid 
+                                scenario={currentScenario} 
+                                selectedEntity={selectedEntity}
+                                rippleEvent={rippleEvent} 
+                            />
+                            
+                            {/* HUD Overlays */}
+                            <div className="absolute top-4 right-4 glass-panel px-3 py-1 flex items-center gap-2 text-xs">
+                                <Eye className="w-3 h-3 text-green-400" />
+                                <span className="opacity-70">VIEW:</span>
+                                <span className="font-bold">ISOMETRIC_WIRE</span>
+                            </div>
+
+                            <div className="absolute bottom-4 right-4 text-right opacity-40 text-[10px] pointer-events-none">
+                                <div>XYZ COORDINATES: {selectedEntity ? `${selectedEntity.x}, ${selectedEntity.y}, 05` : 'N/A'}</div>
+                                <div>GRID DENSITY: 12x12</div>
+                                <div>RENDERER: CANVAS_2D</div>
+                            </div>
+                        </main>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RipplesEngine />);
+    </script>
+</body>
+</html>

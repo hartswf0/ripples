@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // LIVING LATTICE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --fg: #4af626;
+            --dim: #154010;
+            --gold: #ffcc00;
+            --red: #ff3333;
+            --cyan: #00ffff;
+        }
+
+        @font-face {
+            font-family: 'Unscii';
+            src: url('https://cdnjs.cloudflare.com/ajax/libs/unscii/1.0.0/unscii-16-full.ttf') format('truetype');
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Unscii', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- CRT FX --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none; z-index: 100; opacity: 0.6;
+        }
+
+        /* --- LAYOUT --- */
+        #interface {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            width: 95vw; height: 90vh;
+            gap: 20px;
+        }
+
+        #grid-container {
+            border: 1px solid var(--dim);
+            background: #000;
+            position: relative;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        aside {
+            border-left: 1px solid var(--dim);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        /* --- COMPONENTS --- */
+        .header {
+            font-family: 'Unscii'; 
+            color: #fff; 
+            border-bottom: 1px solid var(--dim); 
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+
+        .monitor-block {
+            background: rgba(0, 20, 0, 0.3);
+            border: 1px solid var(--dim);
+            padding: 10px;
+            font-family: 'Unscii';
+        }
+
+        .bar-container { width: 100%; height: 6px; background: #111; margin-top: 4px; }
+        .bar-fill { height: 100%; background: var(--fg); width: 0%; transition: width 0.2s; }
+
+        .log-container {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        .log-entry { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 5px; }
+        .log-G { border-color: var(--gold); color: #ffeebb; }
+        .log-O { border-color: var(--red); color: #ffbbbb; }
+        .log-S { border-color: var(--cyan); color: #bbffff; }
+
+        /* UMWELT SCANNER GRID */
+        #mini-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 60px; height: 60px;
+            margin: 0 auto;
+            border: 1px solid var(--dim);
+        }
+        .mini-cell {
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #111; font-size: 10px;
+        }
+        .mini-center { background: var(--dim); color: #fff; }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div id="interface">
+        <div id="grid-container">
+            <canvas id="main-canvas"></canvas>
+        </div>
+
+        <aside>
+            <div>
+                <div class="header">RIPPLES // LIVING LATTICE</div>
+                <div style="font-size: 10px; color: var(--dim)">
+                    AGENTS: <span id="count-A">0</span> | 
+                    GOALS: <span id="count-G">0</span> | 
+                    OBS: <span id="count-O">0</span>
+                </div>
+            </div>
+
+            <div class="monitor-block">
+                <div class="header" style="font-size:10px">ACTIVE UMWELT SCANNER</div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div id="mini-grid">
+                        <!-- 3x3 Neighborhood -->
+                        <div class="mini-cell" id="m0"></div><div class="mini-cell" id="m1"></div><div class="mini-cell" id="m2"></div>
+                        <div class="mini-cell" id="m3"></div><div class="mini-cell mini-center" id="m4">A</div><div class="mini-cell" id="m5"></div>
+                        <div class="mini-cell" id="m6"></div><div class="mini-cell" id="m7"></div><div class="mini-cell" id="m8"></div>
+                    </div>
+                    <div style="flex:1">
+                        <div>ID: <span id="agent-id">NULL</span></div>
+                        <div>STATE: <span id="agent-state">WANDER</span></div>
+                        <div style="margin-top:5px">SATIATION</div>
+                        <div class="bar-container"><div class="bar-fill" id="agent-sat"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="log-container" id="audit-log">
+                <div class="log-entry">> SYSTEM PAUSED. PRESS SPACE.</div>
+            </div>
+
+            <div style="font-size: 10px; color: var(--dim);">
+                [SPACE] RUN | [R] RESET | [CLICK] SPAWN
+            </div>
+        </aside>
+    </div>
+
+<script>
+    /**
+     * RIPPLES: LIVING LATTICE (v2.5)
+     * Agent-Based Modeling System
+     */
+
+    // --- CONFIG ---
+    const COLS = 40;
+    const ROWS = 25;
+    const SIZE = 20;
+    
+    // --- STATE ---
+    let grid = []; // 2D array of Objects
+    let agents = []; // List of active agents
+    let tick = 0;
+    let isRunning = false;
+    let trackedAgentIndex = 0; // Which agent is on the monitor
+
+    // --- AUDIO ---
+    const Audio = {
+        synth: null,
+        kick: null,
+        metal: null,
+        ready: false,
+        init: async () => {
+            if(Audio.ready) return;
+            await Tone.start();
+            
+            // Goal (Ding)
+            Audio.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+            Audio.synth.volume.value = -12;
+
+            // Obstacle (Thud)
+            Audio.kick = new Tone.MembraneSynth().toDestination();
+            Audio.kick.volume.value = -10;
+
+            // Shift (Shimmer)
+            Audio.metal = new Tone.MetalSynth({
+                harmonicity: 12, resonance: 800, modulationIndex: 20,
+                envelope: { decay: 0.4, release: 0.2 }
+            }).toDestination();
+            Audio.metal.volume.value = -20;
+
+            Audio.ready = true;
+        },
+        play: (type) => {
+            if(!Audio.ready) return;
+            if(type === 'G') Audio.synth.triggerAttackRelease(
+                ["C5", "E5", "G5", "B5"][Math.floor(Math.random()*4)], "32n"
+            );
+            if(type === 'O') Audio.kick.triggerAttackRelease("C2", "32n");
+            if(type === 'S') Audio.metal.triggerAttackRelease("32n");
+        }
+    };
+
+    // --- LOGIC ---
+    function init() {
+        // Build empty grid
+        grid = Array.from({length: ROWS}, () => Array.from({length: COLS}, () => ({ type: 'EMPTY' })));
+        agents = [];
+        
+        // Seed Environment
+        for(let i=0; i<30; i++) spawnItem('O'); // Obstacles
+        for(let i=0; i<40; i++) spawnItem('G'); // Goals
+        for(let i=0; i<6; i++) spawnAgent(); // Agents
+
+        resize();
+    }
+
+    function spawnItem(type) {
+        let x, y;
+        do {
+            x = Math.floor(Math.random() * COLS);
+            y = Math.floor(Math.random() * ROWS);
+        } while (grid[y][x].type !== 'EMPTY');
+        
+        grid[y][x] = { type: type, char: type, color: type === 'G' ? '#ffcc00' : '#ff3333' };
+    }
+
+    function spawnAgent() {
+        let x, y;
+        do {
+            x = Math.floor(Math.random() * COLS);
+            y = Math.floor(Math.random() * ROWS);
+        } while (grid[y][x].type !== 'EMPTY');
+
+        const agent = {
+            id: Math.floor(Math.random() * 999),
+            x, y,
+            type: 'A',
+            char: 'A',
+            satiation: 0,
+            state: 'WANDER', // WANDER, SEEK, BLOCKED
+            color: '#ffffff'
+        };
+        agents.push(agent);
+        grid[y][x] = agent;
+    }
+
+    // --- THE AGENT BRAIN ---
+    function updateAgents() {
+        // Shuffle order so movement isn't biased to top-left
+        const shuffled = agents.sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(a => {
+            // 1. SCAN (Moore Neighborhood)
+            let neighbors = [];
+            let target = null;
+
+            for(let dy = -1; dy <= 1; dy++) {
+                for(let dx = -1; dx <= 1; dx++) {
+                    if(dx===0 && dy===0) continue;
+                    const nx = a.x + dx;
+                    const ny = a.y + dy;
+                    if(nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                        const cell = grid[ny][nx];
+                        neighbors.push({x: nx, y: ny, cell});
+                        if(cell.type === 'G') target = {x: nx, y: ny}; // Found Food!
+                    }
+                }
+            }
+
+            // 2. DECIDE
+            let nextX = a.x;
+            let nextY = a.y;
+            
+            if (target) {
+                // PURSUIT MODE
+                a.state = 'SEEK >>';
+                nextX = target.x;
+                nextY = target.y;
+            } else {
+                // WANDER MODE (Brownian)
+                a.state = 'WANDER';
+                // 10% chance to stay still, else move random
+                if(Math.random() > 0.1) {
+                    const move = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    nextX = move.x;
+                    nextY = move.y;
+                }
+            }
+
+            // 3. ACT (Move & Collide)
+            const dest = grid[nextY][nextX];
+
+            if (dest.type === 'EMPTY') {
+                // Move freely
+                moveAgent(a, nextX, nextY);
+            } 
+            else if (dest.type === 'G') {
+                // CONSUME
+                Audio.play('G');
+                log(`Agent ${a.id} consumed GOAL`, 'G');
+                a.satiation += 25;
+                moveAgent(a, nextX, nextY); // Take the spot
+                
+                // CHECK SHIFT
+                if (a.satiation >= 100) {
+                    triggerShift(a);
+                }
+            }
+            else if (dest.type === 'O') {
+                // COLLIDE
+                Audio.play('O');
+                a.state = '!! BLOCKED';
+                log(`Agent ${a.id} hit OBSTACLE`, 'O');
+                // Bounce visual?
+                grid[nextY][nextX].flash = 10; // Flash the wall
+            }
+        });
+
+        // 4. REPOPULATE (Autonomic System)
+        if(Math.random() > 0.9) spawnItem('G'); // Regrow food
+        if(Math.random() > 0.95) spawnItem('O'); // Entropy (new obstacles)
+    }
+
+    function moveAgent(agent, nx, ny) {
+        // Leave trail
+        grid[agent.y][agent.x] = { type: 'TRAIL', age: 10 }; 
+        
+        // Update Agent
+        agent.x = nx;
+        agent.y = ny;
+        grid[ny][nx] = agent;
+    }
+
+    function triggerShift(agent) {
+        Audio.play('S');
+        log(`Agent ${agent.id} UNSUPERVISED SHIFT`, 'S');
+        agent.type = 'S';
+        agent.char = '@';
+        agent.color = '#00ffff';
+        agent.satiation = 0; // Reset
+        // Spawns 2 new agents (Mitosis)
+        spawnAgent();
+    }
+
+    // --- RENDERING ---
+    const canvas = document.getElementById('main-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+        canvas.width = document.getElementById('grid-container').offsetWidth;
+        canvas.height = document.getElementById('grid-container').offsetHeight;
+    }
+    window.addEventListener('resize', resize);
+
+    function draw() {
+        // Fade effect (Phosphor decay)
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        ctx.font = '16px Unscii';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Draw Grid
+        for(let y=0; y<ROWS; y++) {
+            for(let x=0; x<COLS; x++) {
+                const cell = grid[y][x];
+                
+                const px = x * SIZE + SIZE/2;
+                const py = y * SIZE + SIZE/2;
+
+                if (cell.type === 'EMPTY') continue;
+
+                if (cell.type === 'TRAIL') {
+                    ctx.fillStyle = `rgba(74, 246, 38, ${cell.age/20})`;
+                    ctx.fillText('.', px, py);
+                    cell.age--;
+                    if(cell.age <= 0) grid[y][x] = { type: 'EMPTY' };
+                }
+                else {
+                    // Entity / Goal / Obstacle
+                    ctx.fillStyle = cell.color || '#fff';
+                    
+                    if(cell.flash) {
+                        ctx.fillStyle = '#fff';
+                        cell.flash--;
+                    }
+
+                    ctx.fillText(cell.char || '?', px, py);
+                }
+            }
+        }
+
+        // Draw HUD counts
+        document.getElementById('count-A').innerText = agents.length;
+        document.getElementById('count-G').innerText = grid.flat().filter(c=>c.type==='G').length;
+        document.getElementById('count-O').innerText = grid.flat().filter(c=>c.type==='O').length;
+
+        // Draw Monitor (Umwelt Scanner)
+        updateMonitor();
+    }
+
+    function updateMonitor() {
+        if(agents.length === 0) return;
+        
+        // Track the first agent (or cycle through them?)
+        const a = agents[trackedAgentIndex % agents.length];
+        
+        document.getElementById('agent-id').innerText = a.id;
+        document.getElementById('agent-state').innerText = a.state;
+        document.getElementById('agent-sat').style.width = Math.min(100, a.satiation) + "%";
+
+        // Update Mini Grid
+        for(let dy = -1; dy <= 1; dy++) {
+            for(let dx = -1; dx <= 1; dx++) {
+                const idx = (dy+1)*3 + (dx+1);
+                const el = document.getElementById(`m${idx}`);
+                if(dx===0 && dy===0) continue; // Center is always Agent
+
+                const nx = a.x + dx;
+                const ny = a.y + dy;
+                
+                el.innerText = '';
+                el.style.backgroundColor = 'transparent';
+
+                if(nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                    const c = grid[ny][nx];
+                    if(c.type !== 'EMPTY' && c.type !== 'TRAIL') {
+                        el.innerText = c.char;
+                        el.style.color = c.color;
+                        if(c.type === 'G') el.style.backgroundColor = 'rgba(255,200,0,0.2)';
+                        if(c.type === 'O') el.style.backgroundColor = 'rgba(255,50,50,0.2)';
+                    }
+                } else {
+                    el.innerText = '#'; // Border
+                    el.style.color = '#333';
+                }
+            }
+        }
+    }
+
+    function log(msg, type) {
+        const div = document.createElement('div');
+        div.className = `log-entry log-${type}`;
+        div.innerText = `> T${tick} ${msg}`;
+        document.getElementById('audit-log').prepend(div);
+        if(document.getElementById('audit-log').children.length > 20) {
+            document.getElementById('audit-log').lastChild.remove();
+        }
+    }
+
+    // --- LOOP ---
+    function loop() {
+        if(isRunning) {
+            tick++;
+            updateAgents();
+        }
+        draw();
+        // Slow down the loop so we can see the logic (15fps)
+        setTimeout(() => requestAnimationFrame(loop), 1000/15); 
+    }
+
+    // --- INPUTS ---
+    window.addEventListener('keydown', (e) => {
+        if(e.code === 'Space') {
+            isRunning = !isRunning;
+            Audio.init();
+        }
+        if(e.key.toUpperCase() === 'R') init();
+    });
+
+    document.getElementById('grid-container').addEventListener('mousedown', (e) => {
+        // Allow user to drop Goals
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / SIZE);
+        const y = Math.floor((e.clientY - rect.top) / SIZE);
+        
+        if(x>=0 && x<COLS && y>=0 && y<ROWS) {
+            grid[y][x] = { type: 'G', char: 'G', color: '#ffcc00' };
+            Audio.play('G');
+        }
+    });
+
+    // Boot
+    init();
+    loop();
+
+</script>
+</body>
+</html>

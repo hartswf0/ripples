@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES // CARTOON</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background: #1a1a2e;
+            min-height: 100vh;
+        }
+
+        :root {
+            --bg: #1a1a2e;
+            --panel: #2d2d44;
+            --accent: #ffdd59;
+            --pink: #ff6b9d;
+            --cyan: #00d9ff;
+            --green: #7bed9f;
+            --purple: #a55eea;
+            --orange: #ff9f43;
+        }
+
+        /* Cartoon Effects */
+        .cartoon-border {
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0 #000;
+            transition: all 0.2s ease;
+        }
+
+        .cartoon-border:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0 #000;
+        }
+
+        .cartoon-border:active {
+            transform: translate(2px, 2px);
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes wiggle {
+
+            0%,
+            100% {
+                transform: rotate(-3deg);
+            }
+
+            50% {
+                transform: rotate(3deg);
+            }
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .bounce-hover:hover {
+            animation: bounce 0.5s ease infinite;
+        }
+
+        .wiggle-hover:hover {
+            animation: wiggle 0.3s ease infinite;
+        }
+
+        .pop-in {
+            animation: pop 0.3s ease-out forwards;
+        }
+
+        .speech-bubble {
+            position: relative;
+            background: #fff;
+            border: 4px solid #000;
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50px;
+            border-width: 20px 15px 0;
+            border-style: solid;
+            border-color: #000 transparent transparent;
+        }
+
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -14px;
+            left: 54px;
+            border-width: 16px 11px 0;
+            border-style: solid;
+            border-color: #fff transparent transparent;
+        }
+
+        .entity-bubble {
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .entity-bubble.selected {
+            animation: bounce 0.5s ease infinite;
+        }
+
+        .vector-kaboom {
+            font-size: 14px;
+            font-weight: bold;
+            transform: rotate(-5deg);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext } = React;
+
+        // ========== ENGINE ==========
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = { scenario: null, selectedEntity: null, tick: 0, auditLog: [], worldtext: null, lastRipple: null };
+            }
+
+            on(event, cb) { if (!this._listeners.has(event)) this._listeners.set(event, []); this._listeners.get(event).push(cb); }
+            emit(event, data = {}) {
+                this._listeners.get(event)?.forEach(cb => cb(data));
+                if (event !== 'state:change') this._listeners.get('state:change')?.forEach(cb => cb({ state: this.getState(), event, data }));
+            }
+
+            getState() { return { ...this.state }; }
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+            getEntities() { return this.getScenario()?.entities || []; }
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(id) {
+                if (!this.latentLibrary[id]) return;
+                this.state.scenario = id;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario() });
+            }
+
+            selectEntity(id) { this.state.selectedEntity = id; this.emit('entity:select', { entity: this.getEntity(id) }); }
+            deselectEntity() { this.state.selectedEntity = null; this.emit('entity:deselect', {}); }
+
+            getLatent(entityId, vector) {
+                return this.getScenario()?.latent?.[entityId]?.[vector] || `${this.getEntity(entityId)?.name} does a ${vector}!`;
+            }
+
+            triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+                const worldtext = this.getLatent(this.state.selectedEntity, vector);
+                const ripple = { tick: this.state.tick, entity, vector, worldtext };
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this.state.auditLog.unshift({ tick: ripple.tick, entityName: entity.name, vector, result: worldtext });
+                if (this.state.auditLog.length > 8) this.state.auditLog = this.state.auditLog.slice(0, 8);
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+        }
+
+        // ========== LATENT LIBRARY ==========
+        const LATENT_LIBRARY = {
+            treehouse: {
+                id: "treehouse", name: "The Treehouse Gang", color: "#7bed9f",
+                entities: [
+                    { id: "squirrel", name: "Nutsy", emoji: "🐿️", color: "#ff9f43", personality: "Hyperactive" },
+                    { id: "owl", name: "Professor Hoot", emoji: "🦉", color: "#a55eea", personality: "Wise & Sleepy" },
+                    { id: "acorn", name: "Lil' Acorn", emoji: "🌰", color: "#cd853f", personality: "Shy" },
+                    { id: "bee", name: "Buzz McFuzz", emoji: "🐝", color: "#ffdd59", personality: "Busy" },
+                    { id: "leaf", name: "Leafy", emoji: "🍃", color: "#7bed9f", personality: "Floaty" },
+                    { id: "caterpillar", name: "Wigglsworth", emoji: "🐛", color: "#00d9ff", personality: "Hungry" }
+                ],
+                latent: {
+                    "squirrel": { GOAL: "ZOOM! Nutsy bounces from branch to branch, stuffing acorns into secret hiding spots! 'Gotta save 'em all!'", OBSTACLE: "BONK! Nutsy crashes into a beehive! 'Uh oh... sorry, Buzz!'", SHIFT: "Nutsy stops mid-bounce. 'Wait... what if I shared my acorns?' A new thought bubbles up!" },
+                    "owl": { GOAL: "Professor Hoot adjusts tiny spectacles. 'According to my calculations... naptime is OPTIMAL.' Settles into wisdom pose.", OBSTACLE: "SQUAWK! 'Who dares disturb my slumber?!' Feathers everywhere!", SHIFT: "Wise eyes blink slowly. 'Perhaps I was wrong about... everything.' Dramatic pause." },
+                    "acorn": { GOAL: "Lil' Acorn wobbles toward the sunlight, tiny dreams of becoming a mighty oak!", OBSTACLE: "PLONK! A raindrop hits Lil' Acorn. 'Ahhh! I'm melting! ...oh wait, I'm not.'", SHIFT: "Crack! A tiny sprout emerges! 'I'm... I'm changing! This is weird but also cool!'" },
+                    "bee": { GOAL: "BZZZT! Buzz zooms through the air! 'Flowers! Pollen! SO MUCH TO DO!' Leaves a trail of sparkles.", OBSTACLE: "Buzz crashes into a spider web! 'Sticky! VERY STICKY! This is my life now.'", SHIFT: "Buzz buzzes contemplatively. 'What if... I became a DJ instead?' Dubstep noises." },
+                    "leaf": { GOAL: "Leafy drifts on the breeze~ 'Wheee~ Life is beautiful~ Everything is fine~'", OBSTACLE: "SPLAT! Leafy lands in a puddle. 'This is fine. I am one with the water now.'", SHIFT: "Leafy turns golden! 'Oh! I'm becoming art! Autumn vibes activate!'" },
+                    "caterpillar": { GOAL: "Wigglsworth munches a leaf. 'Nom nom nom.' Munches more. 'NOM NOM NOM!'", OBSTACLE: "Tummy rumbles! 'But... there are no more leaves?! THE HORROR!'", SHIFT: "Wigglsworth starts building a cocoon. 'Time for the ultimate glow-up!'" }
+                }
+            },
+            kitchen: {
+                id: "kitchen", name: "Kitchen Chaos Crew", color: "#ff6b9d",
+                entities: [
+                    { id: "spoon", name: "Sir Spoons-a-lot", emoji: "🥄", color: "#c0c0c0", personality: "Chivalrous" },
+                    { id: "egg", name: "Eggbert", emoji: "🥚", color: "#fffdd0", personality: "Nervous" },
+                    { id: "toast", name: "Toasty", emoji: "🍞", color: "#d2691e", personality: "Warm" },
+                    { id: "banana", name: "Peely", emoji: "🍌", color: "#ffdd59", personality: "Slippery" },
+                    { id: "coffee", name: "Mr. Java", emoji: "☕", color: "#6f4e37", personality: "Jittery" },
+                    { id: "ice", name: "Chilly", emoji: "🧊", color: "#00d9ff", personality: "Cool" }
+                ],
+                latent: {
+                    "spoon": { GOAL: "Sir Spoons-a-lot charges into the cereal bowl! 'For honor! For breakfast!' *dramatic stirring*", OBSTACLE: "CLANG! Sir Spoons-a-lot gets stuck in peanut butter! 'A sticky situation most dire!'", SHIFT: "The spoon becomes a catapult! 'I shall now launch the peas! For JUSTICE!'" },
+                    "egg": { GOAL: "Eggbert rolls toward the pan, trembling. 'M-maybe today I'll be a beautiful omelette...'", OBSTACLE: "CRACK! 'Nooo! My beautiful shell! I'm too young to be scrambled!'", SHIFT: "Eggbert hardens with determination. 'I will become... HARD BOILED.' *sunglasses appear*" },
+                    "toast": { GOAL: "Toasty pops up from the toaster! 'Good morning, world! Time to spread some joy!' *butter slides on*", OBSTACLE: "Toasty falls butter-side down! 'Noooo! The prophecy! It came true!'", SHIFT: "Toasty becomes French Toast! 'Ooh la la! I'm fancy now!'" },
+                    "banana": { GOAL: "Peely slides across the counter! 'Wheee! Being yellow is the best!'", OBSTACLE: "Someone steps on Peely! 'Aaaah! Classic banana tragedy!'", SHIFT: "Peely spots appear! 'I'm not old, I'm... PERFECTLY RIPE!'  *winks*" },
+                    "coffee": { GOAL: "Mr. Java vibrates with energy! 'LET'S GO LET'S GO LET'SGOOO!' *steam intensifies*", OBSTACLE: "SPILL! Mr. Java goes cold. 'My... power... fading...' *dramatic slow motion*", SHIFT: "Mr. Java becomes iced coffee! 'I'm chill now. Totally chill. SO CHILL.'" },
+                    "ice": { GOAL: "Chilly slides into a glass. 'Time to cool down this hot situation.' *sunglasses on*", OBSTACLE: "Chilly starts melting! 'I'm getting smaller! TELL MY FAMILY I LOVE THEM!'", SHIFT: "Chilly evaporates! 'I'm a cloud now! Living the dream up here!'" }
+                }
+            },
+            space: {
+                id: "space", name: "Space Buddies", color: "#a55eea",
+                entities: [
+                    { id: "star", name: "Sparkle", emoji: "⭐", color: "#ffdd59", personality: "Showoff" },
+                    { id: "moon", name: "Luna", emoji: "🌙", color: "#f0f0f0", personality: "Mysterious" },
+                    { id: "rocket", name: "Zippy", emoji: "🚀", color: "#ff6b9d", personality: "Adventurous" },
+                    { id: "alien", name: "Zorp", emoji: "👽", color: "#7bed9f", personality: "Curious" },
+                    { id: "planet", name: "Big Boy", emoji: "🪐", color: "#00d9ff", personality: "Chill" },
+                    { id: "comet", name: "Whoosh", emoji: "☄️", color: "#ff9f43", personality: "Fast" }
+                ],
+                latent: {
+                    "star": { GOAL: "Sparkle twinkles EXTRA hard! 'Look at me! LOOK AT ME! I'm literally shining!'", OBSTACLE: "A cloud covers Sparkle! 'Hey! No fair! I was doing a THING!'", SHIFT: "Sparkle explodes into a supernova! 'MAXIMUM SPARKLE MODE ACTIVATED!'" },
+                    "moon": { GOAL: "Luna waxes mysteriously. 'I control the tides. Fear me. Or don't. I don't care.'", OBSTACLE: "An eclipse! Luna gets blocked! 'Excuse me, Sun? This is MY moment.'", SHIFT: "Luna shows her dark side! 'You've never seen THIS before... *spooky*'" },
+                    "rocket": { GOAL: "WHOOOOSH! Zippy blasts off! 'To infinity! And also the snack bar!'", OBSTACLE: "Zippy runs out of fuel! 'Uhh... anyone got a gas station up here?'", SHIFT: "Zippy transforms into a satellite! 'I'm picking up signals! Mostly cat videos.'" },
+                    "alien": { GOAL: "Zorp examines Earth things. 'What is... pizza? I must know more!'", OBSTACLE: "Humans spot Zorp! 'Uh oh! ACT NATURAL!' *vibrates nervously*", SHIFT: "Zorp disguises as human! 'Hello fellow humans! How about that... sports?'" },
+                    "planet": { GOAL: "Big Boy spins lazily. 'Just vibin'. Doin' my orbit. Life is good.'", OBSTACLE: "An asteroid approaches! 'Yo... that's gonna leave a mark.'", SHIFT: "Big Boy grows a new ring! 'I'm even MORE fashionable now!'" },
+                    "comet": { GOAL: "ZOOM! Whoosh streaks across the sky! 'Make a wish! Make it fast!'", OBSTACLE: "Whoosh gets pulled into orbit! 'I'm going in circles! CIRCLES!'", SHIFT: "Whoosh's tail changes color! 'Ooh pretty! Look at my tail! LOOK AT IT!'" }
+                }
+            }
+        };
+
+        // ========== CONTEXT ==========
+        const EngineContext = createContext(null);
+        const useEngine = () => useContext(EngineContext);
+
+        function EngineProvider({ children, latentLibrary }) {
+            const [state, setState] = useState(null);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                const engine = new RipplesEngine({ latentLibrary });
+                engineRef.current = engine;
+                engine.on('state:change', ({ state }) => setState({ ...state }));
+                setState(engine.getState());
+            }, []);
+
+            return <EngineContext.Provider value={{ engine: engineRef.current, state }}>{children}</EngineContext.Provider>;
+        }
+
+        // ========== COMPONENTS ==========
+        function EntityBubble({ entity, isSelected, onClick }) {
+            return (
+                <button onClick={onClick}
+                    className={`entity-bubble cartoon-border rounded-2xl p-4 text-center w-full ${isSelected ? 'selected' : ''}`}
+                    style={{ background: entity.color }}>
+                    <div className="text-4xl mb-2">{entity.emoji}</div>
+                    <div className="font-bold text-black text-lg">{entity.name}</div>
+                    <div className="text-sm text-black/60">{entity.personality}</div>
+                </button>
+            );
+        }
+
+        function VectorButton({ vector, color, sound, onClick, disabled }) {
+            const effects = {
+                GOAL: { text: 'GO!', bg: '#7bed9f', sound: 'ZOOM!' },
+                OBSTACLE: { text: 'OH NO!', bg: '#ff6b9d', sound: 'BONK!' },
+                SHIFT: { text: 'CHANGE!', bg: '#a55eea', sound: 'POOF!' }
+            };
+            const e = effects[vector];
+
+            return (
+                <button onClick={onClick} disabled={disabled}
+                    className={`cartoon-border rounded-xl py-4 px-6 font-bold text-xl text-black disabled:opacity-30 disabled:cursor-not-allowed`}
+                    style={{ background: disabled ? '#666' : e.bg }}>
+                    <span className="vector-kaboom">{e.sound}</span>
+                    <div className="text-sm mt-1">{e.text}</div>
+                </button>
+            );
+        }
+
+        // ========== MAIN ==========
+        function CartoonInterface() {
+            const { engine, state } = useEngine();
+            const [view, setView] = useState('select');
+            const [showBubble, setShowBubble] = useState(false);
+
+            useEffect(() => {
+                if (state?.worldtext) {
+                    setShowBubble(true);
+                }
+            }, [state?.worldtext]);
+
+            if (!state) return <div className="min-h-screen flex items-center justify-center text-white text-2xl">Loading the fun...</div>;
+
+            const scenario = engine?.getScenario();
+            const entities = engine?.getEntities() || [];
+            const selectedEntity = state.selectedEntity ? engine.getEntity(state.selectedEntity) : null;
+
+            // SCENARIO SELECT
+            if (view === 'select') {
+                return (
+                    <div className="min-h-screen p-8 flex flex-col items-center justify-center" style={{ background: 'var(--bg)' }}>
+                        <h1 className="text-5xl font-bold text-white mb-2" style={{ color: 'var(--accent)', textShadow: '4px 4px 0 #000' }}>
+                            RIPPLES TOONS!
+                        </h1>
+                        <p className="text-xl text-white/60 mb-12">Pick a world to play in!</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
+                            {engine?.getScenarioIds().map(id => {
+                                const s = LATENT_LIBRARY[id];
+                                return (
+                                    <button key={id} onClick={() => { engine.loadScenario(id); setView('simulation'); }}
+                                        className="cartoon-border rounded-2xl p-6 text-center bounce-hover"
+                                        style={{ background: s.color }}>
+                                        <div className="text-5xl mb-4">{s.entities[0].emoji}</div>
+                                        <h2 className="text-2xl font-bold text-black">{s.name}</h2>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            }
+
+            // SIMULATION
+            return (
+                <div className="min-h-screen" style={{ background: `linear-gradient(180deg, var(--bg) 0%, ${scenario?.color}22 100%)` }}>
+                    {/* Header */}
+                    <header className="p-4 flex justify-between items-center">
+                        <button onClick={() => { setView('select'); setShowBubble(false); }}
+                            className="cartoon-border rounded-lg px-4 py-2 font-bold text-black" style={{ background: 'var(--accent)' }}>
+                            ← BACK
+                        </button>
+                        <h1 className="text-3xl font-bold" style={{ color: scenario?.color, textShadow: '3px 3px 0 #000' }}>
+                            {scenario?.name}
+                        </h1>
+                        <div className="cartoon-border rounded-lg px-4 py-2 font-bold text-black" style={{ background: 'var(--cyan)' }}>
+                            #{state.tick}
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-[280px_1fr_200px] gap-6 p-6">
+                        {/* Entity List */}
+                        <aside className="space-y-4">
+                            {entities.map(e => (
+                                <EntityBubble key={e.id} entity={e} isSelected={state.selectedEntity === e.id}
+                                    onClick={() => state.selectedEntity === e.id ? engine.deselectEntity() : engine.selectEntity(e.id)} />
+                            ))}
+                        </aside>
+
+                        {/* Speech Bubble Display */}
+                        <main className="flex items-center justify-center">
+                            {showBubble && state.worldtext ? (
+                                <div className="speech-bubble pop-in max-w-xl">
+                                    <p className="text-xl text-black leading-relaxed">{state.worldtext}</p>
+                                    {state.lastRipple && (
+                                        <div className="mt-4 flex items-center gap-2 text-gray-600">
+                                            <span className="text-2xl">{state.lastRipple.entity.emoji}</span>
+                                            <span className="font-bold">{state.lastRipple.entity.name}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="cartoon-border rounded-2xl p-12 text-center" style={{ background: 'var(--panel)' }}>
+                                    <div className="text-6xl mb-4 wiggle-hover">🎬</div>
+                                    <p className="text-white text-xl">Pick a character and make something happen!</p>
+                                </div>
+                            )}
+                        </main>
+
+                        {/* Vector Buttons */}
+                        <aside className="space-y-4">
+                            <VectorButton vector="GOAL" onClick={() => engine.triggerVector('GOAL')} disabled={!selectedEntity} />
+                            <VectorButton vector="OBSTACLE" onClick={() => engine.triggerVector('OBSTACLE')} disabled={!selectedEntity} />
+                            <VectorButton vector="SHIFT" onClick={() => engine.triggerVector('SHIFT')} disabled={!selectedEntity} />
+                        </aside>
+                    </div>
+                </div>
+            );
+        }
+
+        // ========== RENDER ==========
+        function App() {
+            return (
+                <EngineProvider latentLibrary={LATENT_LIBRARY}>
+                    <CartoonInterface />
+                </EngineProvider>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>

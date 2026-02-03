@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLES_ENGINE_v4.2 // ENGINE-DRIVEN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --term-bg: #050a05;
+            --term-text: #4af626;
+            --term-dim: #1e5c12;
+            --term-alert: #ff3333;
+            --term-highlight: #ccffcc;
+            --term-gold: #ffd700;
+            --vector-goal: #f59e0b;
+            --vector-obstacle: #ef4444;
+            --vector-shift: #a855f7;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .font-term {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .crt-screen {
+            background-color: var(--term-bg);
+            color: var(--term-text);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .crt-overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .crt-overlay::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 50;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% {
+                opacity: 0.02;
+            }
+
+            50% {
+                opacity: 0.05;
+            }
+
+            100% {
+                opacity: 0.02;
+            }
+        }
+
+        .term-border {
+            border: 1px solid var(--term-dim);
+        }
+
+        .term-btn {
+            border: 1px solid var(--term-dim);
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--term-text);
+        }
+
+        .term-btn:hover:not(:disabled) {
+            background: var(--term-dim);
+            color: var(--term-highlight);
+            cursor: pointer;
+        }
+
+        .term-btn.active {
+            background: var(--term-text);
+            color: var(--term-bg);
+            border-color: var(--term-text);
+        }
+
+        .term-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .radar-line {
+            stroke: var(--term-dim);
+            stroke-width: 1;
+            vector-effect: non-scaling-stroke;
+        }
+
+        .radar-line.active {
+            stroke: var(--term-highlight);
+            stroke-dasharray: 5, 5;
+            animation: dash 1s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+
+        .nature-show-overlay {
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+            border-top: 2px solid var(--term-gold);
+        }
+
+        .vector-btn-goal {
+            border-color: var(--vector-goal);
+            color: var(--vector-goal);
+        }
+
+        .vector-btn-goal:hover {
+            background: var(--vector-goal);
+            color: #000;
+        }
+
+        .vector-btn-obstacle {
+            border-color: var(--vector-obstacle);
+            color: var(--vector-obstacle);
+        }
+
+        .vector-btn-obstacle:hover {
+            background: var(--vector-obstacle);
+            color: #000;
+        }
+
+        .vector-btn-shift {
+            border-color: var(--vector-shift);
+            color: var(--vector-shift);
+        }
+
+        .vector-btn-shift:hover {
+            background: var(--vector-shift);
+            color: #000;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .ripple-pulse::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border: 2px solid var(--term-text);
+            border-radius: 50%;
+            animation: pulse-ring 1s ease-out infinite;
+        }
+
+        .worldtext-reveal {
+            animation: typeIn 0.5s ease-out;
+        }
+
+        @keyframes typeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, createContext, useContext, useCallback } = React;
+
+        // =========================================
+        // RIPPLES ENGINE (Inline for single-file)
+        // =========================================
+        class RipplesEngine {
+            constructor(config = {}) {
+                this.config = {
+                    autoplayInterval: config.autoplayInterval || 3000,
+                    maxAuditEntries: config.maxAuditEntries || 50,
+                    ...config
+                };
+                this.latentLibrary = config.latentLibrary || {};
+                this._listeners = new Map();
+                this.state = {
+                    scenario: null,
+                    selectedEntity: null,
+                    tick: 0,
+                    isAutoplay: false,
+                    auditLog: [],
+                    worldtext: null,
+                    lastRipple: null
+                };
+                this._autoplayTimer = null;
+            }
+
+            // Event System
+            on(event, callback) {
+                if (!this._listeners.has(event)) {
+                    this._listeners.set(event, []);
+                }
+                this._listeners.get(event).push(callback);
+                return () => {
+                    const callbacks = this._listeners.get(event);
+                    const idx = callbacks.indexOf(callback);
+                    if (idx !== -1) callbacks.splice(idx, 1);
+                };
+            }
+
+            emit(event, data = {}) {
+                const callbacks = this._listeners.get(event);
+                if (callbacks) {
+                    callbacks.forEach(cb => { try { cb(data); } catch (e) { console.error(e); } });
+                }
+                if (event !== 'state:change') {
+                    this._listeners.get('state:change')?.forEach(cb => {
+                        try { cb({ state: this.getState(), event, data }); } catch (e) { console.error(e); }
+                    });
+                }
+            }
+
+            // State Management
+            getState() { return { ...this.state }; }
+
+            getScenarioIds() { return Object.keys(this.latentLibrary); }
+
+            getScenario() { return this.latentLibrary[this.state.scenario] || null; }
+
+            getEntities() { return this.getScenario()?.entities || []; }
+
+            getEntity(id) { return this.getEntities().find(e => e.id === id); }
+
+            loadScenario(scenarioId) {
+                if (!this.latentLibrary[scenarioId]) return;
+                this.state.scenario = scenarioId;
+                this.state.selectedEntity = null;
+                this.state.worldtext = null;
+                this.emit('scenario:change', { scenario: this.getScenario(), scenarioId });
+            }
+
+            selectEntity(entityId) {
+                const entity = this.getEntity(entityId);
+                if (entity) {
+                    this.state.selectedEntity = entityId;
+                    this.emit('entity:select', { entity, entityId });
+                }
+            }
+
+            deselectEntity() {
+                this.state.selectedEntity = null;
+                this.emit('entity:deselect', {});
+            }
+
+            getLatent(entityId, vector) {
+                const scenario = this.getScenario();
+                return scenario?.latent?.[entityId]?.[vector] || this._generateFallback(entityId, vector);
+            }
+
+            _generateFallback(entityId, vector) {
+                const entity = this.getEntity(entityId);
+                const templates = {
+                    GOAL: `${entity?.name || 'Entity'} pursues its objective with focused determination...`,
+                    OBSTACLE: `${entity?.name || 'Entity'} encounters resistance, the path becomes uncertain...`,
+                    SHIFT: `${entity?.name || 'Entity'} transforms, adapting to new conditions...`
+                };
+                return templates[vector] || `${entity?.name || 'Entity'} responds to the ${vector} vector...`;
+            }
+
+            async triggerVector(vector) {
+                if (!this.state.selectedEntity) return null;
+
+                const entity = this.getEntity(this.state.selectedEntity);
+                this.state.tick++;
+
+                // Get worldtext (from LLM hook if set, otherwise latent library)
+                let worldtext;
+                if (this._worldtextGenerator) {
+                    try {
+                        worldtext = await this._worldtextGenerator(entity, vector);
+                    } catch (e) {
+                        console.error('LLM generation failed, using fallback:', e);
+                        worldtext = this.getLatent(this.state.selectedEntity, vector);
+                    }
+                } else {
+                    worldtext = this.getLatent(this.state.selectedEntity, vector);
+                }
+
+                const ripple = {
+                    tick: this.state.tick,
+                    timestamp: Date.now(),
+                    entity,
+                    vector,
+                    worldtext
+                };
+
+                this.state.worldtext = worldtext;
+                this.state.lastRipple = ripple;
+                this._addAuditEntry(ripple);
+
+                this.emit('ripple:complete', ripple);
+                return ripple;
+            }
+
+            _addAuditEntry(ripple) {
+                const entry = {
+                    tick: ripple.tick,
+                    timestamp: ripple.timestamp,
+                    entityId: ripple.entity.id,
+                    entityName: ripple.entity.name,
+                    vector: ripple.vector,
+                    result: ripple.worldtext.substring(0, 100) + (ripple.worldtext.length > 100 ? '...' : '')
+                };
+                this.state.auditLog.unshift(entry);
+                if (this.state.auditLog.length > this.config.maxAuditEntries) {
+                    this.state.auditLog = this.state.auditLog.slice(0, this.config.maxAuditEntries);
+                }
+                this.emit('audit:add', { entry });
+            }
+
+            // LLM Integration Hook
+            setWorldtextGenerator(fn) {
+                this._worldtextGenerator = fn;
+            }
+
+            // Autoplay
+            startAutoplay() {
+                if (this._autoplayTimer) return;
+                this.state.isAutoplay = true;
+                this._autoplayTimer = setInterval(() => this._autoplayTick(), this.config.autoplayInterval);
+                this.emit('autoplay:start', {});
+            }
+
+            stopAutoplay() {
+                if (!this._autoplayTimer) return;
+                clearInterval(this._autoplayTimer);
+                this._autoplayTimer = null;
+                this.state.isAutoplay = false;
+                this.emit('autoplay:stop', {});
+            }
+
+            toggleAutoplay() {
+                this.state.isAutoplay ? this.stopAutoplay() : this.startAutoplay();
+            }
+
+            _autoplayTick() {
+                const entities = this.getEntities();
+                if (!entities.length) return;
+
+                const entity = entities[Math.floor(Math.random() * entities.length)];
+                const vectors = ['GOAL', 'OBSTACLE', 'SHIFT'];
+                const vector = vectors[Math.floor(Math.random() * vectors.length)];
+
+                this.selectEntity(entity.id);
+                this.triggerVector(vector);
+            }
+        }
+
+        // =========================================
+        // REACT CONTEXT & HOOKS
+        // =========================================
+        const EngineContext = createContext(null);
+
+        function useEngine() {
+            const context = useContext(EngineContext);
+            if (!context) throw new Error('useEngine must be used within EngineProvider');
+            return context;
+        }
+
+        function EngineProvider({ children, latentLibrary, config = {} }) {
+            const [state, setState] = useState(null);
+            const [isReady, setIsReady] = useState(false);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                const engine = new RipplesEngine({ latentLibrary, ...config });
+                engineRef.current = engine;
+
+                engine.on('state:change', ({ state: newState }) => {
+                    setState({ ...newState });
+                });
+
+                setState(engine.getState());
+                setIsReady(true);
+
+                if (config.defaultScenario) {
+                    engine.loadScenario(config.defaultScenario);
+                }
+
+                return () => engine.stopAutoplay();
+            }, []);
+
+            const value = {
+                engine: engineRef.current,
+                state,
+                isReady
+            };
+
+            return React.createElement(EngineContext.Provider, { value }, children);
+        }
+
+        // =========================================
+        // GEMINI API INTEGRATION
+        // =========================================
+        const API_KEY = ""; // Add your key here
+
+        const callGemini = async (prompt, systemInstruction) => {
+            if (!API_KEY) {
+                // Mock response when no API key
+                return new Promise(resolve => setTimeout(() => resolve({
+                    narrative: `[SIMULATED] The entity responds to the vector with calculated precision. The ecology shifts subtly, ripples propagating through interconnected systems...`
+                }), 500));
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            narrative: { type: "STRING" }
+                        }
+                    }
+                }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+        };
+
+        const SYSTEM_INSTRUCTION = `
+You are RIPPLES_ENGINE_v4.2 — a generative narrative engine for imaginary ecologies.
+
+CONTEXT: You simulate emergent interactions between entities in constrained environments.
+Each entity has agency. Each vector (GOAL, OBSTACLE, SHIFT) represents a fundamental force.
+
+RULES:
+- GOAL: The entity pursues something. Describe its seeking, its trajectory.
+- OBSTACLE: The entity meets resistance. Describe friction, blockage, tension.
+- SHIFT: The entity transforms. Describe mutation, adaptation, becoming-other.
+
+OUTPUT: Write 2-3 sentences of evocative, present-tense prose. 
+Style: Nature documentary meets systems theory. Poetic but precise.
+        `;
+
+        // =========================================
+        // LATENT LIBRARY (Inline Data)
+        // =========================================
+        const LATENT_LIBRARY = {
+            cupboard: {
+                id: "cupboard",
+                name: "The Cupboard",
+                description: "BOUNDARY: Wood/Darkness. PHYSICS: High Friction. SILENCE: Absolute.",
+                entities: [
+                    { id: "ant-scout", name: "Ant Scout", icon: "🐜", type: "animate" },
+                    { id: "dust-mote", name: "Dust Mote", icon: "💨", type: "abstract" },
+                    { id: "light-beam", name: "Light Beam", icon: "✨", type: "elemental" },
+                    { id: "spider", name: "Spider", icon: "🕷️", type: "animate" },
+                    { id: "plate-stack", name: "Plate Stack", icon: "🍽️", type: "inanimate" },
+                    { id: "draft", name: "Draft", icon: "🌬️", type: "elemental" }
+                ],
+                latent: {
+                    "ant-scout": {
+                        GOAL: "The scout traces pheromone echoes across the wooden terrain, antennae sweeping for sugar signatures in the darkness.",
+                        OBSTACLE: "A vast ceramic cliff blocks passage. The scout retreats, recalculating the colony's mental map.",
+                        SHIFT: "Chemical signals rewire. The scout's role transforms from forager to guard, patrol patterns emerging."
+                    },
+                    "dust-mote": {
+                        GOAL: "The mote drifts toward the light seam, carried by imperceptible thermal currents toward escape.",
+                        OBSTACLE: "Static charge pins it to glass. Movement ceases. The mote becomes landscape.",
+                        SHIFT: "Bonding with others, the mote aggregates into something larger, a bunny forming in corners."
+                    },
+                    "light-beam": {
+                        GOAL: "The beam seeks surface, angle of incidence demanding reflection, bouncing deeper into shadow territory.",
+                        OBSTACLE: "Plate edge cuts the stream. Light fragments, scattering into component wavelengths.",
+                        SHIFT: "Dawn rotation shifts the beam's path. What was illuminated enters darkness; what was hidden reveals."
+                    },
+                    "spider": {
+                        GOAL: "Vibration detected. The spider calibrates, positioning for the signature that means prey.",
+                        OBSTACLE: "Web torn by draft movement. The spider freezes, assessing structural damage to its sensory array.",
+                        SHIFT: "Cold settles. Metabolism slows. The spider enters waiting-mode, time stretching like silk."
+                    },
+                    "plate-stack": {
+                        GOAL: "The stack settles, micro-shifts seeking equilibrium, ceramic memory of kiln-fire cooling.",
+                        OBSTACLE: "Vibration from beyond threatens. The stack's balance becomes precarious, harmonics building.",
+                        SHIFT: "One plate removed. The stack reconfigures, finding new stability in absence."
+                    },
+                    "draft": {
+                        GOAL: "The draft threads through gaps, seeking pressure equilibrium, carrying information between zones.",
+                        OBSTACLE: "Door sealed. The draft disperses, its coherent flow becoming turbulent micro-eddies.",
+                        SHIFT: "Temperature differential reverses. The draft changes direction, inversion of the familiar current."
+                    }
+                }
+            },
+            forest: {
+                id: "forest",
+                name: "Deep Forest",
+                description: "BOUNDARY: Organic/Open. PHYSICS: Damp/Growth. NOISE: Low hum.",
+                entities: [
+                    { id: "mycelium", name: "Mycelium Network", icon: "🕸️", type: "animate" },
+                    { id: "fox", name: "Fox", icon: "🦊", type: "animate" },
+                    { id: "dewdrop", name: "Dew Drop", icon: "💧", type: "elemental" },
+                    { id: "moonlight", name: "Moonlight", icon: "🌙", type: "elemental" },
+                    { id: "oak", name: "Old Oak", icon: "🌳", type: "inanimate" },
+                    { id: "mushroom", name: "Mushroom", icon: "🍄", type: "animate" }
+                ],
+                latent: {
+                    "mycelium": {
+                        GOAL: "The network extends, white threads seeking root contact, chemical messages routing through soil.",
+                        OBSTACLE: "Dry patch. The hyphae retreat from desiccation, rerouting around dead zones.",
+                        SHIFT: "Stress compounds trigger fruiting. The network prepares to become visible, to spore."
+                    },
+                    "fox": {
+                        GOAL: "The fox tracks vole tunnels, ears rotating like satellite dishes, hunting with sound.",
+                        OBSTACLE: "Human scent. The fox freezes, weighing curiosity against ancestral wariness.",
+                        SHIFT: "Territory boundaries blur as prey patterns change. The fox adapts its patrol."
+                    },
+                    "dewdrop": {
+                        GOAL: "The drop swells, gathering humidity, growing toward the weight that means release.",
+                        OBSTACLE: "Tension holds. The drop distorts but will not fall, surface forces winning.",
+                        SHIFT: "Temperature drops. The drop becomes ice crystal, a different kind of water entirely."
+                    },
+                    "moonlight": {
+                        GOAL: "The light filters through canopy gaps, painting silver paths for nocturnal navigation.",
+                        OBSTACLE: "Clouds mass. The light dims, forest floor returning to pure darkness.",
+                        SHIFT: "Moon phase advances. The light's intensity wanes, creatures adjusting to new rhythms."
+                    },
+                    "oak": {
+                        GOAL: "The oak reaches, growth rings accumulating, roots drinking deep from ancient aquifers.",
+                        OBSTACLE: "Fungal infection probes bark. The oak marshals defenses, tannins concentrating.",
+                        SHIFT: "Autumn signals arrive. The oak begins withdrawal, leaves sacrificed for survival."
+                    },
+                    "mushroom": {
+                        GOAL: "The fruiting body pushes upward, cap unfurling to maximize spore dispersal surface.",
+                        OBSTACLE: "Slug nibbles cap edge. The mushroom cannot flee, can only tolerate damage.",
+                        SHIFT: "Maturation complete. The gills darken, spores ready, the mushroom's purpose fulfilled."
+                    }
+                }
+            },
+            void: {
+                id: "void",
+                name: "Sector Void Zero",
+                description: "BOUNDARY: Vacuum. PHYSICS: Zero-G. LIGHT: Distant/Cold.",
+                entities: [
+                    { id: "satellite", name: "Satellite", icon: "🛰️", type: "inanimate" },
+                    { id: "asteroid", name: "Asteroid", icon: "☄️", type: "inanimate" },
+                    { id: "nebula-gas", name: "Nebula Gas", icon: "🌫️", type: "elemental" },
+                    { id: "solar-flare", name: "Solar Flare", icon: "☀️", type: "elemental" },
+                    { id: "space-junk", name: "Space Junk", icon: "🔩", type: "inanimate" },
+                    { id: "gravity-well", name: "Gravity Well", icon: "🌀", type: "abstract" }
+                ],
+                latent: {
+                    "satellite": {
+                        GOAL: "The satellite maintains orbit, solar panels tracking the distant sun, signals beaming earthward.",
+                        OBSTACLE: "Debris field enters trajectory. Collision statistics climb. Avoidance calculations begin.",
+                        SHIFT: "Software update received. The satellite reboots, becoming a slightly different machine."
+                    },
+                    "asteroid": {
+                        GOAL: "The asteroid follows its ancient path, inertia preserved since the solar system's formation.",
+                        OBSTACLE: "Gravitational perturbation. The asteroid's orbit bends, future trajectory uncertain.",
+                        SHIFT: "Thermal stress fractures rock. The asteroid sheds material, becoming smaller, faster."
+                    },
+                    "nebula-gas": {
+                        GOAL: "The gas drifts toward density, attracted by its own mass, clouds collapsing toward starhood.",
+                        OBSTACLE: "Stellar wind scatters the cloud. Compression fails. The gas remains diffuse.",
+                        SHIFT: "Radiation ionizes elements. The gas glows new colors, chemistry rewriting its spectrum."
+                    },
+                    "solar-flare": {
+                        GOAL: "The flare erupts, plasma arcing along magnetic lines, energy seeking equilibrium.",
+                        OBSTACLE: "Magnetic field snaps back. The flare's escape is curtailed, energy reabsorbed.",
+                        SHIFT: "Polarity inverts. The flare's direction changes, particles accelerating on new vectors."
+                    },
+                    "space-junk": {
+                        GOAL: "The debris tumbles, reflecting sunlight in random patterns, orbit slowly decaying.",
+                        OBSTACLE: "Impact. Junk meets junk. Fragments multiply, the Kessler cascade advancing.",
+                        SHIFT: "Atmosphere grazes the junk. The debris begins to slow, to heat, to fall."
+                    },
+                    "gravity-well": {
+                        GOAL: "The well deepens as mass accumulates, spacetime curving more severely.",
+                        OBSTACLE: "Nearby mass disrupts the gradient. Orbital mechanics become chaotic.",
+                        SHIFT: "Mass ejection. The well shallows, objects drifting toward new equilibrium orbits."
+                    }
+                }
+            }
+        };
+
+        // =========================================
+        // ICONS
+        // =========================================
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Play = (props) => <IconWrapper {...props}><polygon points="5 3 19 12 5 21 5 3"></polygon></IconWrapper>;
+        const Pause = (props) => <IconWrapper {...props}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></IconWrapper>;
+        const Terminal = (props) => <IconWrapper {...props}><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></IconWrapper>;
+        const Layers = (props) => <IconWrapper {...props}><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></IconWrapper>;
+        const Eye = (props) => <IconWrapper {...props}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
+        const Mic = (props) => <IconWrapper {...props}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></IconWrapper>;
+        const Activity = (props) => <IconWrapper {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></IconWrapper>;
+        const ArrowRight = (props) => <IconWrapper {...props}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></IconWrapper>;
+        const Square = (props) => <IconWrapper {...props}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></IconWrapper>;
+        const Shuffle = (props) => <IconWrapper {...props}><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></IconWrapper>;
+
+        // =========================================
+        // MAIN APPLICATION
+        // =========================================
+        function ImaginaryEcologies() {
+            const { engine, state, isReady } = useEngine();
+            const [mode, setMode] = useState('SETUP');
+            const [phase, setPhase] = useState('IDLE');
+            const [natureShowScript, setNatureShowScript] = useState(null);
+            const [isBroadcasting, setIsBroadcasting] = useState(false);
+            const logEndRef = useRef(null);
+
+            // Setup LLM worldtext generator
+            useEffect(() => {
+                if (!engine) return;
+                engine.setWorldtextGenerator(async (entity, vector) => {
+                    const prompt = `
+SCENARIO: ${engine.getScenario()?.name || 'Unknown'}
+DESCRIPTION: ${engine.getScenario()?.description || ''}
+ENTITY: [${entity.name}] (${entity.type})
+VECTOR: ${vector}
+HISTORY: ${state?.auditLog?.slice(0, 3).map(a => a.result).join(' | ') || 'None'}
+
+Generate the narrative for this interaction.
+                    `;
+                    const result = await callGemini(prompt, SYSTEM_INSTRUCTION);
+                    return result.narrative;
+                });
+            }, [engine]);
+
+            // Scroll audit log
+            useEffect(() => {
+                logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [state?.auditLog]);
+
+            if (!isReady) {
+                return <div className="h-screen w-full bg-black flex items-center justify-center text-green-500 font-mono">INITIALIZING ENGINE...</div>;
+            }
+
+            const selectedEntity = state?.selectedEntity ? engine.getEntity(state.selectedEntity) : null;
+            const entities = engine.getEntities();
+            const scenario = engine.getScenario();
+
+            const handleEntityClick = (id) => {
+                if (phase === 'PROCESSING') return;
+                if (state.selectedEntity === id) {
+                    engine.deselectEntity();
+                    setPhase('SELECT_ENTITY');
+                } else {
+                    engine.selectEntity(id);
+                    setPhase('SELECT_VECTOR');
+                }
+            };
+
+            const handleVectorClick = async (vector) => {
+                if (!state.selectedEntity || phase === 'PROCESSING') return;
+                setPhase('PROCESSING');
+                await engine.triggerVector(vector);
+                engine.deselectEntity();
+                setPhase('SELECT_ENTITY');
+            };
+
+            const startSimulation = (scenarioId) => {
+                engine.loadScenario(scenarioId);
+                setMode('SIMULATION');
+                setPhase('SELECT_ENTITY');
+            };
+
+            const generateNatureShow = async () => {
+                if (!selectedEntity) return;
+                setIsBroadcasting(true);
+                const prompt = `
+The subject is [${selectedEntity.name}]. 
+It exists in: ${scenario?.name}. 
+Environment: ${scenario?.description}.
+Narrate as Sir David Attenborough in a nature documentary about imaginary ecologies.
+                `;
+                try {
+                    const result = await callGemini(prompt, "You are Sir David Attenborough narrating a documentary about nonhuman imaginary ecologies. Style: Hushed, breathless, poetic.");
+                    setNatureShowScript(result.narrative);
+                } catch (e) {
+                    setNatureShowScript("The signal is lost in the static of the wild...");
+                }
+            };
+
+            // SETUP SCREEN
+            if (mode === 'SETUP') {
+                return (
+                    <div className="h-screen w-full bg-black flex items-center justify-center font-term crt-screen crt-overlay">
+                        <div className="max-w-4xl w-full p-8 border-2 border-[var(--term-dim)] bg-[var(--term-bg)] shadow-[0_0_20px_rgba(74,246,38,0.1)]">
+                            <header className="mb-8 border-b border-[var(--term-dim)] pb-4 flex justify-between items-end">
+                                <div>
+                                    <h1 className="text-4xl font-bold tracking-tighter text-[var(--term-text)]">RIPPLES_ENGINE_v4.2</h1>
+                                    <p className="text-[var(--term-dim)] mt-2">{'{'}{'>'}{'}'} ENGINE-DRIVEN IMAGINARY ECOLOGIES</p>
+                                </div>
+                                <div className="text-right text-xs text-[var(--term-dim)]">
+                                    <div>LATENT_LIB: {Object.keys(LATENT_LIBRARY).length} SCENARIOS</div>
+                                    <div>MODE: {API_KEY ? 'LLM_ACTIVE' : 'LATENT_ONLY'}</div>
+                                </div>
+                            </header>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {engine.getScenarioIds().map(key => {
+                                    const data = LATENT_LIBRARY[key];
+                                    return (
+                                        <button key={key} onClick={() => startSimulation(key)}
+                                            className="group p-4 term-btn text-left h-48 flex flex-col justify-between hover:border-[var(--term-text)]">
+                                            <div>
+                                                <div className="text-2xl mb-2">{data.entities[0]?.icon}</div>
+                                                <h3 className="text-lg font-bold text-[var(--term-text)] uppercase">LOAD_{key}</h3>
+                                            </div>
+                                            <div className="text-xs text-[var(--term-dim)] font-mono leading-tight">{data.description}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // SIMULATION SCREEN
+            return (
+                <div className="h-screen w-full bg-black font-term crt-screen crt-overlay flex items-center justify-center p-4">
+                    <div className="w-full max-w-[1400px] h-[90vh] border-2 border-[var(--term-dim)] bg-[var(--term-bg)] grid grid-cols-[320px_1fr] grid-rows-[auto_1fr_auto]">
+
+                        {/* HEADER */}
+                        <header className="col-span-2 border-b border-[var(--term-dim)] p-3 flex justify-between items-center bg-[var(--term-bg)] z-10">
+                            <div className="flex items-center gap-4">
+                                <Terminal size={18} />
+                                <span className="font-bold">SYS.ROOT // RIPPLES_ENGINE_v4.2</span>
+                                <span className="text-xs px-2 py-0.5 border border-[var(--term-dim)] text-[var(--term-dim)] uppercase">
+                                    {scenario?.name}
+                                </span>
+                            </div>
+                            <div className="text-sm flex gap-4 items-center">
+                                <button onClick={() => engine.toggleAutoplay()}
+                                    className={`term-btn px-3 py-1 text-xs flex items-center gap-2 ${state?.isAutoplay ? 'active' : ''}`}>
+                                    {state?.isAutoplay ? <Pause size={12} /> : <Play size={12} />}
+                                    {state?.isAutoplay ? 'AUTOPLAY' : 'MANUAL'}
+                                </button>
+                                <div className="flex items-center gap-1 text-[var(--term-dim)]">
+                                    <Activity size={12} /> TICK: {state?.tick}
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* SIDEBAR */}
+                        <aside className="border-r border-[var(--term-dim)] p-4 overflow-y-auto flex flex-col gap-4 bg-[rgba(0,0,0,0.2)]">
+                            {/* Entity List / Selected Entity */}
+                            <div className="term-border p-2 relative flex-1 flex flex-col">
+                                <span className="absolute -top-3 left-2 bg-[var(--term-bg)] px-2 text-[10px] font-bold text-[var(--term-dim)]">
+                                    ENTITY_POOL
+                                </span>
+                                {selectedEntity ? (
+                                    <div className="mt-3 flex flex-col h-full space-y-4">
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-1 relative inline-block">
+                                                {selectedEntity.icon}
+                                            </div>
+                                            <div className="font-bold uppercase text-sm">{selectedEntity.name}</div>
+                                            <div className="text-[10px] text-[var(--term-dim)]">{selectedEntity.type}</div>
+                                        </div>
+                                        <button onClick={generateNatureShow}
+                                            className="mt-auto term-btn py-2 text-[10px] font-bold flex items-center justify-center gap-2 border-[var(--term-gold)] text-[var(--term-gold)] hover:bg-[var(--term-gold)] hover:text-black">
+                                            <Mic size={12} /> BROADCAST_SHOW
+                                        </button>
+                                        <button onClick={() => { engine.deselectEntity(); setPhase('SELECT_ENTITY'); }}
+                                            className="term-btn py-1 text-[10px]">
+                                            ← BACK TO LIST
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2 space-y-1 overflow-y-auto">
+                                        {entities.map(e => (
+                                            <button key={e.id} onClick={() => handleEntityClick(e.id)}
+                                                className="w-full text-left text-[11px] p-2 border border-transparent hover:border-[var(--term-dim)] flex items-center gap-2">
+                                                <span className="text-lg">{e.icon}</span>
+                                                <span>{e.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Vector Buttons */}
+                            <div className="term-border p-2 relative">
+                                <span className="absolute -top-3 left-2 bg-[var(--term-bg)] px-2 text-[10px] font-bold text-[var(--term-dim)]">
+                                    VECTOR_INJECT
+                                </span>
+                                <div className="mt-2 grid grid-cols-1 gap-2">
+                                    <button onClick={() => handleVectorClick('GOAL')}
+                                        disabled={!selectedEntity || phase === 'PROCESSING'}
+                                        className="term-btn vector-btn-goal py-3 text-[11px] font-bold uppercase flex items-center justify-center gap-2">
+                                        <ArrowRight size={14} /> GOAL
+                                    </button>
+                                    <button onClick={() => handleVectorClick('OBSTACLE')}
+                                        disabled={!selectedEntity || phase === 'PROCESSING'}
+                                        className="term-btn vector-btn-obstacle py-3 text-[11px] font-bold uppercase flex items-center justify-center gap-2">
+                                        <Square size={14} /> OBSTACLE
+                                    </button>
+                                    <button onClick={() => handleVectorClick('SHIFT')}
+                                        disabled={!selectedEntity || phase === 'PROCESSING'}
+                                        className="term-btn vector-btn-shift py-3 text-[11px] font-bold uppercase flex items-center justify-center gap-2">
+                                        <Shuffle size={14} /> SHIFT
+                                    </button>
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* MAIN DISPLAY */}
+                        <main className="relative flex flex-col bg-[var(--term-bg)] overflow-hidden">
+                            {/* Worldtext Display */}
+                            <div className="flex-1 relative border-b border-[var(--term-dim)] bg-[rgba(5,10,5,0.8)] overflow-hidden flex items-center justify-center p-8">
+                                <div className="absolute top-2 left-2 text-[9px] text-[var(--term-dim)] font-bold z-10">
+                                    <Eye size={10} className="inline mr-1" /> WORLDTEXT_MATRIX
+                                </div>
+
+                                {/* Grid background */}
+                                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
+                                    backgroundImage: 'linear-gradient(var(--term-dim) 1px, transparent 1px), linear-gradient(90deg, var(--term-dim) 1px, transparent 1px)',
+                                    backgroundSize: '40px 40px'
+                                }} />
+
+                                {state?.worldtext ? (
+                                    <div className="max-w-2xl text-center worldtext-reveal">
+                                        <div className="text-lg md:text-xl leading-relaxed text-[var(--term-highlight)]">
+                                            {state.worldtext}
+                                        </div>
+                                        {state.lastRipple && (
+                                            <div className="mt-4 text-[10px] text-[var(--term-dim)]">
+                                                [{state.lastRipple.entity.name}] × [{state.lastRipple.vector}] @ TICK {state.lastRipple.tick}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-[var(--term-dim)] text-center">
+                                        <div className="text-6xl mb-4 opacity-20">◉</div>
+                                        <div className="text-sm">SELECT ENTITY → INJECT VECTOR</div>
+                                        <div className="text-xs mt-2">Awaiting interaction...</div>
+                                    </div>
+                                )}
+
+                                {/* Nature Show Overlay */}
+                                {isBroadcasting && (
+                                    <div className="absolute bottom-0 left-0 right-0 nature-show-overlay p-6 z-40">
+                                        <div className="max-w-3xl mx-auto flex gap-4">
+                                            <div className="shrink-0 flex flex-col items-center">
+                                                <Mic size={24} className="text-[var(--term-gold)] animate-pulse mb-2" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-[9px] text-[var(--term-gold)] font-bold mb-2 uppercase tracking-widest flex items-center justify-between">
+                                                    <span>NATURE_SHOW // {selectedEntity?.name}</span>
+                                                    <button onClick={() => setIsBroadcasting(false)} className="hover:text-white">CLOSE [X]</button>
+                                                </div>
+                                                <p className="text-sm md:text-base leading-relaxed text-[var(--term-highlight)] italic">
+                                                    "{natureShowScript || 'Syncing vocal patterns...'}"
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Audit Log */}
+                            <div className="h-[180px] bg-black p-4 overflow-y-auto border-t border-[var(--term-dim)] relative">
+                                <div className="text-[10px] text-[var(--term-dim)] font-bold mb-2 sticky top-0 bg-black w-full pb-1 border-b border-[var(--term-dim)] flex justify-between">
+                                    <span>{'{'}{'>'}{'}'} AUDIT_LOG</span>
+                                    <span>{state?.auditLog?.length || 0} ENTRIES</span>
+                                </div>
+                                <div className="space-y-3 pb-8">
+                                    {state?.auditLog?.map((entry, idx) => (
+                                        <div key={idx} className="text-[10px] md:text-xs font-mono border-l border-[var(--term-dim)] pl-3">
+                                            <div className="flex justify-between text-[8px] text-[var(--term-dim)] uppercase tracking-tighter mb-1">
+                                                <span>TICK: {entry.tick}</span>
+                                                <span className={
+                                                    entry.vector === 'GOAL' ? 'text-[var(--vector-goal)]' :
+                                                        entry.vector === 'OBSTACLE' ? 'text-[var(--vector-obstacle)]' :
+                                                            'text-[var(--vector-shift)]'
+                                                }>{entry.vector}</span>
+                                            </div>
+                                            <div className="font-bold text-[var(--term-highlight)]">[{entry.entityName}]</div>
+                                            <div className="text-[var(--term-text)] leading-snug">{entry.result}</div>
+                                        </div>
+                                    ))}
+                                    <div ref={logEndRef} />
+                                </div>
+                            </div>
+                        </main>
+
+                        {/* FOOTER */}
+                        <footer className="col-span-2 border-t border-[var(--term-dim)] p-2 text-[9px] text-[var(--term-dim)] flex justify-between items-center bg-[var(--term-bg)]">
+                            <div>ENGINE_DRIVEN // SCENARIO: {state?.scenario} // ENTITIES: {entities.length}</div>
+                            <button onClick={() => setMode('SETUP')} className="hover:text-white">[ SHUTDOWN ]</button>
+                        </footer>
+                    </div>
+                </div>
+            );
+        }
+
+        // =========================================
+        // RENDER
+        // =========================================
+        function App() {
+            return (
+                <EngineProvider latentLibrary={LATENT_LIBRARY} config={{ defaultScenario: null }}>
+                    <ImaginaryEcologies />
+                </EngineProvider>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
