@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPPLE & ORCA | Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #000000;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .project-row {
+            border-bottom: 2px solid #000000;
+            transition: background-color 0.1s ease;
+        }
+
+        .project-row:last-child {
+            border-bottom: none;
+        }
+
+        .project-row:hover {
+            background-color: #f0f0f0;
+        }
+
+        .btn-primary {
+            background-color: #000000;
+            color: #ffffff;
+            font-weight: 900;
+            transition: transform 0.1s ease;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            border: 2px solid #000000;
+            color: #000000;
+            font-weight: 900;
+            transition: all 0.1s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 900;
+            padding: 4px 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #000000;
+                color: #ffffff;
+            }
+
+            .project-row {
+                border-color: #ffffff;
+            }
+
+            .project-row:hover {
+                background-color: #111111;
+            }
+
+            .btn-primary {
+                background-color: #ffffff;
+                color: #000000;
+            }
+
+            .btn-secondary {
+                border-color: #ffffff;
+                color: #ffffff;
+            }
+
+            .btn-secondary:hover {
+                background-color: #ffffff;
+                color: #000000;
+            }
+
+            .tag {
+                background-color: #ffffff;
+                color: #000000;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+    <nav class="p-8 border-b-2 border-black dark:border-white flex justify-between items-center">
+        <div class="flex items-center gap-6">
+            <a href="index.html"
+                class="mono text-[10px] font-bold uppercase tracking-widest border border-black dark:border-white px-3 py-1 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all">←
+                Back to Hub</a>
+            <div class="font-black text-2xl tracking-tighter uppercase">Orca Hub</div>
+        </div>
+        <div class="mono text-[11px] font-bold uppercase tracking-widest hidden md:block">
+            System Status: Active // v6.0
+        </div>
+    </nav>
+
+    <header class="px-8 py-20 md:px-12 md:py-32 max-w-7xl">
+        <div class="mono text-xs mb-4 uppercase tracking-[0.3em] font-bold opacity-50">Catalogue / Research</div>
+        <h1 class="text-7xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.85] uppercase">
+            Ripples
+        </h1>
+        <p class="text-2xl md:text-3xl font-medium leading-tight max-w-4xl tracking-tight">
+            Relational Imagination of Perspective, Presence, and Latent Ecologies in Simulacra.
+        </p>
+    </header>
+
+    <main class="border-t-4 border-black dark:border-white">
+        <div id="project-list">
+            <!-- Projects Injected Here -->
+        </div>
+    </main>
+
+    <footer class="p-8 md:p-12 mt-20 flex flex-col md:flex-row justify-between items-end gap-8">
+        <div class="mono text-[11px] font-bold uppercase leading-relaxed">
+            Local: /Users/gaia/RIPPLE/<br>
+            Auth: Admin_Gaia<br>
+            Node: Stark_White
+        </div>
+        <div class="flex gap-12 mono text-[11px] font-bold uppercase tracking-widest">
+            <a href="#"
+                class="border-b-2 border-transparent hover:border-black dark:hover:border-white transition-all">Manifesto</a>
+            <a href="#"
+                class="border-b-2 border-transparent hover:border-black dark:hover:border-white transition-all">Archive</a>
+            <a href="index.html"
+                class="border-b-2 border-transparent hover:border-black dark:hover:border-white transition-all">Exit</a>
+        </div>
+    </footer>
+
+    <script>
+        const projects = [
+            {
+                id: "orca-moss-16",
+                name: "Orca Moss 16",
+                path: "orca-moss-16.html",
+                demo: "https://gemini.google.com/share/a5f59871878b",
+                chat: "https://gemini.google.com/share/e79b402b3bed",
+                desc: "Apex iteration. Structural Orca logic with Moss heuristic growth layers.",
+                status: "Latest"
+            },
+            {
+                id: "ripple-12",
+                name: "Ripple 12",
+                path: "ripple-12.html",
+                demo: "https://gemini.google.com/share/0a825b92df82",
+                chat: "https://gemini.google.com/share/cb55936595ae",
+                desc: "Fluid motion and mobile-first interaction optimized for high-refresh screens.",
+                status: "Stable"
+            },
+            {
+                id: "ripples-03",
+                name: "Ripples 03",
+                path: "ripples-03.html",
+                demo: "https://gemini.google.com/share/5e43c35a67a9",
+                chat: "https://gemini.google.com/share/109bc03e18d6",
+                desc: "Multi-node interference studies and core foundation blocks for the sequence.",
+                status: "Base"
+            },
+            {
+                id: "orca-08",
+                name: "Orca 08",
+                path: "orca-08.html",
+                demo: "https://gemini.google.com/share/8197f9e39f5e",
+                chat: "https://gemini.google.com/share/f833f9221100",
+                desc: "Initial structural framework establishing core Orca logic and contrast.",
+                status: "Legacy"
+            }
+        ];
+
+        function renderProjects() {
+            const container = document.getElementById('project-list');
+            container.innerHTML = projects.map(p => `
+                <div class="project-row px-8 py-16 md:px-12 md:py-24 flex flex-col md:flex-row md:items-center justify-between gap-12">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-4 mb-6">
+                            <span class="tag">${p.status}</span>
+                            <span class="mono text-[11px] font-bold tracking-tighter opacity-100">${p.path}</span>
+                        </div>
+                        <h2 class="text-4xl md:text-7xl font-black tracking-tighter mb-6 uppercase leading-none">${p.name}</h2>
+                        <p class="text-xl md:text-2xl font-bold tracking-tight opacity-100 max-w-3xl">${p.desc}</p>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="${p.demo}" target="_blank" class="btn-primary px-10 py-5 text-sm uppercase tracking-[0.2em] text-center">
+                            Launch
+                        </a>
+                        <a href="${p.chat}" target="_blank" class="btn-secondary px-10 py-5 text-sm uppercase tracking-[0.2em] text-center">
+                            Lineage
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.onload = renderProjects;
+    </script>
+</body>
+
+</html>
