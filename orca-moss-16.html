@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // MOSS_MONITOR_V16</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
             --color-bg: #050505;
@@ -267,15 +268,16 @@
             left: 0;
             width: 100%;
             height: auto;
-            min-height: 90px;
+            min-height: 100px;
             z-index: 30;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 2rem;
             pointer-events: none;
-            padding-bottom: calc(15px + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(45px + env(safe-area-inset-bottom, 0px));
             animation: breathe 7s infinite ease-in-out;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
         }
 
         .vector-group {
@@ -651,11 +653,46 @@
     </div>
 
     <script>
+        // --- AUDIO ENGINE ---
+        const AudioEngine = {
+            initialized: false,
+            thudSynth: null,
+            noiseSynth: null,
+
+            async init() {
+                if (this.initialized) return;
+                try {
+                    await Tone.start();
+                    this.thudSynth = new Tone.MembraneSynth({
+                        pitchDecay: 0.1, octaves: 1.5, oscillator: { type: "sine" },
+                        envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    this.thudSynth.volume.value = -10;
+
+                    this.noiseSynth = new Tone.NoiseSynth({
+                        noise: { type: "pink" },
+                        envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+                    }).toDestination();
+                    this.noiseSynth.volume.value = -25;
+
+                    this.initialized = true;
+                    console.log("AUDIO READY");
+                } catch (e) { console.error("AUDIO INIT FAILED", e); }
+            },
+
+            thud(vel = 0.5, note = "C1") {
+                if (!this.initialized) return;
+                this.thudSynth.triggerAttackRelease(note, "32n", Tone.now(), vel);
+                if (vel > 0.4) this.noiseSynth.triggerAttackRelease("32n", Tone.now(), vel * 0.3);
+            }
+        };
+
         // --- UTILS ---
         function initializeSystem() {
             const boot = document.getElementById('boot-screen');
             boot.style.transition = 'opacity 0.8s ease';
             boot.style.opacity = '0';
+            AudioEngine.init();
             setTimeout(() => {
                 boot.style.display = 'none';
                 engine.init();
@@ -728,6 +765,7 @@
                 this.renderUI();
                 const ent = LATENT_LIBRARY['deep_forest'].entities.find(e => e.id === id);
                 if (ent) {
+                    AudioEngine.thud(0.7, "C2");
                     this.spawnRipple(`[${ent.name.toUpperCase()}]`, "#fff", renderer.panX * -0.05, renderer.panY * -0.05, 100, 20, ent.palette);
                 }
             }
@@ -737,9 +775,9 @@
                 let chars = "";
                 const entityPalette = this.state.entityId ? this.getEntityPalette(this.state.entityId) : "..";
 
-                if (type === 'GOAL') { color = "#ffcc00"; chars = entityPalette + ">>"; }
-                if (type === 'OBSTACLE') { color = "#ff7272"; chars = entityPalette + "##"; }
-                if (type === 'SHIFT') { color = "#72a5ff"; chars = entityPalette + "~"; }
+                if (type === 'GOAL') { color = "#ffcc00"; chars = entityPalette + ">>"; AudioEngine.thud(0.9, "G1"); }
+                if (type === 'OBSTACLE') { color = "#ff7272"; chars = entityPalette + "##"; AudioEngine.thud(0.6, "D1"); }
+                if (type === 'SHIFT') { color = "#72a5ff"; chars = entityPalette + "~"; AudioEngine.thud(0.5, "E2"); }
 
                 this.spawnRipple(type, color, 0, 0, 800, 45, chars);
             }
@@ -778,6 +816,7 @@
                 });
 
                 this.spawnRipple(`${type}.EXE`, color, 0, 0, 120, 40, chars);
+                AudioEngine.thud(0.8, "A1");
                 renderer.selectedCells.clear();
             }
 
@@ -1109,6 +1148,10 @@
                                         }
                                     }
                                     if (d < 0.5 && r.palette) {
+                                        // Autonomous intersection thud for entities
+                                        if (this.gridState[y][x].char && Math.random() > 0.99) {
+                                            AudioEngine.thud(0.05, "B0");
+                                        }
                                         const pIdx = (Math.abs(x * y) + Math.floor(r.radius)) % r.palette.length;
                                         this.gridState[y][x] = { char: r.palette[pIdx], color: r.color };
                                     }
