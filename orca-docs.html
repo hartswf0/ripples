@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCA // DOCUMENTATION_HUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #ffffff;
+            --color-text: #000000;
+            --color-accent: #000000;
+            --color-border: #000000;
+            --color-dim: #666666;
+            --shroud-bg: #000000;
+            --shroud-text: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #000000;
+                --color-text: #ffffff;
+                --color-accent: #ffffff;
+                --color-border: #ffffff;
+                --color-dim: #999999;
+                --shroud-bg: #ffffff;
+                --shroud-text: #000000;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Sidebar Styling */
+        aside {
+            width: 320px;
+            background-color: var(--color-bg);
+            border-right: 2px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            z-index: 50;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--color-border);
+        }
+
+        .sidebar-header {
+            padding: 40px;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .category-label {
+            padding: 24px 40px 10px 40px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--color-dim);
+        }
+
+        .file-list {
+            padding: 0 30px 20px 30px;
+        }
+
+        .file-item {
+            padding: 8px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+            margin-bottom: 2px;
+            opacity: 0.7;
+        }
+
+        .file-item:hover {
+            background-color: var(--color-border);
+            color: var(--color-bg);
+            opacity: 1;
+        }
+
+        .file-item.active {
+            border-left-color: var(--color-border);
+            font-weight: 900;
+            padding-left: 15px;
+            opacity: 1;
+            background-color: rgba(var(--color-border), 0.05);
+        }
+
+        /* Main Content Styling */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .doc-header {
+            padding: 20px 40px;
+            border-bottom: 2px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--color-bg);
+            z-index: 40;
+            height: 90px;
+            flex-shrink: 0;
+        }
+
+        .doc-content-area {
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #markdown-viewer {
+            flex: 1;
+            overflow-y: auto;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 60px 40px;
+        }
+
+        /* Markdown Styling */
+        .markdown-body {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .markdown-body h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            line-height: 0.9;
+        }
+
+        .markdown-body h2 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--color-border);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Iframe Styles */
+        #html-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+            flex: 1;
+        }
+
+        /* Reader Notes Panel */
+        .notes-panel {
+            width: 400px;
+            background-color: var(--shroud-bg);
+            color: var(--shroud-text);
+            border-left: 2px solid var(--color-border);
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .notes-panel.collapsed {
+            width: 0;
+            transform: translateX(100%);
+            overflow: hidden;
+        }
+
+        .notes-toggle-btn {
+            position: absolute;
+            left: -42px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            background: var(--shroud-bg);
+            color: var(--shroud-text);
+            border: 2px solid var(--color-border);
+            border-bottom: none;
+            padding: 8px 15px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 60;
+        }
+
+        .doc-header-btn {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 8px 16px;
+            border: 2px solid var(--color-border);
+            transition: all 0.2s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .doc-header-btn:hover {
+            background: var(--color-border);
+            color: var(--color-bg);
+        }
+
+        /* Mobile */
+        #menu-toggle {
+            display: none;
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            z-index: 100;
+            background: var(--color-bg);
+            border: 2px solid var(--color-border);
+            padding: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            #menu-toggle {
+                display: block;
+            }
+
+            aside {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                transform: translateX(-100%);
+                box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+            }
+
+            aside.open {
+                transform: translateX(0);
+            }
+
+            main {
+                width: 100%;
+            }
+
+            .doc-header {
+                padding: 80px 30px 30px 30px;
+                height: auto;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .notes-panel {
+                position: fixed;
+                right: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 60;
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button id="menu-toggle" onclick="toggleMenu()">
+        <i data-lucide="menu"></i>
+    </button>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="mono text-[10px] font-bold opacity-50 mb-2 uppercase tracking-widest">System / Archive</div>
+            <div class="font-black text-3xl tracking-tighter uppercase leading-none">Docs</div>
+        </div>
+
+        <div class="category-label">Essays</div>
+        <div class="file-list" id="essays-list"></div>
+
+        <div class="category-label">Theory</div>
+        <div class="file-list" id="theory-list"></div>
+
+        <div class="category-label">Research Logs</div>
+        <div class="file-list" id="logs-list"></div>
+
+        <div class="category-label">Nodes</div>
+        <div class="file-list" id="nodes-list"></div>
+
+        <div class="category-label">Technical</div>
+        <div class="file-list" id="tech-list"></div>
+
+        <div class="category-label">Media</div>
+        <div class="file-list" id="media-list"></div>
+
+        <div class="mt-auto p-10 border-t-2 border-border">
+            <a href="orca-core.html"
+                class="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest hover:pl-2 transition-all">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i> Orca Hub
+            </a>
+        </div>
+    </aside>
+
+    <main>
+        <header class="doc-header">
+            <div class="flex items-center gap-6">
+                <div id="active-file-tag"
+                    class="text-[10px] font-black uppercase tracking-[0.2em] border-2 border-black dark:border-white px-3 py-1">
+                    ARCHIVE</div>
+                <div class="flex flex-col">
+                    <div id="active-file-name"
+                        class="mono text-xs font-bold opacity-100 uppercase tracking-tighter truncate max-w-[300px]">
+                        Initializing...</div>
+                    <div class="text-[9px] opacity-30 mono uppercase tracking-widest mt-1">Ref: <span
+                            id="doc-id">...</span></div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <a id="external-link" target="_blank" class="doc-header-btn mono">
+                    <i data-lucide="external-link" class="w-3 h-3"></i> Open External
+                </a>
+                <button onclick="toggleNotes()" class="doc-header-btn mono">
+                    <i data-lucide="edit-3" class="w-3 h-3"></i> Notes
+                </button>
+            </div>
+        </header>
+
+        <section class="doc-content-area">
+            <div id="markdown-viewer" class="markdown-body">
+                <!-- Content will be rendered here -->
+            </div>
+            <iframe id="html-viewer" style="display: none;"></iframe>
+        </section>
+    </main>
+
+    <div class="notes-panel collapsed" id="notes-panel">
+        <div class="notes-header">
+            <div class="flex items-center gap-3">
+                <i data-lucide="sticky-note" class="w-4 h-4"></i>
+                Reader Notes
+            </div>
+            <button onclick="toggleNotes()" class="hover:opacity-50 transition-opacity">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="notes-content flex-1 flex flex-col p-10 bg-black text-white">
+            <textarea id="notes-input" placeholder="RECORD OBSERVATIONS..."
+                class="flex-1 bg-transparent border-none outline-none resize-none text-sm leading-relaxed"></textarea>
+            <div
+                class="mt-6 flex justify-between items-center text-[10px] font-bold opacity-50 uppercase tracking-widest">
+                <span id="save-status">Ready</span>
+                <span id="char-count">0 Chars</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DOCS_CONFIG = {
+            essays: [
+                { id: "essay_1", name: "Worldtext Spec", path: "essay-1-worldtext-specification.html" },
+                { id: "essay_2", name: "Nonhuman Ecologies", path: "essay-2-generative-nonhuman-ecologies.html" },
+                { id: "essay_3", name: "Imaginary Ecologies", path: "essay-3-imaginary-ecologies-framework.html" }
+            ],
+            theory: [
+                { id: "theory_root", name: "Theory Root", path: "theory.md" },
+                { id: "theory_main", name: "Core Theory", path: "theory/theory.md" },
+                { id: "theory_spec", name: "Logic Spec", path: "theory/worldtext-spec.md" },
+                { id: "theory_prompt", name: "Prompt Alpha", path: "theory/PROMPT.md" },
+                { id: "theory_orca", name: "Orca Heuristics", path: "theory/ORCA_RIPPLE_THEORY.md" },
+                { id: "theory_landscape", name: "Imaginary Landscapes", path: "theory/imaginary-ecologies.md" },
+                { id: "theory_nonhuman", name: "Nonhuman Persp.", path: "theory/nonhuman-ecologies.md" },
+                { id: "theory_patterns", name: "Pattern Library", path: "theory/pattern-library.md" }
+            ],
+            logs: Array.from({ length: 16 }, (_, i) => ({
+                id: `log_${String(i + 1).padStart(2, '0')}`,
+                name: `Log ${String(i + 1).padStart(2, '0')}`,
+                path: `${i + 1}.md`
+            })),
+            nodes: [
+                { id: "orca_moss", name: "Orca Moss 16", path: "orca-moss-16.html" },
+                { id: "ripple_12", name: "Ripple 12.0", path: "ripple-12.html" },
+                { id: "ripples_03", name: "Ripples 03", path: "ripples-03.html" },
+                { id: "orca_08", name: "Orca 08", path: "orca-08.html" },
+                { id: "latent_ui", name: "Latent Interface", path: "latent-interface.html" },
+                { id: "engine_demo", name: "Engine Demo", path: "engine-demo.html" },
+                { id: "alive_1414", name: "Alive Node", path: "1414-alive.html" },
+                { id: "grid_1515", name: "Grid Sim", path: "1515-grid.html" },
+                { id: "cellular_1717", name: "Cellular CA", path: "1717-cellular.html" },
+                { id: "sonic_1818", name: "Sonic Ecology", path: "1818-sonic-ecology.html" },
+                { id: "autonomic_2020", name: "Autonomic Sys", path: "2020-autonomic-system.html" },
+                { id: "demiurge_2120", name: "Demiurge Engine", path: "2120-demiurge-engine.html" },
+                { id: "worldtext_2121", name: "Worldtext Display", path: "2121-worldtext-display.html" },
+                { id: "bilder_2122", name: "Operative Bilder", path: "2122-operative-bilder.html" },
+                { id: "unified_2123", name: "Unified Engine", path: "2123-unified-engine.html" },
+                { id: "lattice_2222", name: "Living Lattice", path: "2222-living-lattice.html" },
+                { id: "node_66", name: "Node 66", path: "66.html" },
+                { id: "node_1010", name: "Node 1010", path: "1010.html" },
+                { id: "node_1111", name: "Node 1111", path: "1111.html" },
+                { id: "node_1212", name: "Node 1212", path: "1212.html" }
+            ],
+            tech: [
+                { id: "tech_manifest", name: "System Manifest", path: "README.md" },
+                { id: "tech_inception", name: "Inception Prompts", path: "engine/INCEPTION_PROMPTS.md" },
+                { id: "tech_system", name: "System Core v1", path: "engine/SYSTEM_INSTRUCTION.md" },
+                { id: "tech_engine", name: "Engine Spec", path: "engine/README.md" }
+            ],
+            media: [
+                { id: "audio_manifest", name: "Audio Manifest", path: "audio/README.md" },
+                { id: "audio_orca", name: "Orca Audio", path: "audio/orca/index.html" },
+                { id: "audio_pilot", name: "Pilot Audio", path: "audio/pilot/README.md" },
+                { id: "audio_gull", name: "Gull Audio", path: "audio/gull/index.html" }
+            ]
+        };
+
+        let currentFileId = null;
+
+        function init() {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            renderSidebar();
+
+            // Default
+            const defaultDoc = DOCS_CONFIG.essays[0];
+            loadFile(defaultDoc.id, defaultDoc.path);
+
+            const notesInput = document.getElementById('notes-input');
+            notesInput.addEventListener('input', () => {
+                saveNotes();
+                updateNotesMeta();
+            });
+        }
+
+        function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+        function toggleNotes() { document.getElementById('notes-panel').classList.toggle('collapsed'); }
+
+        function renderSidebar() {
+            Object.keys(DOCS_CONFIG).forEach(cat => {
+                const container = document.getElementById(`${cat}-list`);
+                if (!container) return;
+                container.innerHTML = DOCS_CONFIG[cat].map(file => `
+                    <div class="file-item ${currentFileId === file.id ? 'active' : ''}" 
+                         id="item-${file.id}" 
+                         onclick="loadFile('${file.id}', '${file.path}')">
+                        ${file.name}
+                    </div>
+                `).join('');
+            });
+        }
+
+        async function loadFile(id, path) {
+            try {
+                if (currentFileId) {
+                    const prev = document.getElementById(`item-${currentFileId}`);
+                    if (prev) prev.classList.remove('active');
+                }
+                currentFileId = id;
+                const active = document.getElementById(`item-${id}`);
+                if (active) active.classList.add('active');
+
+                if (window.innerWidth <= 1024) document.getElementById('sidebar').classList.remove('open');
+
+                document.getElementById('active-file-name').innerText = "FETCHING: " + path;
+                document.getElementById('external-link').href = path;
+
+                const mdViewer = document.getElementById('markdown-viewer');
+                const htmlViewer = document.getElementById('html-viewer');
+
+                if (path.endsWith('.html')) {
+                    mdViewer.style.display = 'none';
+                    htmlViewer.style.display = 'block';
+                    htmlViewer.src = path;
+                    document.getElementById('active-file-name').innerText = path;
+                    document.getElementById('doc-id').innerText = id.toUpperCase();
+                    document.getElementById('active-file-tag').innerText = "NODE";
+                } else {
+                    mdViewer.style.display = 'block';
+                    htmlViewer.style.display = 'none';
+                    htmlViewer.src = '';
+                    document.getElementById('active-file-tag').innerText = "ARCHIVE";
+
+                    let text = "";
+                    if (window.location.protocol === 'file:') {
+                        text = `> [!CAUTION]\n> **ACCESS_DENIED: CORS_RESTRICTION**\n> Browser security blocks local file parsing via \`file://\`. \n\n### BEST_SOLUTION\nAccess this Documentation Hub through your active localhost or a hosted environment like **GitHub Pages** (where CORS is fully supported):\n\n**[http://localhost:8080/orca-docs.html](http://localhost:8080/orca-docs.html)**\n\n### ABOUT_GITHUB_PAGES\nYes, pushing to GitHub Pages will resolve this issue entirely, as the browsers allow cross-origin requests for content served over HTTPS. \n\n*(Simulation Nodes (.html) will still work in local mode, but Markdown requires a server context).*`;
+                    } else {
+                        const response = await fetch(path);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        text = await response.text();
+                    }
+
+                    mdViewer.innerHTML = marked.parse(text);
+                    document.getElementById('active-file-name').innerText = path;
+                    document.getElementById('doc-id').innerText = id.toUpperCase();
+                }
+
+                loadNotes();
+                updateNotesMeta();
+                mdViewer.scrollTop = 0;
+
+            } catch (error) {
+                console.error("Error loading file:", error);
+                document.getElementById('markdown-viewer').innerHTML = `
+                    <div style="border: 2px solid var(--color-border); padding: 40px; text-transform: uppercase;">
+                        <h3 style="font-weight: 900; margin-top: 0;">ERROR: NODE_UNREACHABLE</h3>
+                        <p style="margin-bottom: 0; font-size: 11px;">PATH_REF: ${path}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function saveNotes() {
+            const val = document.getElementById('notes-input').value;
+            localStorage.setItem(`orca_note_${currentFileId}`, val);
+            document.getElementById('save-status').innerText = "WRITTEN";
+            setTimeout(() => { document.getElementById('save-status').innerText = "READY"; }, 1000);
+        }
+
+        function loadNotes() {
+            const val = localStorage.getItem(`orca_note_${currentFileId}`) || "";
+            document.getElementById('notes-input').value = val;
+        }
+
+        function updateNotesMeta() {
+            const val = document.getElementById('notes-input').value;
+            document.getElementById('char-count').innerText = `${val.length} CHARS`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
