@@ -326,8 +326,11 @@
         <div class="category-label">Research Logs</div>
         <div class="file-list" id="logs-list"></div>
 
-        <div class="category-label">Nodes</div>
+        <div class="category-label">Nodes / Archival</div>
         <div class="file-list" id="nodes-list"></div>
+
+        <div class="category-label">Kimi Agent Suites</div>
+        <div class="file-list" id="kimi-list"></div>
 
         <div class="category-label">Technical</div>
         <div class="file-list" id="tech-list"></div>
@@ -426,7 +429,8 @@
                 { id: "orca_08", name: "Orca 08", path: "orca-08.html" },
                 { id: "latent_ui", name: "Latent Interface", path: "latent-interface.html" },
                 { id: "engine_demo", name: "Engine Demo", path: "engine-demo.html" },
-                { id: "alive_1414", name: "Alive Node", path: "1414-alive.html" },
+                { id: "alive_1414_v1", name: "Alive Node v1", path: "1414.html" },
+                { id: "alive_1414_v2", name: "Alive Node v2", path: "1414-alive.html" },
                 { id: "grid_1515", name: "Grid Sim", path: "1515-grid.html" },
                 { id: "cellular_1717", name: "Cellular CA", path: "1717-cellular.html" },
                 { id: "sonic_1818", name: "Sonic Ecology", path: "1818-sonic-ecology.html" },
@@ -436,10 +440,28 @@
                 { id: "bilder_2122", name: "Operative Bilder", path: "2122-operative-bilder.html" },
                 { id: "unified_2123", name: "Unified Engine", path: "2123-unified-engine.html" },
                 { id: "lattice_2222", name: "Living Lattice", path: "2222-living-lattice.html" },
+                { id: "thread_node", name: "Thread Node", path: "thread.html" },
+                { id: "node_6", name: "Node 06", path: "6.html" },
+                { id: "node_7", name: "Node 07", path: "7.html" },
+                { id: "node_16", name: "Node 16", path: "16.html" },
+                { id: "node_17", name: "Node 17", path: "17.html" },
                 { id: "node_66", name: "Node 66", path: "66.html" },
                 { id: "node_1010", name: "Node 1010", path: "1010.html" },
                 { id: "node_1111", name: "Node 1111", path: "1111.html" },
                 { id: "node_1212", name: "Node 1212", path: "1212.html" }
+            ],
+            kimi: [
+                { id: "kimi_app", name: "Kimi App Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/index.html" },
+                { id: "kimi_readme", name: "Kimi System Readme", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/README.md" },
+                { id: "kimi_suite", name: "Ripples Suite", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-suite/index.html" },
+                { id: "kimi_1776", name: "1776 Node", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-suite/1776.html" },
+                { id: "rimi_canonical", name: "Canonical Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-canonical/index.html" },
+                { id: "kimi_latent", name: "Latent Prompt Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-latent-prompt/index.html" },
+                { id: "kimi_meta", name: "Meta Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-meta/index.html" },
+                { id: "kimi_ripples", name: "Ripples Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples/index.html" },
+                { id: "kimi_arch", name: "Architecture Docs", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples/docs/ARCHITECTURE.md" },
+                { id: "kimi_feedback", name: "Feedback Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-feedback/index.html" },
+                { id: "kimi_orca", name: "Orca Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-orca/index.html" }
             ],
             tech: [
                 { id: "tech_manifest", name: "System Manifest", path: "README.md" },
@@ -482,14 +504,15 @@
                 container.innerHTML = DOCS_CONFIG[cat].map(file => `
                     <div class="file-item ${currentFileId === file.id ? 'active' : ''}" 
                          id="item-${file.id}" 
-                         onclick="loadFile('${file.id}', '${file.path}')">
+                         onclick="loadFile('${file.id}', '${encodeURIComponent(file.path)}')">
                         ${file.name}
                     </div>
                 `).join('');
             });
         }
 
-        async function loadFile(id, path) {
+        async function loadFile(id, encodedPath) {
+            const path = decodeURIComponent(encodedPath);
             try {
                 if (currentFileId) {
                     const prev = document.getElementById(`item-${currentFileId}`);
@@ -522,7 +545,7 @@
 
                     let text = "";
                     if (window.location.protocol === 'file:') {
-                        text = `> [!CAUTION]\n> **ACCESS_DENIED: CORS_RESTRICTION**\n> Browser security blocks local file parsing via \`file://\`. \n\n### BEST_SOLUTION\nAccess this Documentation Hub through your active localhost or a hosted environment like **GitHub Pages** (where CORS is fully supported):\n\n**[http://localhost:8080/orca-docs.html](http://localhost:8080/orca-docs.html)**\n\n### ABOUT_GITHUB_PAGES\nYes, pushing to GitHub Pages will resolve this issue entirely, as the browsers allow cross-origin requests for content served over HTTPS. \n\n*(Simulation Nodes (.html) will still work in local mode, but Markdown requires a server context).*`;
+                        text = `> [!CAUTION]\n> **ACCESS_DENIED: CORS_RESTRICTION**\n> Browser security blocks local file parsing via \`file://\`. \n\n### BEST_SOLUTION\nAccess this Documentation Hub through your active localhost or a hosted environment like **GitHub Pages** (where CORS is fully supported):\n\n**[http://localhost:8080/orca-docs.html](http://localhost:8080/orca-docs.html)**\n\n*(Simulation Nodes (.html) will still work in local mode, but Markdown requires a server context).*`;
                     } else {
                         const response = await fetch(path);
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -544,6 +567,7 @@
                     <div style="border: 2px solid var(--color-border); padding: 40px; text-transform: uppercase;">
                         <h3 style="font-weight: 900; margin-top: 0;">ERROR: NODE_UNREACHABLE</h3>
                         <p style="margin-bottom: 0; font-size: 11px;">PATH_REF: ${path}</p>
+                        <p style="margin-top: 10px; font-size: 10px; opacity: 0.5;">Ensure the file path is correct relative to the root.</p>
                     </div>
                 `;
             }
