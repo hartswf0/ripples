@@ -329,8 +329,14 @@
         <div class="category-label">Nodes / Archival</div>
         <div class="file-list" id="nodes-list"></div>
 
+        <div class="category-label">Applications</div>
+        <div class="file-list" id="apps-list"></div>
+
         <div class="category-label">Kimi Agent Suites</div>
         <div class="file-list" id="kimi-list"></div>
+
+        <div class="category-label">Lab / Loose</div>
+        <div class="file-list" id="lab-list"></div>
 
         <div class="category-label">Technical</div>
         <div class="file-list" id="tech-list"></div>
@@ -434,34 +440,46 @@
                 { id: "grid_1515", name: "Grid Sim", path: "1515-grid.html" },
                 { id: "cellular_1717", name: "Cellular CA", path: "1717-cellular.html" },
                 { id: "sonic_1818", name: "Sonic Ecology", path: "1818-sonic-ecology.html" },
+                { id: "sequencer_1919", name: "Sequencer 1919", path: "1919-operative-sequencer.html" },
                 { id: "autonomic_2020", name: "Autonomic Sys", path: "2020-autonomic-system.html" },
                 { id: "demiurge_2120", name: "Demiurge Engine", path: "2120-demiurge-engine.html" },
                 { id: "worldtext_2121", name: "Worldtext Display", path: "2121-worldtext-display.html" },
                 { id: "bilder_2122", name: "Operative Bilder", path: "2122-operative-bilder.html" },
                 { id: "unified_2123", name: "Unified Engine", path: "2123-unified-engine.html" },
+                { id: "ontology_2124", name: "Op. Ontology", path: "2124-operative-ontology.html" },
                 { id: "lattice_2222", name: "Living Lattice", path: "2222-living-lattice.html" },
                 { id: "thread_node", name: "Thread Node", path: "thread.html" },
                 { id: "node_6", name: "Node 06", path: "6.html" },
                 { id: "node_7", name: "Node 07", path: "7.html" },
                 { id: "node_16", name: "Node 16", path: "16.html" },
+                { id: "node_16b", name: "Node 16b", path: "16b.html" },
                 { id: "node_17", name: "Node 17", path: "17.html" },
+                { id: "node_55", name: "Node 55", path: "55.html" },
                 { id: "node_66", name: "Node 66", path: "66.html" },
                 { id: "node_1010", name: "Node 1010", path: "1010.html" },
                 { id: "node_1111", name: "Node 1111", path: "1111.html" },
-                { id: "node_1212", name: "Node 1212", path: "1212.html" }
+                { id: "node_1212", name: "Node 1212", path: "1212.html" },
+                { id: "node_1313", name: "Node 1313", path: "1313.html" }
+            ],
+            apps: [
+                { id: "app_v1", name: "Ripple App v1", path: "app/index.html" },
+                { id: "app_v1_dist", name: "Ripple App v1 (Dist)", path: "app/dist/index.html" },
+                { id: "app_v2", name: "Ripple App v2", path: "app 2/index.html" },
+                { id: "app_v2_dist", name: "Ripple App v2 (Dist)", path: "app 2/dist/index.html" }
             ],
             kimi: [
-                { id: "kimi_app", name: "Kimi App Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/index.html" },
-                { id: "kimi_readme", name: "Kimi System Readme", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/README.md" },
-                { id: "kimi_suite", name: "Ripples Suite", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-suite/index.html" },
-                { id: "kimi_1776", name: "1776 Node", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-suite/1776.html" },
-                { id: "rimi_canonical", name: "Canonical Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-canonical/index.html" },
-                { id: "kimi_latent", name: "Latent Prompt Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-latent-prompt/index.html" },
-                { id: "kimi_meta", name: "Meta Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-meta/index.html" },
-                { id: "kimi_ripples", name: "Ripples Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples/index.html" },
-                { id: "kimi_arch", name: "Architecture Docs", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples/docs/ARCHITECTURE.md" },
-                { id: "kimi_feedback", name: "Feedback Index", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-feedback/index.html" },
-                { id: "kimi_orca", name: "Orca Theory", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-orca/index.html" }
+                { id: "kimi_app", name: "Kimi App (Engine)", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/index.html" },
+                { id: "kimi_readme", name: "Kimi Readme (Engine)", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/app/README.md" },
+                { id: "kimi_suite", name: "Ripples Suite (Engine)", path: "engine/Kimi_Agent_RIPPLES_ Worldtext Theory Summary (1) copy/ripples-suite/index.html" },
+                { id: "kimi_root_app", name: "Kimi App (Root)", path: "Kimi_Agent_RIPPLES_ Worldtext Theory Summary/app/index.html" },
+                { id: "kimi_root_readme", name: "Kimi Readme (Root)", path: "Kimi_Agent_RIPPLES_ Worldtext Theory Summary/app/README.md" },
+                { id: "kimi_root_suite", name: "Ripples Suite (Root)", path: "Kimi_Agent_RIPPLES_ Worldtext Theory Summary/ripples-suite/index.html" },
+                { id: "kimi_root_ripples", name: "Ripples Index (Root)", path: "Kimi_Agent_RIPPLES_ Worldtext Theory Summary/ripples/index.html" }
+            ],
+            lab: [
+                { id: "lab_booklet", name: "Booklet", path: "booklet.html" },
+                { id: "lab_claude", name: "Claude Artifact", path: "claude.html" },
+                { id: "lab_gpt", name: "GPT Artifact", path: "gpt.html" }
             ],
             tech: [
                 { id: "tech_manifest", name: "System Manifest", path: "README.md" },
