@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIPPLES OS [v8.1 - Hybrid Stable]</title>
+    <style>
+        :root {
+            --bg: #0d0f0d;
+            --fg: #a8a8a8;
+            --highlight: #72dec2;
+            /* Orca Logic */
+            --pilot-color: #d65d0e;
+            /* Pilot Voice */
+            --gull-color: #83a598;
+            /* Gull Texture */
+            --llm-color: #d3869b;
+            /* Gemini Purple */
+            --sys-color: #fabd2f;
+            /* System Yellow */
+            --dim: #444;
+            --grid-font: 'Courier New', Courier, monospace;
+            --cell-w: 11px;
+            --cell-h: 18px;
+            --zoom: 1;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--fg);
+            font-family: var(--grid-font);
+            font-size: 13px;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* CRT EFFECT */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* SYSTEM BAR */
+        #sys-bar {
+            height: 40px;
+            background: #111;
+            border-bottom: 1px solid var(--dim);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            justify-content: space-between;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .sys-title {
+            font-weight: bold;
+            color: var(--fg);
+            letter-spacing: 2px;
+            font-size: 12px;
+        }
+
+        .sys-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sys-btn {
+            cursor: pointer;
+            color: var(--dim);
+            transition: color 0.2s;
+            text-transform: uppercase;
+            font-size: 10px;
+            border: 1px solid transparent;
+            padding: 4px 6px;
+        }
+
+        .sys-btn:hover,
+        .sys-btn.active {
+            color: var(--sys-color);
+            border: 1px solid var(--sys-color);
+            background: rgba(250, 189, 47, 0.1);
+        }
+
+        /* ZOOM CONTROL */
+        #zoom-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type=range] {
+            accent-color: var(--highlight);
+            height: 2px;
+            background: #333;
+        }
+
+        /* MAIN LAYOUT */
+        #workspace {
+            display: flex;
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* PANELS */
+        .panel {
+            background: var(--bg);
+            padding: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ORCA MAIN PANEL */
+        #orca-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        /* TOOLS DRAWER */
+        #tools-drawer {
+            width: 30%;
+            border-left: 2px solid var(--dim);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            background: var(--bg);
+            z-index: 90;
+        }
+
+        #pilot-panel {
+            height: 50%;
+            border-bottom: 2px solid var(--dim);
+        }
+
+        #gull-panel {
+            height: 50%;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            #sys-bar {
+                padding: 0 5px;
+            }
+
+            .sys-title span {
+                display: none;
+            }
+
+            #tools-drawer {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 200px;
+                border-left: none;
+                border-top: 2px solid var(--dim);
+                transform: translateY(100%);
+            }
+
+            #tools-drawer.open {
+                transform: translateY(0);
+            }
+
+            #orca-panel {
+                height: 100%;
+                width: 100%;
+                padding-bottom: 160px;
+                /* Space for controls */
+            }
+
+            /* Bottom Sheet Modal */
+            #ctx-modal {
+                top: auto !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border-radius: 10px 10px 0 0;
+                transform: translateY(100%);
+                transition: transform 0.3s;
+            }
+
+            #ctx-modal.active {
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            font-weight: bold;
+            font-size: 10px;
+            opacity: 0.5;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        .h-orca {
+            color: var(--highlight);
+        }
+
+        .h-pilot {
+            color: var(--pilot-color);
+        }
+
+        .h-gull {
+            color: var(--gull-color);
+        }
+
+        /* ORCA GRID */
+        #grid-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none;
+            position: relative;
+        }
+
+        #grid {
+            display: grid;
+            /* Use CSS Grid for stability */
+            cursor: crosshair;
+            user-select: none;
+            outline: none;
+            transform-origin: center;
+        }
+
+        .cell {
+            width: var(--cell-w);
+            height: var(--cell-h);
+            text-align: center;
+            line-height: var(--cell-h);
+            display: inline-block;
+        }
+
+        .cursor {
+            background: var(--highlight);
+            color: var(--bg);
+        }
+
+        .operator {
+            color: var(--highlight);
+            font-weight: bold;
+        }
+
+        .bang {
+            background: var(--highlight);
+            color: var(--bg);
+        }
+
+        .entity-ant {
+            color: #d65d0e;
+        }
+
+        .entity-dust {
+            color: #83a598;
+        }
+
+        .selected {
+            background: rgba(211, 134, 155, 0.2);
+            color: var(--llm-color);
+            border: 1px dashed rgba(211, 134, 155, 0.4);
+        }
+
+        .traversing {
+            background: var(--llm-color);
+            color: #000;
+        }
+
+        .speaking {
+            animation: pulseSpeak 1s infinite;
+        }
+
+        @keyframes pulseSpeak {
+            50% {
+                background: rgba(211, 134, 155, 0.5);
+            }
+        }
+
+        /* MOBILE CONTROLS OVERLAY */
+        #mobile-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 80;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+        }
+
+        .ctrl-group {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* D-PAD */
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(2, 40px);
+            gap: 5px;
+        }
+
+        .d-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid var(--fg);
+            color: var(--fg);
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .d-btn:active {
+            background: var(--highlight);
+            color: #000;
+        }
+
+        /* ACTION BUTTONS */
+        .action-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid var(--highlight);
+            color: var(--highlight);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        .action-btn:active {
+            background: var(--highlight);
+            color: #000;
+        }
+
+        .mode-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid var(--llm-color);
+            color: var(--llm-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .mode-btn.active {
+            background: var(--llm-color);
+            color: #000;
+        }
+
+        /* HIDDEN INPUT FOR KEYBOARD */
+        #virtual-input {
+            position: absolute;
+            opacity: 0;
+            top: -1000px;
+        }
+
+        /* CONTEXT WINDOW (LLM + SYSTEM) */
+        #ctx-modal {
+            position: absolute;
+            display: none;
+            flex-direction: column;
+            width: 340px;
+            background: #0f0f0f;
+            border: 1px solid var(--fg);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+            z-index: 200;
+            font-family: var(--grid-font);
+            border-radius: 2px;
+        }
+
+        #ctx-modal.active {
+            display: flex;
+        }
+
+        #ctx-header {
+            background: #1a1a1a;
+            padding: 10px;
+            font-size: 11px;
+            border-bottom: 1px solid var(--dim);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .tab-btn {
+            cursor: pointer;
+            opacity: 0.5;
+            font-weight: bold;
+            padding: 5px 0;
+        }
+
+        .tab-btn.active {
+            opacity: 1;
+            border-bottom: 2px solid currentColor;
+        }
+
+        .tab-llm {
+            color: var(--llm-color);
+        }
+
+        .tab-sys {
+            color: var(--sys-color);
+        }
+
+        #ai-source-indicator {
+            margin-left: auto;
+            font-size: 9px;
+            padding: 2px 6px;
+            border: 1px solid #333;
+            color: #666;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ctx-body {
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .ctx-body.active {
+            display: flex;
+        }
+
+        /* LLM BODY */
+        #llm-mode-sw {
+            display: flex;
+            font-size: 11px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 8px;
+            gap: 15px;
+        }
+
+        .mode-opt {
+            cursor: pointer;
+            color: #555;
+        }
+
+        .mode-opt.active {
+            color: var(--llm-color);
+            font-weight: bold;
+        }
+
+        #llm-history {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            display: flex;
+            flex-direction: column-reverse;
+            background: #050505;
+            padding: 5px;
+            border: 1px solid #222;
+        }
+
+        .hist-entry {
+            margin-top: 4px;
+            border-bottom: 1px solid #111;
+            padding-bottom: 2px;
+            word-break: break-word;
+        }
+
+        .hist-user {
+            color: #aaa;
+        }
+
+        .hist-ai {
+            color: var(--llm-color);
+        }
+
+        #llm-persona {
+            font-size: 10px;
+            color: var(--highlight);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: none;
+        }
+
+        #llm-input {
+            background: #111;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            width: 100%;
+            padding: 10px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        #llm-status {
+            font-size: 9px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* SYSTEM BODY */
+        .sys-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .sys-input {
+            background: #111;
+            border: 1px solid #333;
+            color: var(--sys-color);
+            padding: 8px;
+            width: 60%;
+            font-family: inherit;
+        }
+
+        .sys-btn {
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 11px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .sys-btn:hover {
+            background: #333;
+        }
+
+        /* BRANCH LIST */
+        #branch-list {
+            border: 1px solid var(--dim);
+            max-height: 200px;
+            overflow-y: auto;
+            background: #000;
+        }
+
+        .branch-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+        }
+
+        .branch-item:hover {
+            background: #111;
+            color: var(--sys-color);
+        }
+
+        .branch-active {
+            color: var(--highlight);
+            background: rgba(114, 222, 194, 0.1);
+        }
+
+        /* MODALS */
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #0f0f0f;
+            border: 1px solid var(--fg);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            z-index: 200;
+            font-family: var(--grid-font);
+            border-radius: 2px;
+            display: none;
+            flex-direction: column;
+            width: 350px;
+            max-width: 95vw;
+            max-height: 80vh;
+        }
+
+        .modal-header {
+            background: #1a1a1a;
+            padding: 12px;
+            border-bottom: 1px solid var(--dim);
+            display: flex;
+            justify-content: space-between;
+            color: var(--sys-color);
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            padding: 5px;
+            font-weight: bold;
+        }
+
+        /* HELP TABLE */
+        .help-table {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .help-key {
+            color: var(--highlight);
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .help-desc {
+            color: #aaa;
+        }
+
+        /* VISUALIZERS */
+        #pilot-vis {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 25px;
+            padding: 0 10px;
+        }
+
+        .voice-row {
+            display: flex;
+            align-items: center;
+            font-size: 10px;
+        }
+
+        .voice-name {
+            width: 50px;
+            color: var(--pilot-color);
+        }
+
+        .voice-scope {
+            flex-grow: 1;
+            height: 10px;
+            background: #111;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-wave {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            stroke: var(--pilot-color);
+            fill: none;
+        }
+
+        #gull-vis {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 10px;
+        }
+
+        .texture-track {
+            height: 20px;
+            background: #111;
+            position: relative;
+            border-left: 2px solid var(--gull-color);
+        }
+
+        .grain {
+            position: absolute;
+            height: 100%;
+            background: var(--gull-color);
+            opacity: 0.5;
+        }
+
+        /* LOG */
+        #ripples-log {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 80%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .log-entry {
+            font-size: 11px;
+            margin-top: 4px;
+            text-shadow: 0 1px 2px #000;
+            opacity: 0;
+            animation: fadeUp 3s forwards;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 10, 5, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--highlight);
+            font-size: 16px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .start-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            border: 1px solid var(--highlight);
+            color: var(--highlight);
+            background: transparent;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOP SYSTEM BAR -->
+    <div id="sys-bar">
+        <div class="sys-title">RIPPLES OS <span style="font-size:10px; opacity:0.5;">v8.1</span></div>
+
+        <div id="zoom-ctrl" title="Grid Zoom">
+            <span style="font-size:9px; color:#666;">ZOOM</span>
+            <input type="range" min="0.5" max="2.0" step="0.1" value="1.0" oninput="Orca.setZoom(this.value)"
+                style="width:60px;">
+        </div>
+
+        <div class="sys-controls">
+            <div class="sys-btn" onclick="Branches.open()">[TIMELINE]</div>
+            <div class="sys-btn" onclick="Help.toggle()">[HELP]</div>
+            <div class="sys-btn" id="btn-tools" onclick="UI.toggleTools()">[TOOLS]</div>
+            <div class="sys-btn" onclick="Orca.toggle()">[▶/II]</div>
+        </div>
+    </div>
+
+    <div id="workspace">
+        <!-- ORCA -->
+        <div class="panel" id="orca-panel">
+            <div class="header h-orca">GRID_LOGIC</div>
+            <div id="grid-container">
+                <div id="grid"></div>
+            </div>
+            <div id="ripples-log"></div>
+        </div>
+
+        <!-- TOOLS DRAWER (Pilot + Gull) -->
+        <div id="tools-drawer">
+            <!-- PILOT -->
+            <div class="panel" id="pilot-panel">
+                <div class="header h-pilot">PILOT_SYNTH</div>
+                <div id="pilot-vis"></div>
+            </div>
+
+            <!-- GULL -->
+            <div class="panel" id="gull-panel">
+                <div class="header h-gull">GULL_TEXTURE</div>
+                <div id="gull-vis">
+                    <div class="texture-track" id="track-wind"></div>
+                    <div class="texture-track" id="track-static"></div>
+                    <div class="texture-track" id="track-crackle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE CONTROLS OVERLAY -->
+    <div id="mobile-controls">
+        <div class="ctrl-group">
+            <!-- D-PAD -->
+            <div class="d-pad">
+                <div style="grid-column:2" class="d-btn" onmousedown="Input.moveCursor(0,-1)"
+                    ontouchstart="Input.moveCursor(0,-1)">▲</div>
+                <div style="grid-column:1; grid-row:2" class="d-btn" onmousedown="Input.moveCursor(-1,0)"
+                    ontouchstart="Input.moveCursor(-1,0)">◀</div>
+                <div style="grid-column:2; grid-row:2" class="d-btn" onmousedown="Input.moveCursor(0,1)"
+                    ontouchstart="Input.moveCursor(0,1)">▼</div>
+                <div style="grid-column:3; grid-row:2" class="d-btn" onmousedown="Input.moveCursor(1,0)"
+                    ontouchstart="Input.moveCursor(1,0)">▶</div>
+            </div>
+            <div class="mode-btn" id="btn-sel-mode" onclick="Input.toggleSelectMode()">SELECT<br>MODE</div>
+        </div>
+
+        <div class="ctrl-group" style="align-items: flex-end;">
+            <div class="action-btn" onclick="Input.triggerKeyboard()">⌨</div>
+            <!-- Hidden input to trigger keyboard -->
+            <input type="text" id="virtual-input" autocomplete="off">
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- 1. TIMELINE MODAL -->
+    <div id="branch-modal" class="modal">
+        <div class="modal-header">
+            <span>SYSTEM_TIMELINE</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div class="sys-btn" id="btn-cycle" onclick="Branches.toggleCycle()">[CYCLE_OFF]</div>
+                <span class="close-btn" onclick="Branches.close()">X</span>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="branch-input"
+                    style="flex-grow:1; background:#111; border:1px solid #333; color:#fff; padding:10px;"
+                    placeholder="Snapshot Name">
+                <button onclick="Branches.save()"
+                    style="background:#222; color:#fff; border:1px solid #444; cursor:pointer; padding:0 15px;">SAVE</button>
+            </div>
+            <div id="branch-list"></div>
+        </div>
+    </div>
+
+    <!-- 2. HELP MODAL -->
+    <div id="help-modal" class="modal">
+        <div class="modal-header"><span>OPERATOR_REFERENCE</span><span class="close-btn"
+                onclick="Help.toggle()">X</span></div>
+        <div class="modal-body">
+            <div class="help-table">
+                <span class="help-key">C</span><span class="help-desc">CIRCADIAN: Controls global light level.</span>
+                <span class="help-key">D</span><span class="help-desc">DECAY: Randomly destroys adjacent cells.</span>
+                <span class="help-key">E</span><span class="help-desc">ENTITY: Autonomous agent (Ant).</span>
+                <span class="help-key">:</span><span class="help-desc">NARRATIVE: Generates Worldtext logs.</span>
+                <span class="help-key">*</span><span class="help-desc">BANG: Explodes on inputs.</span>
+                <span class="help-key">R</span><span class="help-desc">RANDOM: Outputs random value.</span>
+                <span class="help-key">ARROWS</span><span class="help-desc">Move Cursor (or D-Pad).</span>
+                <span class="help-key">SELECT</span><span class="help-desc">Desktop: Right-Drag. Mobile: Toggle Mode &
+                    Tap.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. CONTEXT (LLM + SYSTEM) MENU -->
+    <div id="ctx-modal">
+        <div id="ctx-header">
+            <span class="tab-btn tab-llm active" onclick="UI.switchTab('llm')">AI_INTERFACE</span>
+            <span class="tab-btn tab-sys" onclick="UI.switchTab('sys')">SYSTEM</span>
+            <span id="ai-source-indicator">SRC:LATENT</span>
+            <span class="close-btn" onclick="UI.closeModal()" style="margin-left:5px;">X</span>
+        </div>
+
+        <!-- TAB 1: LLM -->
+        <div id="tab-llm" class="ctx-body active">
+            <!-- Mode Switcher -->
+            <div id="llm-mode-sw">
+                <span class="mode-opt active" id="mode-edit" onclick="LLM.setMode('edit')">[EDIT_GRID]</span>
+                <span class="mode-opt" id="mode-chat" onclick="LLM.setMode('chat')">[INTERVIEW]</span>
+            </div>
+
+            <div id="llm-persona">SUBJECT: UNKNOWN</div>
+            <div id="llm-history"></div>
+            <input type="text" id="llm-input" placeholder="Instruction (e.g. 'glider')..." autocomplete="off">
+            <div id="llm-status">
+                <span id="llm-state">IDLE</span>
+                <input type="range" id="speed-input" min="10" max="200" value="30" style="width:50px;">
+            </div>
+        </div>
+
+        <!-- TAB 2: SYSTEM -->
+        <div id="tab-sys" class="ctx-body">
+            <div class="sys-row">
+                <span>API KEY:</span>
+                <input type="password" id="api-key" class="sys-input" placeholder="Gemini Key"
+                    onchange="LLM.setKey(this.value)">
+            </div>
+            <div class="sys-row">
+                <div class="sys-btn" onclick="Branches.export()">[DOWNLOAD_JSON]</div>
+                <div class="sys-btn" onclick="AudioEngine.test()">[TEST_AUDIO]</div>
+            </div>
+            <div style="font-size:9px; color:#666; margin-top:5px;">
+                Input Gemini Key to activate Real Intelligence. Default is Heuristic/Mock.
+            </div>
+        </div>
+    </div>
+
+    <!-- START -->
+    <div id="start-overlay">
+        <div style="letter-spacing:4px; font-size:24px; margin-bottom:10px;">RIPPLES OS</div>
+        <div style="font-size:12px; opacity:0.7;">OPERATIVE ECOLOGY ENGINE</div>
+        <button class="start-btn">INITIALIZE</button>
+    </div>
+
+    <script>
+        /**
+         * RIPPLES OS v8.1 [HYBRID STABLE]
+         */
+
+        // --- CONFIG ---
+        let COLS = 40; let ROWS = 22;
+        const BPM = 120;
+        const CELL_W = 11; const CELL_H = 18;
+
+        const b36 = (v) => { v = Math.abs(parseInt(v)); if (isNaN(v)) return '0'; v = v % 36; return v.toString(36).toUpperCase(); }
+        const b10 = (c) => { if (c === '.') return 0; return parseInt(c, 36) || 0; }
+
+        // ==========================================
+        // 1. SYSTEM & BRANCHES
+        // ==========================================
+        const Branches = {
+            data: {}, active: null, cycling: false, cycleTimer: null,
+            init() { this.save("INIT"); },
+            open() { document.getElementById('branch-modal').style.display = 'flex'; this.render(); },
+            close() { document.getElementById('branch-modal').style.display = 'none'; },
+            save(n) {
+                const name = n || document.getElementById('branch-input').value || `Snap_${Object.keys(this.data).length}`;
+                this.data[name] = { grid: [...Orca.grid], cols: COLS, rows: ROWS, time: new Date().toLocaleTimeString() };
+                this.active = name; this.render();
+            },
+            load(n) {
+                if (!this.data[n]) return;
+                if (this.data[n].cols !== COLS || this.data[n].rows !== ROWS) Orca.resize(this.data[n].cols, this.data[n].rows);
+                Orca.grid = [...this.data[n].grid];
+                this.active = n;
+                Orca.render(true); // Force full rerender
+                Ripples.log(`Loaded Layer: ${n}`);
+                this.render();
+            },
+            export() {
+                const blob = new Blob([JSON.stringify(this.data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = `ripples_backup_${Date.now()}.json`; a.click();
+            },
+            toggleCycle() {
+                this.cycling = !this.cycling;
+                const btn = document.getElementById('btn-cycle');
+                if (this.cycling) {
+                    btn.innerText = "[CYCLE_ON]"; btn.classList.add('cycle-active');
+                    this.cycleTimer = setInterval(() => this.next(), 16000);
+                } else {
+                    btn.innerText = "[CYCLE_OFF]"; btn.classList.remove('cycle-active');
+                    clearInterval(this.cycleTimer);
+                }
+            },
+            next() {
+                const keys = Object.keys(this.data); if (keys.length < 2) return;
+                let idx = keys.indexOf(this.active); idx = (idx + 1) % keys.length;
+                this.load(keys[idx]);
+            },
+            render() {
+                const l = document.getElementById('branch-list'); l.innerHTML = '';
+                Object.keys(this.data).reverse().forEach(k => {
+                    const d = document.createElement('div');
+                    d.className = `branch-item ${this.active === k ? 'branch-active' : ''}`;
+                    d.innerHTML = `<span>${k}</span><span style="font-size:9px;">${this.data[k].time}</span>`;
+                    d.onclick = () => this.load(k); l.appendChild(d);
+                });
+            }
+        };
+
+        const Help = { toggle() { const m = document.getElementById('help-modal'); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; } };
+
+        const UI = {
+            toolsOpen: false,
+            switchTab(tab) {
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+                document.querySelector(`.tab-${tab}`).classList.add('active');
+                document.querySelectorAll('.ctx-body').forEach(el => el.classList.remove('active'));
+                document.getElementById(`tab-${tab}`).classList.add('active');
+            },
+            closeModal() {
+                document.getElementById('ctx-modal').classList.remove('active');
+                setTimeout(() => document.getElementById('ctx-modal').style.display = 'none', 300);
+                LLM.active = false; Input.sel.w = 0; Orca.speakingCell = null;
+                Orca.render();
+            },
+            toggleTools() {
+                this.toolsOpen = !this.toolsOpen;
+                const drawer = document.getElementById('tools-drawer');
+                const btn = document.getElementById('btn-tools');
+                if (this.toolsOpen) { drawer.classList.add('open'); btn.classList.add('active'); }
+                else { drawer.classList.remove('open'); btn.classList.remove('active'); }
+            }
+        };
+
+        // ==========================================
+        // 2. AUDIO ENGINE
+        // ==========================================
+        const AudioEngine = {
+            ctx: null, reverb: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                this.createReverb(); Gull.init(this.ctx); Pilot.initVoices();
+            },
+            test() { if (!this.ctx) this.init(); Pilot.trigger('GLASS', 440, 0.5); Gull.trigger('static', 1, 0.5); Ripples.log("Audio Test."); },
+            createReverb() {
+                const len = this.ctx.sampleRate * 2.0; const buf = this.ctx.createBuffer(2, len, this.ctx.sampleRate);
+                for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+                this.reverb = this.ctx.createConvolver(); this.reverb.buffer = buf; this.reverb.connect(this.ctx.destination);
+            }
+        };
+
+        const Pilot = {
+            voices: { 'ANT': { t: 'sawtooth', f: 2000, c: '#d65d0e' }, 'GLASS': { t: 'triangle', f: 8000, c: '#72dec2' } },
+            initVoices() {
+                const vis = document.getElementById('pilot-vis');
+                Object.keys(this.voices).forEach(k => vis.innerHTML += `<div class="voice-row"><div class="voice-name">${k}</div><div class="voice-scope" id="scope-${k}"></div></div>`);
+            },
+            trigger(v, freq, dur = 0.1) {
+                if (!AudioEngine.ctx) return;
+                const dat = this.voices[v];
+                const sc = document.getElementById(`scope-${v}`);
+                if (sc) { const w = document.createElement('div'); w.className = 'voice-wave'; w.style.backgroundColor = dat.c; w.style.left = Math.random() * 80 + '%'; w.style.width = '10px'; sc.appendChild(w); setTimeout(() => w.remove(), 200); }
+                const ctx = AudioEngine.ctx;
+                const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+                o.type = dat.t; o.frequency.value = freq;
+                f.type = 'lowpass'; f.frequency.value = dat.f;
+                g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+                o.connect(f); f.connect(g); g.connect(ctx.destination); g.connect(AudioEngine.reverb);
+                o.start(); o.stop(ctx.currentTime + dur);
+            }
+        };
+
+        const Gull = {
+            ctx: null, buffers: {},
+            init(ctx) { this.ctx = ctx; this.buffers['static'] = this.noise('pink'); this.buffers['crackle'] = this.noise('white', true); },
+            noise(type, sparse) {
+                if (!this.ctx) return; const b = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate), d = b.getChannelData(0);
+                let last = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; if (sparse) d[i] = Math.random() > 0.99 ? w : 0; else { d[i] = (last + (0.02 * w)) / 1.02; last = d[i]; } }
+                return b;
+            },
+            trigger(t, s = 1, v = 0.1) {
+                if (!this.ctx) return;
+                const track = document.getElementById(`track-${t}`);
+                if (track) { const g = document.createElement('div'); g.className = 'grain'; g.style.left = Math.random() * 90 + '%'; g.style.width = (s * 20) + 'px'; track.appendChild(g); setTimeout(() => g.remove(), 500); }
+                const src = this.ctx.createBufferSource(); src.buffer = this.buffers[t]; src.playbackRate.value = s;
+                const g = this.ctx.createGain(); g.gain.setValueAtTime(v, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                src.connect(g); g.connect(this.ctx.destination); g.connect(AudioEngine.reverb);
+                src.start();
+            }
+        };
+
+        // ==========================================
+        // 3. ORCA LOGIC (OPTIMIZED RENDER)
+        // ==========================================
+        const Orca = {
+            grid: [], w: COLS, h: ROWS, f: 0, timer: null, playing: false, cursor: { x: 0, y: 0 }, bangs: [], speakingCell: null,
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => { clearTimeout(this.rt); this.rt = setTimeout(() => this.resize(), 200); });
+                this.inject(2, 2, "1C8"); this.inject(2, 5, "D4"); this.inject(15, 10, "E");
+                this.render(true); Branches.init();
+            },
+            resize() {
+                const c = document.getElementById('grid-container');
+                const zoom = getComputedStyle(document.documentElement).getPropertyValue('--zoom');
+                const nc = Math.floor((c.clientWidth - 20) / (CELL_W * zoom));
+                const nr = Math.floor((c.clientHeight - 20) / (CELL_H * zoom));
+                const og = [...this.grid], ow = this.w;
+                this.w = COLS = nc; this.h = ROWS = nr;
+                this.grid = new Array(this.w * this.h).fill('.');
+                for (let i = 0; i < og.length; i++) {
+                    const x = i % ow, y = Math.floor(i / ow);
+                    if (x < this.w && y < this.h) this.grid[x + (y * this.w)] = og[i];
+                }
+                this.render(true); // Rebuild DOM
+            },
+            setZoom(val) {
+                document.documentElement.style.setProperty('--zoom', val);
+                const g = document.getElementById('grid');
+                g.style.transform = `scale(${val})`;
+            },
+            inject(x, y, s) { for (let i = 0; i < s.length; i++) if (x + i < this.w) this.grid[x + i + (y * this.w)] = s[i]; },
+            toggle() { this.playing ? this.pause() : this.play(); },
+            play() { this.playing = true; this.timer = setInterval(() => this.tick(), (60000 / BPM) / 4); },
+            pause() { this.playing = false; clearInterval(this.timer); },
+
+            tick() {
+                this.f++; const locks = new Array(this.w * this.h).fill(false), bangs = [];
+                this.bangs = bangs;
+                for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+                    const idx = x + (y * this.w);
+                    if (locks[idx]) continue;
+                    const c = this.grid[idx];
+                    if (this.isOp(c)) { if (c === c.toUpperCase() || ['*', ':', 'C', 'D', 'E'].includes(c)) this.run(x, y, c, 0, locks); }
+                }
+                this.render();
+            },
+
+            run(x, y, op, d, locks) {
+                if (d > 50) return;
+                const port = (dx, dy) => { let tx = x + dx, ty = y + dy; if (tx < 0 || tx >= this.w || ty < 0 || ty >= this.h) return '.'; return this.grid[tx + (ty * this.w)]; };
+                const out = (dx, dy, v) => { let tx = x + dx, ty = y + dy; if (tx < 0 || tx >= this.w || ty < 0 || ty >= this.h) return; const idx = tx + (ty * this.w); this.grid[idx] = v; locks[idx] = true; };
+                const bang = (dx, dy) => { let tx = x + dx, ty = y + dy; if (tx < 0 || tx >= this.w || ty < 0 || ty >= this.h) return; const idx = tx + (ty * this.w); this.bangs.push(idx); const t = this.grid[idx]; if (t !== '.' && t !== t.toUpperCase()) this.run(tx, ty, t.toUpperCase(), d + 1, locks); };
+
+                switch (op) {
+                    case 'C':
+                        const rate = b10(port(-1, 0)) || 100; const l = Math.floor(this.f / rate) % 10;
+                        document.body.style.backgroundColor = `hsl(120, 2%, ${l * 2}%)`; out(0, 1, b36(l));
+                        break;
+                    case 'D': if (Math.random() * 36 < b10(port(-1, 0))) { bang(0, 1); out(0, 1, '.'); Gull.trigger('crackle', 0.5); } break;
+                    case 'E':
+                        const n = port(1, 0);
+                        if (n === '.') { this.move(x, y, locks); if (this.f % 16 === 0) Pilot.trigger('ANT', 600 + Math.random() * 200); }
+                        else if (n !== 'E') { bang(1, 0); Pilot.trigger('GLASS', 200); }
+                        break;
+                    case ':': if (this.f % (Math.max(8, b10(port(-1, 0)) * 4)) === 0) { bang(0, 0); Ripples.log(`Obs_${b10(port(1, 0))}: Stable`); Gull.trigger('static', 0.8); } break;
+                    case '*': bang(-1, 0); bang(1, 0); bang(0, -1); bang(0, 1); break;
+                    case 'A': out(0, 1, b36(b10(port(-1, 0)) + b10(port(1, 0)))); break;
+                    case 'R': out(0, 1, b36(Math.floor(Math.random() * ((b10(port(1, 0)) || 35) - b10(port(-1, 0))) + b10(port(-1, 0))))); break;
+                }
+            },
+            move(x, y, locks) { let tx = x + 1; if (tx >= this.w) { this.grid[x + (y * this.w)] = '.'; return; } const ti = tx + (y * this.w); this.grid[ti] = 'E'; this.grid[x + (y * this.w)] = '.'; locks[ti] = true; },
+            isOp(c) { return "ABCDEFGHIJKLMNOPQRSTUVWXYZ*:=#;".includes(c) || "ABCDEFGHIJKLMNOPQRSTUVWXYZ*:=#;".includes(c.toUpperCase()); },
+
+            // OPTIMIZED RENDER
+            render(force = false) {
+                const el = document.getElementById('grid');
+                const sel = Input.sel;
+                const inSel = (x, y) => (LLM.active || sel.selectMode) && x >= sel.x && x < sel.x + sel.w && y >= sel.y && y < sel.y + sel.h;
+
+                // Init DOM if empty or forced
+                if (force || el.children.length !== this.w * this.h) {
+                    el.innerHTML = '';
+                    el.style.gridTemplateColumns = `repeat(${this.w}, var(--cell-w))`;
+                    for (let i = 0; i < this.w * this.h; i++) {
+                        const s = document.createElement('span');
+                        s.className = 'cell';
+                        el.appendChild(s);
+                    }
+                }
+
+                // Diff Updates
+                const nodes = el.children;
+                for (let i = 0; i < nodes.length; i++) {
+                    const x = i % this.w; const y = Math.floor(i / this.w);
+                    const c = this.grid[i];
+
+                    // Build Class String
+                    let cl = 'cell';
+                    if (x === this.cursor.x && y === this.cursor.y) cl += ' cursor';
+                    if (this.bangs.includes(i)) cl += ' bang';
+                    else if (this.isOp(c) && c !== '.') cl += ' operator';
+                    if (c === 'E') cl += ' entity-ant';
+                    if (inSel(x, y)) cl += ' selected';
+                    if (this.speakingCell && inSel(x, y)) cl += ' speaking';
+                    if (LLM.trav && x === LLM.trav.x && y === LLM.trav.y) cl += ' traversing';
+
+                    // Only update DOM if changed
+                    if (nodes[i].className !== cl) nodes[i].className = cl;
+                    if (nodes[i].innerText !== c) nodes[i].innerText = c;
+                }
+            },
+            write(c) { this.grid[this.cursor.x + (this.cursor.y * this.w)] = c; this.render(); }
+        };
+
+        // ==========================================
+        // 4. INPUT & MOBILE CONTROLS
+        // ==========================================
+        const Input = {
+            sel: { x: 0, y: 0, w: 0, h: 0, selectMode: false, start: null, dragging: false },
+
+            init() {
+                const g = document.getElementById('grid');
+                const vInput = document.getElementById('virtual-input');
+
+                // MOUSE (DESKTOP) & TOUCH (MOBILE)
+                // 1. Mouse Down
+                g.addEventListener('mousedown', e => {
+                    if (e.button === 2) {
+                        e.preventDefault();
+                        this.startSel(this.xy(e));
+                    } else if (this.sel.selectMode) {
+                        this.handleSelectTap(this.xy(e));
+                    } else {
+                        // Left Click -> Move Cursor
+                        const c = this.xy(e);
+                        Orca.cursor.x = c.x; Orca.cursor.y = c.y;
+                        Orca.render();
+                    }
+                });
+
+                // 2. Mouse Move
+                window.addEventListener('mousemove', e => {
+                    if (this.sel.dragging) {
+                        const c = this.xy(e);
+                        this.sel.ex = c.x; this.sel.ey = c.y;
+                        Orca.render();
+                    }
+                });
+
+                // 3. Mouse Up
+                window.addEventListener('mouseup', e => {
+                    if (this.sel.dragging) {
+                        this.sel.dragging = false;
+                        this.calcSel();
+                        this.openModal(e.clientX, e.clientY);
+                    }
+                });
+
+                // 4. Prevent Default Context Menu
+                g.addEventListener('contextmenu', e => e.preventDefault());
+
+                // Capture Virtual Keyboard Input
+                vInput.addEventListener('input', (e) => {
+                    if (e.data) {
+                        const char = e.data.toUpperCase();
+                        if (char.length === 1) {
+                            Orca.write(char);
+                            this.moveCursor(1, 0); // Auto-advance
+                        }
+                    }
+                    vInput.value = ''; // Clear
+                });
+
+                // LLM Input
+                document.getElementById('llm-input').addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { LLM.process(e.target.value); e.target.value = ''; }
+                    if (e.key === 'Escape') UI.closeModal();
+                });
+            },
+
+            xy(e) {
+                const r = document.getElementById('grid').getBoundingClientRect();
+                const z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'));
+                return { x: Math.max(0, Math.min(COLS - 1, Math.floor((e.clientX - r.left) / (CELL_W * z)))), y: Math.max(0, Math.min(ROWS - 1, Math.floor((e.clientY - r.top) / (CELL_H * z)))) };
+            },
+
+            moveCursor(dx, dy) {
+                Orca.cursor.x = (Orca.cursor.x + dx + COLS) % COLS;
+                Orca.cursor.y = (Orca.cursor.y + dy + ROWS) % ROWS;
+                Orca.render();
+            },
+
+            triggerKeyboard() {
+                const i = document.getElementById('virtual-input');
+                i.focus(); i.click();
+            },
+
+            toggleSelectMode() {
+                this.sel.selectMode = !this.sel.selectMode;
+                this.sel.start = null; this.sel.w = 0;
+                const btn = document.getElementById('btn-sel-mode');
+                btn.classList.toggle('active', this.sel.selectMode);
+                Ripples.log(this.sel.selectMode ? "SELECT MODE: Tap Start, then End" : "SELECT MODE: Off");
+            },
+
+            handleSelectTap(c) {
+                if (!this.sel.start) {
+                    this.sel.start = c;
+                    // Visual feedback for start point?
+                    Orca.grid[c.x + (c.y * Orca.w)] = '+'; Orca.render();
+                } else {
+                    const sx = this.sel.start.x, sy = this.sel.start.y;
+                    this.sel.sx = sx; this.sel.sy = sy;
+                    this.sel.ex = c.x; this.sel.ey = c.y;
+
+                    // Clean up visual marker
+                    Orca.grid[sx + (sy * Orca.w)] = '.';
+
+                    this.calcSel();
+                    this.openModal(50, 50); // Default pos for mobile
+
+                    this.sel.start = null;
+                    this.toggleSelectMode(); // Auto-off
+                }
+            },
+
+            startSel(c) { UI.closeModal(); this.sel.dragging = true; this.sel.sx = c.x; this.sel.sy = c.y; this.sel.ex = c.x; this.sel.ey = c.y; Orca.render(); },
+
+            calcSel() {
+                this.sel.x = Math.min(this.sel.sx, this.sel.ex);
+                this.sel.y = Math.min(this.sel.sy, this.sel.ey);
+                this.sel.w = Math.abs(this.sel.ex - this.sel.sx) + 1;
+                this.sel.h = Math.abs(this.sel.ey - this.sel.sy) + 1;
+            },
+
+            openModal(cx, cy) {
+                const m = document.getElementById('ctx-modal');
+                m.style.display = 'flex';
+                // Mobile check
+                if (window.innerWidth <= 768) {
+                    setTimeout(() => m.classList.add('active'), 10);
+                } else {
+                    m.style.left = Math.min(window.innerWidth - 350, cx) + 'px';
+                    m.style.top = Math.min(window.innerHeight - 300, cy) + 'px';
+                }
+                LLM.active = true;
+                LLM.setMode('edit'); // Reset to edit on new select
+                Orca.render();
+            }
+        };
+
+        // ... [LLM, Audio, Ripples modules remain similar, just ensuring they trigger re-renders via Orca.render()] ...
+
+        const LLM = {
+            active: false, apiKey: "", traversalSpeed: 30, mode: 'edit',
+            setKey(k) {
+                this.apiKey = k;
+                const ind = document.getElementById('ai-source-indicator');
+                if (k) { ind.innerText = "SRC:GEMINI"; ind.style.color = "var(--llm-color)"; ind.style.borderColor = "var(--llm-color)"; }
+                else { ind.innerText = "SRC:LATENT"; ind.style.color = "#666"; ind.style.borderColor = "#333"; }
+            },
+            setMode(m) {
+                this.mode = m;
+                document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
+                document.getElementById(`mode-${m}`).classList.add('active');
+                document.getElementById('llm-input').placeholder = m === 'edit' ? "Instruction..." : "Ask Territory...";
+                document.getElementById('llm-persona').style.display = m === 'chat' ? 'block' : 'none';
+                if (m === 'chat') document.getElementById('llm-persona').innerText = this.identify();
+            },
+            identify() { const s = this.slice(); if (s.includes('E')) return "SUBJ:COLONY"; if (s.includes('D')) return "SUBJ:ENTROPY"; return "SUBJ:VOID"; },
+            slice() {
+                const sel = Input.sel; let s = "";
+                for (let y = 0; y < sel.h; y++) for (let x = 0; x < sel.w; x++) s += Orca.grid[(sel.x + x) + ((sel.y + y) * COLS)];
+                return s;
+            },
+            async process(p) {
+                this.hist(p, 'user');
+                if (this.mode === 'chat') { Orca.speakingCell = true; Orca.render(); setTimeout(() => this.hist("The grid resonates...", 'ai'), 500); }
+                else { setTimeout(() => this.trav(".".repeat(Input.sel.w * Input.sel.h)), 500); }
+            },
+            hist(t, type) {
+                const h = document.getElementById('llm-history');
+                const d = document.createElement('div'); d.className = `hist-entry hist-${type}`; d.innerText = (type === 'user' ? '>> ' : '') + t;
+                h.prepend(d);
+            },
+            trav(str) {
+                let i = 0; const sel = Input.sel; const cells = [];
+                for (let y = 0; y < sel.h; y++) for (let x = 0; x < sel.w; x++) cells.push({ x: sel.x + x, y: sel.y + y });
+                const iv = setInterval(() => {
+                    if (i >= cells.length) { clearInterval(iv); this.trav = null; return; }
+                    this.trav = cells[i];
+                    Orca.grid[cells[i].x + (cells[i].y * COLS)] = str[i] || '.';
+                    Orca.render(); i++;
+                }, 30);
+            }
+        };
+
+        const Ripples = {
+            log(t) {
+                const l = document.getElementById('ripples-log'), d = document.createElement('div');
+                d.className = 'log-entry log-calm'; d.innerText = `> ${t}`; l.prepend(d);
+                if (l.children.length > 6) l.lastChild.remove();
+            }
+        };
+
+        // --- INIT ---
+        document.querySelector('.start-btn').addEventListener('click', () => {
+            document.getElementById('start-overlay').style.display = 'none';
+            AudioEngine.init(); Orca.play();
+        });
+
+        window.addEventListener('keydown', e => {
+            if (document.getElementById('ctx-modal').style.display === 'flex' || document.getElementById('branch-modal').style.display === 'flex') return;
+            if (e.key.startsWith('Arrow')) {
+                if (e.key === 'ArrowUp') Input.moveCursor(0, -1);
+                if (e.key === 'ArrowDown') Input.moveCursor(0, 1);
+                if (e.key === 'ArrowLeft') Input.moveCursor(-1, 0);
+                if (e.key === 'ArrowRight') Input.moveCursor(1, 0);
+            } else if (e.key === ' ') { e.preventDefault(); Orca.toggle(); }
+            else if (e.key.length === 1) { Orca.write(e.key); Input.moveCursor(1, 0); }
+            Orca.render();
+        });
+
+        Input.init();
+        Orca.init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // MOSS_MONITOR_V16</title>
+    <style>
+        :root {
+            --color-bg: #050505;
+            --color-primary: #72dec2;
+            /* Orca Teal */
+            --color-secondary: #666666;
+            /* Orca Grey */
+            --color-dim: #222222;
+            --color-highlight: #ffffff;
+            /* Orca White */
+            --color-alert: #ff7272;
+            /* Orca Red */
+            --color-shift: #72a5ff;
+            /* Orca Blue */
+            --color-gold: #ffcc00;
+            --font-stack: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-stack);
+            overflow: hidden;
+            background-image: radial-gradient(circle at center, #111 0%, #000 90%);
+        }
+
+        /* --- THE CHASSIS --- */
+        .monitor-frame {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* --- CRT SCREEN --- */
+        .crt-screen {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            color: var(--color-primary);
+            /* Grid layout for remaining interactive elements */
+            display: grid;
+            grid-template-rows: 60px 1fr 100px;
+            grid-template-columns: 1fr;
+            z-index: 1;
+        }
+
+        /* CANVAS LAYER (Interactive) */
+        #viz-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            /* Base layer */
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .crt-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.15;
+            animation: flicker 0.1s infinite;
+        }
+
+        @keyframes flicker {
+            0% {
+                opacity: 0.15;
+            }
+
+            50% {
+                opacity: 0.12;
+            }
+
+            100% {
+                opacity: 0.18;
+            }
+        }
+
+        /* --- BREATHING ANIMATION --- */
+        @keyframes breathe {
+            0% {
+                opacity: 0.9;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.01);
+            }
+
+            100% {
+                opacity: 0.9;
+                transform: scale(1);
+            }
+        }
+
+        /* --- UI ELEMENTS (Floating TUI) --- */
+
+        /* HEADER (Canvas drawn now, but buttons remain) */
+        .header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            pointer-events: auto;
+            display: flex;
+            gap: 15px;
+            animation: breathe 6s infinite ease-in-out;
+        }
+
+        .menu-toggle,
+        .help-toggle {
+            pointer-events: auto;
+            cursor: pointer;
+            color: var(--color-secondary);
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 5px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .menu-toggle:hover,
+        .help-toggle:hover {
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        /* SIDEBAR (Floating Text) */
+        .sidebar {
+            position: absolute;
+            left: 20px;
+            top: 80px;
+            bottom: 120px;
+            width: 220px;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: var(--color-secondary);
+
+            /* Transparent Container - "Display Surface" */
+            background: transparent;
+            pointer-events: none;
+            animation: breathe 8s infinite ease-in-out;
+            /* Syncs roughly with world */
+
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            .sidebar.active {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .status-block {
+            pointer-events: auto;
+            padding-left: 0.5rem;
+            border-left: 1px solid rgba(114, 222, 194, 0.3);
+            /* Minimal background to let grid show through */
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+            padding: 5px 10px;
+            margin-bottom: 5px;
+        }
+
+        .label {
+            color: var(--color-primary);
+            font-size: 0.65rem;
+            display: block;
+            margin-bottom: 0.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .value {
+            font-size: 0.85rem;
+            color: #fff;
+            font-weight: bold;
+            font-family: var(--font-stack);
+        }
+
+        .entity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 1rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 5px;
+            pointer-events: auto;
+        }
+
+        /* TUI Buttons - Integrated Look */
+        .entity-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            border-left: 2px solid transparent;
+            color: var(--color-secondary);
+            padding: 8px 10px;
+            text-align: left;
+            font-family: var(--font-stack);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+
+        .entity-btn:hover,
+        .entity-btn.active {
+            color: #fff;
+            border-left-color: var(--color-primary);
+            background: linear-gradient(90deg, rgba(114, 222, 194, 0.1) 0%, transparent 100%);
+        }
+
+        /* BOTTOM BAR (Floating Runes) */
+        .controls-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 90px;
+            z-index: 30;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            pointer-events: none;
+            padding-bottom: 15px;
+            animation: breathe 7s infinite ease-in-out;
+        }
+
+        .vector-group {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .vector-label {
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            font-weight: bold;
+            color: var(--color-highlight);
+        }
+
+        /* Rune Buttons - See-through Glass */
+        .vector-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-secondary);
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-stack);
+            transition: all 0.2s;
+            backdrop-filter: blur(2px);
+        }
+
+        .vector-btn i {
+            font-size: 1.4rem;
+            font-style: normal;
+            font-weight: bold;
+        }
+
+        .vector-group:hover .vector-btn {
+            border-color: var(--color-highlight);
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .vector-group:active .vector-btn {
+            transform: scale(0.95);
+        }
+
+        .btn-goal i {
+            color: var(--color-gold);
+        }
+
+        .btn-obstacle i {
+            color: var(--color-alert);
+        }
+
+        .btn-shift i {
+            color: var(--color-shift);
+        }
+
+        /* HUD / MINIMAP */
+        .hud-overlay {
+            position: absolute;
+            bottom: 100px;
+            right: 10px;
+            z-index: 25;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .hud-panel {
+            background: transparent;
+            text-shadow: 0 1px 2px #000;
+            padding: 0;
+            font-size: 0.65rem;
+            color: var(--color-secondary);
+            pointer-events: auto;
+        }
+
+        .hud-minimap-container {
+            width: 80px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            pointer-events: auto;
+            position: relative;
+            backdrop-filter: blur(2px);
+        }
+
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .toggle-mode-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #333;
+            padding: 4px 8px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            font-family: var(--font-stack);
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            transition: 0.2s;
+        }
+
+        .toggle-mode-btn:hover {
+            color: #fff;
+            border-color: #666;
+        }
+
+        .toggle-mode-btn.active {
+            color: var(--color-gold);
+            border-color: var(--color-gold);
+            background: rgba(255, 204, 0, 0.1);
+        }
+
+        /* --- NEURAL INTERFACE (Context Menu) --- */
+        #neural-context-menu {
+            position: absolute;
+            display: none;
+            width: 240px;
+            /* Glass Terminal Look */
+            background: rgba(5, 5, 5, 0.85);
+            border: 1px solid var(--color-primary);
+            border-top: 3px solid var(--color-primary);
+            backdrop-filter: blur(12px);
+            z-index: 10000;
+            font-family: var(--font-stack);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            padding: 0;
+            color: #fff;
+
+            /* Rising Animation */
+            transform-origin: bottom center;
+            animation: riseUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes riseUp {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .neural-header {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(114, 222, 194, 0.15);
+            padding: 8px 10px;
+            font-size: 0.7rem;
+            color: var(--color-primary);
+            font-weight: bold;
+        }
+
+        .neural-options {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 4px;
+        }
+
+        .patch-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #aaa;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: var(--font-stack);
+            transition: 0.2s;
+        }
+
+        .patch-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: var(--color-primary);
+        }
+
+        .patch-icon {
+            font-weight: bold;
+            width: 20px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 5px;
+        }
+
+        .patch-transform .patch-icon {
+            color: var(--color-primary);
+        }
+
+        .patch-branch .patch-icon {
+            color: var(--color-gold);
+        }
+
+        .patch-seed .patch-icon {
+            color: var(--color-shift);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 10px;
+            pointer-events: none;
+            z-index: 1001;
+            border: 1px solid #444;
+            display: none;
+        }
+
+        /* Boot & Help modals kept minimal */
+        #boot-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 30000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            color: #72dec2;
+        }
+
+        #help-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 400px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid #72dec2;
+            padding: 20px;
+            z-index: 20000;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen">
+        <div
+            style="font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 20px; animation: flicker 0.2s infinite alternate;">
+            ORCA // MOSS_V16</div>
+        <button onclick="initializeSystem()"
+            style="background: transparent; color: #fff; border: 1px solid #72dec2; padding: 15px 30px; font-family: inherit; font-size: 1rem; cursor: pointer;">INITIALIZE
+            SYSTEM</button>
+    </div>
+
+    <div class="monitor-frame">
+        <div class="crt-overlay"></div>
+        <div class="crt-screen">
+            <canvas id="viz-canvas"></canvas>
+            <div id="tooltip" class="tooltip"></div>
+
+            <!-- HELP MODAL -->
+            <div id="help-modal">
+                <div
+                    style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                    <span style="color:#72dec2; font-weight:bold;">MANUAL</span>
+                    <span onclick="toggleHelp()" style="cursor:pointer;">✕</span>
+                </div>
+                <div style="font-size:0.8rem; line-height:1.6; color:#ccc;">
+                    <div style="margin-bottom:10px;"><strong style="color:#ffcc00">1 FINGER:</strong> Pan View</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#ffcc00">2 FINGERS:</strong> Zoom In/Out</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#72dec2">TAP:</strong> Select Entity</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#72dec2">LONG PRESS:</strong> Neural Interface
+                    </div>
+                    <div><strong style="color:#72a5ff">DOUBLE TAP:</strong> Recenter</div>
+                </div>
+            </div>
+
+            <!-- NEURAL INTERFACE -->
+            <div id="neural-context-menu">
+                <div class="neural-header">
+                    <span>PATCH OPERATIONS</span>
+                    <span style="cursor:pointer" onclick="closeNeuralMenu()">✕</span>
+                </div>
+                <div id="cells-count-container"
+                    style="padding: 5px 10px; font-size: 0.65rem; color: #888; border-bottom: 1px solid #222;">
+                    SELECTED: <span id="ctx-cells-count" style="color: #72dec2;">0</span> CELLS
+                </div>
+                <div class="neural-options">
+                    <button class="patch-btn patch-transform" onclick="applyPatch('TRANSFORM')">
+                        <span><span class="patch-icon">T</span> TRANSFORM</span>
+                    </button>
+                    <button class="patch-btn patch-branch" onclick="applyPatch('BRANCH')">
+                        <span><span class="patch-icon">B</span> BRANCH</span>
+                    </button>
+                    <button class="patch-btn patch-seed" onclick="applyPatch('SEED')">
+                        <span><span class="patch-icon">S</span> SEED</span>
+                    </button>
+                    <div style="padding: 5px 0; display: flex; gap: 5px;">
+                        <input type="text" id="custom-prompt" placeholder="CMD..."
+                            style="background:rgba(255,255,255,0.1); border:none; color:#fff; padding:6px; font-family:inherit; font-size:0.7rem; flex-grow:1;">
+                        <button onclick="applyCustom()"
+                            style="background:#72dec2; border:none; color:#000; padding:6px 10px; font-family:inherit; font-size:0.7rem; cursor:pointer; font-weight:bold;">></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HEADER CONTROLS (Floating) -->
+            <div class="header-controls">
+                <button class="help-toggle" onclick="toggleHelp()">?</button>
+                <button class="menu-toggle" onclick="toggleSidebar()">≡</button>
+            </div>
+
+            <!-- SIDEBAR (Floating Text) -->
+            <div class="sidebar" id="sidebar">
+                <div class="status-block">
+                    <span class="label">STATUS</span>
+                    <span class="value" style="color: var(--color-primary)">ONLINE</span>
+                </div>
+                <div class="status-block">
+                    <span class="label">TARGET</span>
+                    <span class="value" id="ui-entity" style="color: #fff">--</span>
+                </div>
+                <div class="entity-list" id="entity-list-container"></div>
+            </div>
+
+            <!-- HUD Overlay -->
+            <div class="hud-overlay">
+                <button class="toggle-mode-btn" onclick="renderer.resetView()">RECENTER</button>
+                <button id="mode-btn" class="toggle-mode-btn" onclick="renderer.toggleMode()">NAVIGATE</button>
+                <div class="hud-panel" id="ui-coords">0,0</div>
+                <div class="hud-minimap-container">
+                    <canvas id="minimap-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- CONTROLS (Floating Runes) -->
+            <div class="controls-bar">
+                <div class="vector-group" onclick="engine.triggerVector('GOAL')">
+                    <div class="vector-btn btn-goal"><i>*</i></div>
+                    <span class="vector-label">BANG</span>
+                </div>
+                <div class="vector-group" onclick="engine.triggerVector('OBSTACLE')">
+                    <div class="vector-btn btn-obstacle"><i>#</i></div>
+                    <span class="vector-label">HALT</span>
+                </div>
+                <div class="vector-group" onclick="engine.triggerVector('SHIFT')">
+                    <div class="vector-btn btn-shift"><i>~</i></div>
+                    <span class="vector-label">MOD</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- UTILS ---
+        function initializeSystem() {
+            const boot = document.getElementById('boot-screen');
+            boot.style.transition = 'opacity 0.8s ease';
+            boot.style.opacity = '0';
+            setTimeout(() => {
+                boot.style.display = 'none';
+                engine.init();
+            }, 800);
+        }
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('active');
+        }
+
+        function toggleHelp() {
+            const modal = document.getElementById('help-modal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function closeNeuralMenu() {
+            document.getElementById('neural-context-menu').style.display = 'none';
+        }
+
+        function applyPatch(type) {
+            const prompt = document.getElementById('custom-prompt').value;
+            engine.processPatch(type, prompt);
+            closeNeuralMenu();
+        }
+
+        function applyCustom() {
+            applyPatch('TRANSFORM');
+        }
+
+        // --- DATA ---
+        const LATENT_LIBRARY = {
+            "deep_forest": {
+                "id": "deep_forest", "name": "DEEP FOREST",
+                "entities": [
+                    { "id": "mycelium", "name": "Mycelium", "icon": "m", "palette": "mkw&8" },
+                    { "id": "deer", "name": "Deer", "icon": "d", "palette": "dYv|" },
+                    { "id": "owl", "name": "Owl", "icon": "o", "palette": "oO0@" },
+                    { "id": "seedling", "name": "Seedling", "icon": "s", "palette": "sS;,." },
+                    { "id": "fallen-oak", "name": "Fallen Oak", "icon": "f", "palette": "fF_=#" },
+                    { "id": "moonlight", "name": "Moonlight", "icon": "L", "palette": "L/ \\." }
+                ]
+            }
+        };
+
+        // --- ENGINE ---
+        class RipplesEngine {
+            constructor() {
+                this.state = {
+                    scenarioId: 'deep_forest',
+                    entityId: null,
+                    ripples: [],
+                    activeAgents: []
+                };
+            }
+
+            init() {
+                this.renderUI();
+                this.spawnRipple("SYSTEM.READY", "#72dec2", 0, 0, 150, 30, "01.");
+            }
+
+            getEntityPalette(id) {
+                const scenario = LATENT_LIBRARY['deep_forest'];
+                const ent = scenario.entities.find(e => e.id === id);
+                return ent ? ent.palette : ".....";
+            }
+
+            selectEntity(id) {
+                this.state.entityId = id;
+                this.renderUI();
+                const ent = LATENT_LIBRARY['deep_forest'].entities.find(e => e.id === id);
+                if (ent) {
+                    this.spawnRipple(`[${ent.name.toUpperCase()}]`, "#fff", renderer.panX * -0.05, renderer.panY * -0.05, 100, 20, ent.palette);
+                }
+            }
+
+            triggerVector(type) {
+                let color = "#fff";
+                let chars = "";
+                const entityPalette = this.state.entityId ? this.getEntityPalette(this.state.entityId) : "..";
+
+                if (type === 'GOAL') { color = "#ffcc00"; chars = entityPalette + ">>"; }
+                if (type === 'OBSTACLE') { color = "#ff7272"; chars = entityPalette + "##"; }
+                if (type === 'SHIFT') { color = "#72a5ff"; chars = entityPalette + "~"; }
+
+                this.spawnRipple(type, color, 0, 0, 800, 45, chars);
+            }
+
+            processPatch(type, prompt) {
+                const targets = Array.from(renderer.selectedCells);
+                if (targets.length === 0) return;
+
+                let chars = ".";
+                let color = "#fff";
+
+                if (type === 'BRANCH') {
+                    chars = "Yy/\\"; color = "#ffcc00";
+                } else if (type === 'SEED') {
+                    chars = "oO0"; color = "#72a5ff";
+                    const start = targets[Math.floor(Math.random() * targets.length)];
+                    const [sx, sy] = start.split(',').map(Number);
+                    this.state.activeAgents.push({
+                        x: sx, y: sy, type: 'GARDENER', color: '#72a5ff', life: 1000
+                    });
+                } else {
+                    const p = (prompt || "").toLowerCase();
+                    if (p.includes("water")) { chars = "~≈"; color = "#72a5ff"; }
+                    else if (p.includes("fire")) { chars = "^*"; color = "#ff7272"; }
+                    else { chars = "###"; color = "#72dec2"; }
+                }
+
+                targets.forEach(key => {
+                    const [x, y] = key.split(',').map(Number);
+                    if (renderer.gridState[y] && renderer.gridState[y][x]) {
+                        renderer.gridState[y][x] = {
+                            char: chars.charAt(Math.floor(Math.random() * chars.length)),
+                            color: color
+                        };
+                    }
+                });
+
+                this.spawnRipple(`${type}.EXE`, color, 0, 0, 120, 40, chars);
+                renderer.selectedCells.clear();
+            }
+
+            spawnRipple(text, color, x, y, life, strength, palette = ".....") {
+                this.state.ripples.push({
+                    id: Math.random(), text, color, x, y, born: Date.now(),
+                    lifeMax: life, life: 0, radius: 0, strength, palette
+                });
+            }
+
+            renderUI() {
+                const scenario = LATENT_LIBRARY['deep_forest'];
+                const listContainer = document.getElementById('entity-list-container');
+                const uiEntity = document.getElementById('ui-entity');
+
+                const entity = scenario.entities.find(e => e.id === this.state.entityId);
+                uiEntity.innerText = entity ? entity.name.toUpperCase() : "--";
+                uiEntity.style.color = entity ? "#72dec2" : "#fff";
+
+                listContainer.innerHTML = '';
+                scenario.entities.forEach(ent => {
+                    const btn = document.createElement('button');
+                    btn.className = `entity-btn ${ent.id === this.state.entityId ? 'active' : ''}`;
+                    btn.innerHTML = `<span class="entity-icon">${ent.icon}</span> ${ent.name}`;
+                    btn.onclick = () => {
+                        this.selectEntity(ent.id);
+                        // On mobile, close sidebar automatically
+                        if (window.innerWidth <= 768) toggleSidebar();
+                    };
+                    listContainer.appendChild(btn);
+                });
+            }
+        }
+
+        // --- RENDERER ---
+        class HybridGridRenderer {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.minimapCanvas = document.getElementById('minimap-canvas');
+                this.ctxMini = this.minimapCanvas.getContext('2d');
+
+                this.gridSize = 64;
+                this.baseIsoWidth = 16; this.baseIsoHeight = 8;
+                this.gridState = new Array(this.gridSize).fill(0).map(() => new Array(this.gridSize).fill(null).map(() => ({ char: null, color: null })));
+
+                this.selectedCells = new Set();
+                this.zoom = 1.0; this.targetZoom = 1.0;
+                this.panX = 0; this.panY = 0;
+
+                this.mode = 'NAVIGATE';
+
+                this.touchStartDist = 0;
+                this.isDragging = false;
+                this.lastX = 0; this.lastY = 0;
+                this.longPressTimer = null;
+
+                this.hoverCell = null;
+                this.time = 0;
+                this.lastTap = 0;
+
+                window.addEventListener('resize', () => this.resize());
+                this.resize();
+                this.bindEvents();
+                requestAnimationFrame(() => this.loop());
+            }
+
+            resize() {
+                this.canvas.width = this.canvas.parentElement.offsetWidth;
+                this.canvas.height = this.canvas.parentElement.offsetHeight;
+                this.cx = this.canvas.width / 2; this.cy = this.canvas.height / 2;
+                this.minimapCanvas.width = this.minimapCanvas.parentElement.offsetWidth;
+                this.minimapCanvas.height = this.minimapCanvas.parentElement.offsetHeight;
+
+                if (window.innerWidth <= 768) {
+                    this.gridSize = 32;
+                    this.baseIsoWidth = 24;
+                    this.baseIsoHeight = 12;
+                    this.targetZoom = 1.2;
+                    if (this.gridState.length !== this.gridSize) {
+                        this.gridState = new Array(this.gridSize).fill(0).map(() => new Array(this.gridSize).fill(null).map(() => ({ char: null, color: null })));
+                    }
+                }
+            }
+
+            toggleMode() {
+                this.mode = this.mode === 'NAVIGATE' ? 'PAINT' : 'NAVIGATE';
+                const btn = document.getElementById('mode-btn');
+                if (btn) {
+                    btn.innerText = this.mode;
+                    if (this.mode === 'PAINT') btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            }
+
+            resetView() {
+                this.panX = 0;
+                this.panY = 0;
+                this.targetZoom = window.innerWidth <= 768 ? 1.2 : 1.0;
+                engine.spawnRipple("RESET", "#fff", 0, 0, 50, 10);
+            }
+
+            openContextMenu(x, y) {
+                if (this.selectedCells.size === 0 && this.hoverCell) {
+                    this.selectedCells.add(`${this.hoverCell.gridX},${this.hoverCell.gridY}`);
+                }
+
+                const menu = document.getElementById('neural-context-menu');
+                const count = document.getElementById('ctx-cells-count');
+
+                if (menu) menu.style.display = 'block';
+                if (count) count.innerText = this.selectedCells.size;
+
+                let mx = x; let my = y;
+                if (mx + 260 > window.innerWidth) mx = window.innerWidth - 270;
+                if (my + 200 > window.innerHeight) my = window.innerHeight - 210;
+
+                if (menu) {
+                    menu.style.left = mx + 'px';
+                    menu.style.top = my + 'px';
+                }
+            }
+
+            handleInputStart(x, y, isShift) {
+                this.isDragging = true;
+                this.lastX = x; this.lastY = y;
+
+                if (this.mode === 'PAINT' || isShift) {
+                    if (this.hoverCell) {
+                        this.selectedCells.add(`${this.hoverCell.gridX},${this.hoverCell.gridY}`);
+                    }
+                }
+            }
+
+            handleInputMove(x, y, isShift) {
+                const rect = this.canvas.getBoundingClientRect();
+                this.mousePos = { x: x - rect.left, y: y - rect.top };
+
+                if (this.isDragging) {
+                    if (this.mode === 'PAINT' || isShift) {
+                        if (this.hoverCell) this.selectedCells.add(`${this.hoverCell.gridX},${this.hoverCell.gridY}`);
+                    } else {
+                        this.panX += x - this.lastX;
+                        this.panY += y - this.lastY;
+                    }
+                }
+                this.lastX = x; this.lastY = y;
+            }
+
+            bindEvents() {
+                this.canvas.addEventListener('mousedown', e => {
+                    if (e.button === 2) return;
+                    const now = Date.now();
+                    if (now - this.lastTap < 300) { this.resetView(); return; }
+                    this.lastTap = now;
+                    this.handleInputStart(e.clientX, e.clientY, e.shiftKey);
+                });
+
+                window.addEventListener('mousemove', e => {
+                    this.handleInputMove(e.clientX, e.clientY, e.shiftKey);
+                });
+
+                window.addEventListener('mouseup', () => this.isDragging = false);
+
+                this.canvas.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    this.openContextMenu(e.clientX, e.clientY);
+                });
+
+                this.canvas.addEventListener('wheel', e => {
+                    e.preventDefault();
+                    this.targetZoom = Math.min(Math.max(0.3, this.targetZoom - e.deltaY * 0.001), 4.0);
+                });
+
+                // TOUCH
+                this.canvas.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    const now = Date.now();
+                    if (e.touches.length === 1 && now - this.lastTap < 300) { this.resetView(); return; }
+                    this.lastTap = now;
+
+                    if (e.touches.length === 1) {
+                        const t = e.touches[0];
+                        this.handleInputStart(t.clientX, t.clientY, false);
+
+                        this.longPressTimer = setTimeout(() => {
+                            this.isDragging = false;
+                            this.openContextMenu(t.clientX, t.clientY);
+                        }, 600);
+                    }
+                    else if (e.touches.length === 2) {
+                        this.touchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    }
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    if (Math.hypot(e.touches[0].clientX - this.lastX, e.touches[0].clientY - this.lastY) > 10) clearTimeout(this.longPressTimer);
+
+                    if (e.touches.length === 1) {
+                        this.handleInputMove(e.touches[0].clientX, e.touches[0].clientY, false);
+                    }
+                    else if (e.touches.length === 2) {
+                        clearTimeout(this.longPressTimer);
+                        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                        const delta = dist - this.touchStartDist;
+                        this.targetZoom = Math.min(Math.max(0.3, this.targetZoom + delta * 0.005), 4.0);
+                        this.touchStartDist = dist;
+                    }
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchend', () => {
+                    this.isDragging = false; clearTimeout(this.longPressTimer); this.mousePos = null;
+                });
+            }
+
+            drawMinimap() {
+                const ctx = this.ctxMini;
+                const w = this.minimapCanvas.width; const h = this.minimapCanvas.height;
+                ctx.clearRect(0, 0, w, h);
+                const centerX = w / 2; const centerY = h / 2;
+
+                ctx.fillStyle = '#ffcc00';
+                this.selectedCells.forEach(key => {
+                    const [gx, gy] = key.split(',').map(Number);
+                    const mx = centerX + (gx - this.gridSize / 2) * 2; const my = centerY + (gy - this.gridSize / 2) * 2;
+                    ctx.fillRect(mx, my, 2, 2);
+                });
+
+                engine.state.activeAgents.forEach(a => {
+                    const mx = centerX + (a.x - this.gridSize / 2) * 2; const my = centerY + (a.y - this.gridSize / 2) * 2;
+                    ctx.fillStyle = a.color; ctx.fillRect(mx, my, 3, 3);
+                });
+
+                const viewW = (w * 0.8) / this.zoom; const viewH = (h * 0.8) / this.zoom;
+                const viewX = centerX - (this.panX * 0.1) - viewW / 2; const viewY = centerY - (this.panY * 0.1) - viewH / 2;
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(viewX, viewY, viewW, viewH);
+            }
+
+            drawFloatingText(text, x, y, color = "#fff", fontSize = 12) {
+                this.ctx.fillStyle = color;
+                this.ctx.font = `bold ${fontSize}px 'Courier New'`;
+                this.ctx.fillText(text, x, y);
+            }
+
+            loop() {
+                try {
+                    this.time += 0.005;
+                    this.zoom += (this.targetZoom - this.zoom) * 0.1;
+
+                    // Render Background
+                    this.ctx.fillStyle = '#050505';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.textAlign = "center"; this.ctx.textBaseline = "middle";
+
+                    // --- HEADER & HUD AS CANVAS RENDER ---
+                    this.ctx.save();
+                    const headerY = 40 + Math.sin(this.time * 2) * 2; // Breathing
+                    this.ctx.shadowColor = "rgba(114, 222, 194, 0.5)";
+                    this.ctx.shadowBlur = 10;
+                    this.drawFloatingText("ORCA / MOSS_V16", 120, headerY, "#72dec2", 18);
+                    this.ctx.shadowBlur = 0;
+                    this.drawFloatingText("TACTILE.ENV", 120, headerY + 15, "#666", 10);
+
+                    // HUD Status (Bottom Right)
+                    const hudX = this.canvas.width - 20;
+                    const hudY = this.canvas.height - 120;
+                    const hudBreath = Math.cos(this.time * 1.5) * 2;
+
+                    this.ctx.textAlign = "right";
+                    this.drawFloatingText(`POS: ${Math.floor(this.panX)}, ${Math.floor(this.panY)}`, hudX, hudY + hudBreath, "#888", 10);
+                    this.drawFloatingText(`ZOOM: ${this.zoom.toFixed(2)}x`, hudX, hudY - 15 + hudBreath, "#72dec2", 10);
+                    this.ctx.restore();
+
+                    this.ctx.textAlign = "center"; // Reset for grid
+
+                    // Physics Update
+                    const ripples = engine.state.ripples;
+                    for (let i = ripples.length - 1; i >= 0; i--) {
+                        ripples[i].life++; ripples[i].radius += 0.15;
+                        if (ripples[i].life > ripples[i].lifeMax) ripples.splice(i, 1);
+                    }
+
+                    // Agents Update
+                    engine.state.activeAgents.forEach((agent, i) => {
+                        if (agent.type === 'GARDENER' && Math.random() > 0.9) {
+                            const dx = Math.floor(Math.random() * 3) - 1;
+                            const dy = Math.floor(Math.random() * 3) - 1;
+                            const nx = Math.max(0, Math.min(this.gridSize - 1, agent.x + dx));
+                            const ny = Math.max(0, Math.min(this.gridSize - 1, agent.y + dy));
+                            if (!this.gridState[ny][nx].color) {
+                                this.gridState[ny][nx] = { char: 'o', color: agent.color };
+                                agent.x = nx; agent.y = ny;
+                            }
+                        }
+                    });
+
+                    const size = this.gridSize;
+                    const offset = size / 2;
+                    const currentIsoW = this.baseIsoWidth * this.zoom;
+                    const currentIsoH = this.baseIsoHeight * this.zoom;
+                    const densityChars = "  ..,,--::;;==iiIIJJLLOO00##@@";
+
+                    let closestCell = null;
+                    let minDist = 1000;
+
+                    for (let y = 0; y < size; y++) {
+                        for (let x = 0; x < size; x++) {
+                            const rx = x - offset; const ry = y - offset;
+
+                            let z = Math.sin((Math.sqrt(rx * rx + ry * ry) * 0.2) - this.time) * 5;
+                            z += Math.sin(rx * 0.5) * Math.cos(ry * 0.5) * 3;
+
+                            let activeColor = null;
+                            let activeChar = null;
+                            let isBang = false;
+
+                            for (let r of ripples) {
+                                const d = Math.abs(Math.sqrt((rx - r.x) ** 2 + (ry - r.y) ** 2) - r.radius);
+                                if (d < 5) {
+                                    const amp = Math.cos(d * 0.5) * r.strength;
+                                    if (amp > 0) z += amp;
+                                    if (d < 2 && amp > 5) {
+                                        activeColor = r.color;
+                                        if (r.text && r.text.length > 0) {
+                                            const charIdx = (Math.abs(x + y) + Math.floor(this.time * 2)) % r.text.length;
+                                            activeChar = r.text[charIdx];
+                                            if (activeChar === '*') isBang = true;
+                                        }
+                                    }
+                                    if (d < 0.5 && r.palette) {
+                                        const pIdx = (Math.abs(x * y) + Math.floor(r.radius)) % r.palette.length;
+                                        this.gridState[y][x] = { char: r.palette[pIdx], color: r.color };
+                                    }
+                                }
+                            }
+
+                            const state = this.gridState[y][x];
+                            if (state.char) {
+                                if (!activeChar) activeChar = state.char;
+                                if (!activeColor && state.color) activeColor = state.color;
+                            }
+
+                            if (this.selectedCells.has(`${x},${y}`)) activeColor = '#ffcc00';
+
+                            const sx = this.cx + this.panX + (rx - ry) * currentIsoW;
+                            const sy = this.cy + this.panY + (rx + ry) * currentIsoH - (z * 3 * this.zoom);
+
+                            if (sx < -20 || sx > this.canvas.width + 20 || sy < -20 || sy > this.canvas.height + 20) continue;
+
+                            if (this.mousePos) {
+                                const dist = Math.hypot(sx - this.mousePos.x, sy - this.mousePos.y);
+                                if (dist < 20 * this.zoom && dist < minDist) {
+                                    minDist = dist;
+                                    closestCell = { gridX: x, gridY: y, screenX: sx, screenY: sy, char: activeChar };
+                                }
+                            }
+
+                            if (!activeChar) {
+                                let index = Math.floor(z + 8);
+                                index = Math.max(0, Math.min(index, densityChars.length - 1));
+                                activeChar = densityChars[index];
+                            }
+
+                            if (activeColor) {
+                                this.ctx.fillStyle = activeColor;
+                                this.ctx.globalAlpha = 1.0;
+                                const fontSize = Math.floor(Math.max(10, 14 * this.zoom));
+                                this.ctx.font = `bold ${fontSize}px monospace`;
+                                this.ctx.shadowBlur = isBang ? 10 * this.zoom : 0;
+                                if (isBang) this.ctx.shadowColor = activeColor;
+                            } else {
+                                let color = '#222'; if (z > 5) color = '#444'; if (z > 15) color = '#777';
+                                this.ctx.fillStyle = color;
+                                this.ctx.shadowBlur = 0;
+                                const fontSize = Math.floor(Math.max(4, 11 * this.zoom));
+                                this.ctx.font = `${fontSize}px monospace`;
+                                this.ctx.globalAlpha = 1.0;
+                            }
+
+                            this.ctx.fillText(activeChar, sx, sy);
+                        }
+                    }
+
+                    this.hoverCell = closestCell;
+                    if (this.hoverCell) {
+                        // Draw Reticle
+                        this.ctx.strokeStyle = '#fff'; this.ctx.lineWidth = 1;
+                        this.ctx.strokeRect(this.hoverCell.screenX - 8 * this.zoom, this.hoverCell.screenY - 8 * this.zoom, 16 * this.zoom, 16 * this.zoom);
+
+                        // Tooltip logic
+                        const tooltip = document.getElementById('tooltip');
+                        if (this.hoverCell) {
+                            tooltip.style.display = 'block';
+                            let tx = this.mousePos ? this.mousePos.x + 15 : this.hoverCell.screenX + 15;
+                            let ty = this.mousePos ? this.mousePos.y : this.hoverCell.screenY;
+                            tooltip.style.left = tx + 'px';
+                            tooltip.style.top = ty + 'px';
+                            tooltip.innerText = `${this.hoverCell.gridX},${this.hoverCell.gridY} [${this.hoverCell.char}]`;
+                        }
+                    } else {
+                        document.getElementById('tooltip').style.display = 'none';
+                    }
+
+                    this.drawMinimap();
+                    this.ctx.globalAlpha = 1.0; this.ctx.shadowBlur = 0;
+
+                } catch (e) { console.error(e); }
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        const engine = new RipplesEngine();
+        const renderer = new HybridGridRenderer('viz-canvas');
+    </script>
+</body>
+
+</html>

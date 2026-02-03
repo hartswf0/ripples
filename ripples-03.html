@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIPPLES: Unified Ecosystem</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- GLOBAL STYLES --- */
+        body {
+            background-color: #050505;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #root {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* --- CRT EFFECT --- */
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+                    rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg,
+                    rgba(255, 0, 0, 0.06),
+                    rgba(0, 255, 0, 0.02),
+                    rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 10;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scanline 10s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% {
+                bottom: 100%;
+            }
+
+            100% {
+                bottom: -100px;
+            }
+        }
+
+        /* --- UTILS --- */
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .panel {
+            background: rgba(10, 12, 14, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #48ffa9;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #10b981;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        /*******************************************************
+         * PHASE 1: RIPPLES HEADLESS CORE
+         *******************************************************/
+        class RipplesCore {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.grid = new Float32Array(width * height);
+                this.dampening = 0.96;
+                this.ripples = [];
+                this.entities = [];
+                this.tickCount = 0;
+
+                // Rich Data Simulation
+                this.goals = ["EXPAND_NETWORK", "SEEK_ENTROPY", "MAINTAIN_STASIS", "BREACH_FIREWALL", "HARVEST_DATA"];
+                this.obstacles = ["LOW_ENERGY", "LOGIC_LOCK", "VOID_SHEAR", "NULL_POINTER", "PACKET_LOSS"];
+
+                // Init Noise
+                for (let i = 0; i < this.grid.length; i++) this.grid[i] = Math.random() * 0.1;
+
+                // Init Entities
+                this.addEntity(Math.floor(width / 2), Math.floor(height / 2), 'CORE_NEXUS', 'Ω', 'MAINTAIN_STASIS', 'NULL_POINTER');
+                this.addEntity(Math.floor(width / 3), Math.floor(height / 3), 'DATA_FOREST', '¥', 'EXPAND_NETWORK', 'LOW_ENERGY');
+                this.addEntity(Math.floor(width * 0.8), Math.floor(height * 0.8), 'ENTROPY_WORM', '§', 'SEEK_ENTROPY', 'LOGIC_LOCK');
+                this.addEntity(Math.floor(width * 0.2), Math.floor(height * 0.7), 'DAEMON_GATE', 'Ø', 'BREACH_FIREWALL', 'VOID_SHEAR');
+            }
+
+            addEntity(x, y, type, symbol, goal, obstacle) {
+                this.entities.push({
+                    id: Math.random().toString(36).substr(2, 6).toUpperCase(),
+                    x, y, type, symbol,
+                    goal: goal || this.goals[0],
+                    obstacle: obstacle || this.obstacles[0],
+                    shiftDelta: Math.floor(Math.random() * 100),
+                    active: true
+                });
+            }
+
+            triggerRipple(x, y, strength = 5.0) {
+                this.ripples.push({
+                    x, y, strength, radius: 0, speed: 0.5,
+                    maxRadius: Math.max(this.width, this.height) * 0.8
+                });
+            }
+
+            triggerGlitch() {
+                for (let i = 0; i < this.grid.length / 20; i++) {
+                    const idx = Math.floor(Math.random() * this.grid.length);
+                    this.grid[idx] = Math.random();
+                }
+            }
+
+            purge() {
+                this.ripples = [];
+                for (let i = 0; i < this.grid.length; i++) this.grid[i] = 0;
+            }
+
+            tick() {
+                this.tickCount++;
+                for (let i = 0; i < this.grid.length; i++) this.grid[i] *= this.dampening;
+
+                this.ripples.forEach(r => {
+                    r.radius += r.speed;
+                    r.strength *= 0.98;
+                    const minX = Math.max(0, Math.floor(r.x - r.radius - 2));
+                    const maxX = Math.min(this.width, Math.ceil(r.x + r.radius + 2));
+                    const minY = Math.max(0, Math.floor(r.y - r.radius - 2));
+                    const maxY = Math.min(this.height, Math.ceil(r.y + r.radius + 2));
+
+                    for (let y = minY; y < maxY; y++) {
+                        for (let x = minX; x < maxX; x++) {
+                            const dx = x - r.x;
+                            const dy = y - r.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (Math.abs(dist - r.radius) < 1.5) {
+                                const idx = y * this.width + x;
+                                if (idx >= 0 && idx < this.grid.length) {
+                                    this.grid[idx] += r.strength * 0.5;
+                                }
+                            }
+                        }
+                    }
+                });
+                this.ripples = this.ripples.filter(r => r.strength > 0.1);
+
+                // Simulation Logic: Shift Goals
+                if (this.tickCount % 200 === 0) {
+                    this.entities.forEach(e => {
+                        if (Math.random() > 0.6) {
+                            e.goal = this.goals[Math.floor(Math.random() * this.goals.length)];
+                            e.shiftDelta = 100; // Reset visual meter
+                        }
+                        e.shiftDelta = Math.max(0, e.shiftDelta - 1);
+                    });
+                } else if (this.tickCount % 5 === 0) {
+                    this.entities.forEach(e => {
+                        e.shiftDelta = Math.max(0, e.shiftDelta - 0.5);
+                    });
+                }
+            }
+
+            getState() {
+                return {
+                    grid: this.grid,
+                    entities: this.entities,
+                    ripples: this.ripples,
+                    tick: this.tickCount
+                };
+            }
+        }
+
+        /*******************************************************
+         * PHASE 2: VISUALIZATION COMPONENTS
+         *******************************************************/
+
+        // ICONS
+        const Icons = {
+            Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
+            Grid: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>,
+            Terminal: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>,
+            Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>,
+            Target: () => <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
+            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+        };
+
+        const CanvasView = ({ core, mode }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationId;
+
+                const render = () => {
+                    const state = core.getState();
+                    if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+                        canvas.width = canvas.offsetWidth;
+                        canvas.height = canvas.offsetHeight;
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const cellSize = canvas.width / core.width;
+
+                    // Render Grid
+                    for (let y = 0; y < core.height; y++) {
+                        for (let x = 0; x < core.width; x++) {
+                            const val = state.grid[y * core.width + x];
+                            if (val > 0.05) {
+                                const alpha = Math.min(1, val);
+                                ctx.fillStyle = mode === 'HEAT'
+                                    ? `rgba(${alpha * 200}, ${100 + alpha * 155}, ${150 + alpha * 100}, 1)`
+                                    : (alpha > 0.2 ? '#48ffa9' : '#0a1a12');
+                                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                            }
+                        }
+                    }
+
+                    // Render Entities
+                    ctx.font = `${cellSize}px monospace`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    state.entities.forEach(ent => {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillText(ent.symbol, ent.x * cellSize + cellSize / 2, ent.y * cellSize + cellSize / 2);
+                        const pulse = Math.sin(state.tick * 0.1) * 3;
+                        if (mode !== 'HEAT') {
+                            ctx.strokeStyle = '#48ffa9';
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(ent.x * cellSize - pulse / 2, ent.y * cellSize - pulse / 2, cellSize + pulse, cellSize + pulse);
+                        }
+                    });
+
+                    animationId = requestAnimationFrame(render);
+                };
+                render();
+                return () => cancelAnimationFrame(animationId);
+            }, [core, mode]);
+
+            const handleTouch = (e) => {
+                e.preventDefault();
+                const rect = e.target.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const x = (clientX - rect.left) * (core.width / rect.width);
+                const y = (clientY - rect.top) * (core.height / rect.height);
+                core.triggerRipple(Math.floor(x), Math.floor(y), 3.0);
+            };
+
+            return (
+                <canvas
+                    ref={canvasRef}
+                    className="w-full h-full cursor-crosshair touch-none"
+                    onTouchStart={handleTouch}
+                    onTouchMove={handleTouch}
+                    onMouseDown={handleTouch}
+                />
+            );
+        };
+
+        const TerminalView = ({ core }) => {
+            const [frame, setFrame] = useState("");
+            useEffect(() => {
+                const chars = " .:-=+*#%@";
+                const interval = setInterval(() => {
+                    const state = core.getState();
+                    let output = "";
+                    for (let y = 0; y < core.height; y++) {
+                        for (let x = 0; x < core.width; x++) {
+                            const val = state.grid[y * core.width + x];
+                            const ent = state.entities.find(e => Math.abs(e.x - x) < 0.5 && Math.abs(e.y - y) < 0.5);
+                            if (ent) output += `<span class="text-white font-bold">${ent.symbol}</span>`;
+                            else {
+                                const idx = Math.floor(Math.min(val * 10, chars.length - 1));
+                                const color = val > 0.5 ? "text-emerald-400" : (val > 0.2 ? "text-emerald-800" : "text-gray-900");
+                                output += `<span class="${color}">${chars[idx]}</span>`;
+                            }
+                        }
+                        output += "\n";
+                    }
+                    setFrame(output);
+                }, 60);
+                return () => clearInterval(interval);
+            }, [core]);
+            return <pre className="mono-font text-[9px] md:text-xs leading-none whitespace-pre overflow-hidden w-full h-full p-4 bg-black text-gray-500" dangerouslySetInnerHTML={{ __html: frame }} />;
+        };
+
+        const EntityDeck = ({ core }) => {
+            const [data, setData] = useState([]);
+            useEffect(() => {
+                const i = setInterval(() => setData([...core.getState().entities]), 150);
+                return () => clearInterval(i);
+            }, [core]);
+
+            return (
+                <div className="h-full overflow-y-auto p-4 space-y-3">
+                    {data.map(ent => (
+                        <div key={ent.id} className="bg-white/5 border border-white/10 p-3 rounded hover:border-emerald-500/30 transition-colors">
+                            <div className="flex justify-between items-center mb-2 border-b border-white/5 pb-2">
+                                <span className="font-mono text-emerald-400 font-bold flex gap-2 items-center">
+                                    <span className="text-white bg-white/10 px-1 rounded">{ent.symbol}</span> {ent.type}
+                                </span>
+                                <span className="text-[10px] text-gray-500 font-mono">ID::{ent.id}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                                <div>
+                                    <div className="text-[10px] text-gray-500 flex items-center gap-1 mb-1"><Icons.Target /> GOAL</div>
+                                    <div className="text-blue-300 bg-blue-900/20 px-2 py-1 rounded border border-blue-500/20">{ent.goal}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-gray-500 flex items-center gap-1 mb-1"><Icons.Alert /> OBSTACLE</div>
+                                    <div className="text-red-300 bg-red-900/20 px-2 py-1 rounded border border-red-500/20">{ent.obstacle}</div>
+                                </div>
+                            </div>
+                            <div className="mt-2">
+                                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${ent.shiftDelta}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const SystemLog = ({ logs, onMacro }) => {
+            const bottomRef = useRef(null);
+            useEffect(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), [logs]);
+
+            return (
+                <div className="h-full flex flex-col">
+                    {/* Macro Deck */}
+                    <div className="p-3 border-b border-white/10 grid grid-cols-4 gap-2 shrink-0">
+                        {["GLITCH", "PURGE", "AMP", "ECHO"].map((m, i) => (
+                            <button key={m} onClick={() => onMacro(m)} className={`
+                                bg-${['purple', 'red', 'emerald', 'blue'][i]}-500/10 
+                                border border-${['purple', 'red', 'emerald', 'blue'][i]}-500/40 
+                                text-${['purple', 'red', 'emerald', 'blue'][i]}-400 
+                                text-[10px] font-bold py-2 rounded hover:bg-white/5 transition-all
+                             `}>{m}</button>
+                        ))}
+                    </div>
+                    {/* Console */}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-1 font-mono text-xs">
+                        {logs.map((l, i) => (
+                            <div key={i} className={`break-words ${l.includes("ERROR") ? "text-red-400" : "text-emerald-500/80"}`}>{l}</div>
+                        ))}
+                        <div ref={bottomRef} />
+                    </div>
+                </div>
+            );
+        };
+
+        /*******************************************************
+         * MAIN LAYOUT
+         *******************************************************/
+        const App = () => {
+            const core = useMemo(() => {
+                const c = new RipplesCore(64, 48);
+                setInterval(() => c.tick(), 16);
+                return c;
+            }, []);
+
+            const [mode, setMode] = useState('HEAT'); // Visual mode
+            const [activeTab, setActiveTab] = useState('ENTITIES'); // Data tab
+            const [logs, setLogs] = useState(["[SYSTEM] CORE_INIT_COMPLETE..."]);
+
+            const handleMacro = (action) => {
+                setLogs(prev => [`[MACRO] EXECUTING ${action}...`, ...prev]);
+                if (action === 'GLITCH') core.triggerGlitch();
+                if (action === 'PURGE') core.purge();
+                if (action === 'AMP') core.triggerRipple(Math.random() * 60, Math.random() * 40, 5.0);
+            };
+
+            return (
+                <div className="h-full w-full flex flex-col md:flex-row bg-black text-white relative overflow-hidden">
+                    <div className="absolute inset-0 pointer-events-none crt-overlay z-50"><div className="scanline"></div></div>
+
+                    {/* LEFT / TOP: VISUALIZER (Main Stage) */}
+                    <div className="relative flex-1 h-[45vh] md:h-auto md:w-[60%] border-b md:border-b-0 md:border-r border-white/10">
+                        <CanvasView core={core} mode={mode} />
+
+                        {/* Overlay Controls */}
+                        <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
+                            <h1 className="text-xs font-bold tracking-widest bg-black/50 backdrop-blur px-2 py-1 rounded border border-white/10 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                RIPPLES OS <span className="text-gray-500">v3.0</span>
+                            </h1>
+                            <div className="flex gap-1 pointer-events-auto">
+                                <button onClick={() => setMode('HEAT')} className={`px-2 py-1 text-[10px] font-mono border rounded ${mode === 'HEAT' ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-black/50 border-white/20 text-gray-400'}`}>HEAT</button>
+                                <button onClick={() => setMode('WIRE')} className={`px-2 py-1 text-[10px] font-mono border rounded ${mode === 'WIRE' ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-black/50 border-white/20 text-gray-400'}`}>WIRE</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT / BOTTOM: DATA DECKS (Multi-Function Display) */}
+                    <div className="flex-1 h-[55vh] md:h-auto md:w-[40%] flex flex-col bg-[#050505]">
+                        {/* Tabs */}
+                        <div className="flex border-b border-white/10 bg-black/50">
+                            {[
+                                { id: 'TERMINAL', icon: Icons.Terminal, label: 'ASCII FEED' },
+                                { id: 'ENTITIES', icon: Icons.Activity, label: 'INTEL NET' },
+                                { id: 'LOGS', icon: Icons.Grid, label: 'SYS COMMS' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex-1 py-3 text-[10px] md:text-xs font-bold flex items-center justify-center gap-2 hover:bg-white/5 transition-colors ${activeTab === tab.id ? 'tab-active' : 'text-gray-500'}`}
+                                >
+                                    <tab.icon /> {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Panel Content */}
+                        <div className="flex-1 overflow-hidden relative">
+                            {activeTab === 'TERMINAL' && <TerminalView core={core} />}
+                            {activeTab === 'ENTITIES' && <EntityDeck core={core} />}
+                            {activeTab === 'LOGS' && <SystemLog logs={logs} onMacro={handleMacro} />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
