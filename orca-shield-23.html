@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // HOLLER_WORLDTEXT_V23</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* DEEP HOLLER */
+            --bg-void: #08080c;
+            --bg-panel: #14141a;
+
+            /* EDGAR SPECTRUM */
+            --color-shadow: #2a2a35;
+            --color-bone: #ff3333;
+            --color-glow: #00ff00;
+            --color-text: #e0e0e0;
+            --color-accent: #ffd700;
+            /* Gold */
+
+            --font-mono: 'Courier New', monospace;
+            --font-serif: 'Georgia', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-void);
+            color: var(--color-text);
+            font-family: var(--font-mono);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            height: 60px;
+            border-bottom: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: #000;
+            z-index: 10;
+        }
+
+        .title {
+            color: var(--color-accent);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* --- MAIN --- */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- TEXT COLUMN (The Worldtext) --- */
+        .text-column {
+            width: 40%;
+            max-width: 500px;
+            background: var(--bg-panel);
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            padding: 40px;
+        }
+
+        .exhibit-block {
+            margin-bottom: 60px;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            cursor: pointer;
+        }
+
+        .exhibit-block:hover,
+        .exhibit-block.active {
+            opacity: 1;
+        }
+
+        .ex-header {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            border-bottom: 1px solid #444;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ex-title {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            color: var(--color-accent);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .ex-body {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .ex-quote {
+            margin-top: 15px;
+            padding-left: 15px;
+            border-left: 3px solid var(--color-accent);
+            font-style: italic;
+            color: #fff;
+            background: rgba(255, 215, 0, 0.05);
+            padding: 10px;
+        }
+
+        /* --- VISUAL COLUMN (The Lens) --- */
+        .viz-column {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        #viz-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            padding: 15px;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+
+        .hud-label {
+            color: #888;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .hud-val {
+            color: var(--color-accent);
+            font-family: var(--font-mono);
+        }
+
+        .filters {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            background: #222;
+            color: #888;
+            border: 1px solid #444;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .filter-btn.active {
+            background: var(--color-accent);
+            color: #000;
+            border-color: var(--color-accent);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="title">THE HOLLER ARCHIVES // EDGAR-VISION</div>
+        <div class="meta">CASE ID: SHATTERED_SHINE</div>
+    </div>
+
+    <div class="container">
+        <!-- TEXT -->
+        <div class="text-column">
+
+            <div class="exhibit-block active" id="ex-C" onclick="App.setExhibit('C')">
+                <div class="ex-header"><span>EXHIBIT C</span><span>OPTICS: REFRACTION</span></div>
+                <div class="ex-title">The Shifting Shadows</div>
+                <div class="ex-body">
+                    Edgar notices shadows aren't behaving. He understands light travels in straight lines, but something
+                    is distorting them.
+                    <br><br>
+                    <strong>Observation:</strong> The grandfather clock shadow flickers and bends, as if the light is
+                    swerving around an invisible object.
+                </div>
+                <div class="ex-quote">
+                    "The straight path is broken. Something is making the light swerve. Is there a blank spot in the air
+                    itself?"
+                </div>
+            </div>
+
+            <div class="exhibit-block" id="ex-D" onclick="App.setExhibit('D')">
+                <div class="ex-header"><span>EXHIBIT D</span><span>OPTICS: INVISIBILITY</span></div>
+                <div class="ex-title">The Disappearing Object</div>
+                <div class="ex-body">
+                    Edgar's red rubber bone vanishes when placed in the oily tackle box compartment.
+                    <br><br>
+                    <strong>Observation:</strong> Light passes through the object without reflecting back from certain
+                    angles. Index of Refraction match?
+                </div>
+                <div class="ex-quote">
+                    "My bone is there, I can smell it! But my eyes tell me it's not. Is the box eating the light?"
+                </div>
+            </div>
+
+            <div class="exhibit-block" id="ex-E" onclick="App.setExhibit('E')">
+                <div class="ex-header"><span>EXHIBIT E</span><span>PHYSICS: ABSORPTION</span></div>
+                <div class="ex-title">The Muted Glow-Ball</div>
+                <div class="ex-body">
+                    The phosphorescent ball shines dimly only near the 'Mysterious Blank' in the Den.
+                    <br><br>
+                    <strong>Observation:</strong> A dull flicker replaces the steady green luminescence. A 'hungry
+                    darkness' sips the light away.
+                </div>
+                <div class="ex-quote">
+                    "Is it stealing the light, or is the air itself absorbing the glow?"
+                </div>
+            </div>
+
+        </div>
+
+        <!-- VIZ -->
+        <div class="viz-column">
+            <div class="filters">
+                <div class="filter-btn active" id="btn-human" onclick="Viz.setMode('HUMAN')">HUMAN EYE</div>
+                <div class="filter-btn" id="btn-edgar" onclick="Viz.setMode('EDGAR')">EDGAR EYE</div>
+            </div>
+            <canvas id="viz-canvas"></canvas>
+            <div class="hud-overlay">
+                <div class="hud-label">CURRENT INFERENCE</div>
+                <div class="hud-val" id="hud-inference">Analyzing Shadow Vector...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO ---
+        const AudioEngine = {
+            init() {
+                Tone.start();
+                this.drone = new Tone.Player("https://tonejs.github.io/audio/berklee/gong_1.mp3").toDestination();
+                this.drone.playbackRate = 0.5;
+                this.synth = new Tone.AMSynth().toDestination();
+                this.synth.volume.value = -15;
+            },
+            playCue(type) {
+                if (type === 'C') this.synth.triggerAttackRelease("C3", "4n");
+                if (type === 'D') this.synth.triggerAttackRelease("F#3", "4n");
+                if (type === 'E') this.synth.triggerAttackRelease("A3", "4n");
+            }
+        };
+
+        // --- VISUALIZER ---
+        const Viz = {
+            canvas: document.getElementById('viz-canvas'),
+            ctx: document.getElementById('viz-canvas').getContext('2d'),
+            exhibit: 'C',
+            mode: 'HUMAN',
+            time: 0,
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.loop();
+            },
+
+            resize() {
+                this.canvas.width = this.canvas.parentElement.offsetWidth;
+                this.canvas.height = this.canvas.parentElement.offsetHeight;
+                this.cx = this.canvas.width / 2;
+                this.cy = this.canvas.height / 2;
+            },
+
+            setMode(m) {
+                this.mode = m;
+                document.getElementById('btn-human').classList.toggle('active', m === 'HUMAN');
+                document.getElementById('btn-edgar').classList.toggle('active', m === 'EDGAR');
+            },
+
+            loop() {
+                requestAnimationFrame(() => this.loop());
+                this.time += 0.02;
+
+                const w = this.canvas.width; const h = this.canvas.height;
+                const ctx = this.ctx;
+
+                // Clear
+                ctx.fillStyle = this.mode === 'HUMAN' ? "#111" : "#000";
+                ctx.fillRect(0, 0, w, h);
+
+                // Render Exhibit
+                if (this.exhibit === 'C') this.renderExhibitC(ctx, w, h);
+                if (this.exhibit === 'D') this.renderExhibitD(ctx, w, h);
+                if (this.exhibit === 'E') this.renderExhibitE(ctx, w, h);
+
+                // Overlay for Edgar Mode
+                if (this.mode === 'EDGAR') {
+                    // Vignette
+                    const grad = ctx.createRadialGradient(w / 2, h / 2, h / 3, w / 2, h / 2, h);
+                    grad.addColorStop(0, "transparent");
+                    grad.addColorStop(1, "rgba(255, 215, 0, 0.2)");
+                    ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+
+                    // Scanline
+                    ctx.fillStyle = "rgba(255, 215, 0, 0.1)";
+                    ctx.fillRect(0, (this.time * 20) % h, w, 2);
+                }
+            },
+
+            // C: SHIFTING SHADOWS
+            renderExhibitC(ctx, w, h) {
+                // Light Source
+                ctx.fillStyle = "#fff";
+                ctx.beginPath(); ctx.arc(w * 0.2, h * 0.2, 20, 0, Math.PI * 2); ctx.fill();
+
+                // Clock Object
+                ctx.fillStyle = "#444";
+                ctx.fillRect(w / 2 - 20, h / 2 - 100, 40, 200);
+
+                // Shadow
+                ctx.fillStyle = "rgba(0,0,0,0.8)";
+                ctx.beginPath();
+                ctx.moveTo(w / 2, h / 2 + 100);
+
+                // Distorted Shadow Tip
+                let tipX = w * 0.8;
+                let tipY = h * 0.8;
+
+                if (this.mode === 'EDGAR') {
+                    // Wiggle the shadow tip
+                    tipX += Math.sin(this.time * 2) * 50;
+                    tipY += Math.cos(this.time * 3) * 30;
+
+                    // Draw invisible distorter
+                    ctx.strokeStyle = "rgba(255,0,255,0.5)";
+                    ctx.beginPath(); ctx.arc(w * 0.6, h * 0.6, 40, 0, Math.PI * 2); ctx.stroke();
+                }
+
+                ctx.lineTo(tipX, tipY);
+                ctx.lineTo(w / 2 + 40, h / 2 + 100);
+                ctx.fill();
+
+                if (this.mode === 'EDGAR') {
+                    ctx.fillStyle = "#fff";
+                    ctx.fillText("ANOMALY: NON-LINEAR LIGHT PATH", userArgs = { x: w * 0.6, y: h * 0.6 + 60 }); // Pseudocode placement
+                }
+            },
+
+            // D: INVISIBLE OBJECT
+            renderExhibitD(ctx, w, h) {
+                // Box
+                ctx.fillStyle = "#222";
+                ctx.fillRect(w / 2 - 100, h / 2 - 50, 200, 100);
+
+                // Bone
+                if (this.mode === 'HUMAN') {
+                    // Only outline visible or barely visible
+                    ctx.strokeStyle = "#333";
+                    ctx.beginPath(); ctx.moveTo(w / 2 - 30, h / 2); ctx.lineTo(w / 2 + 30, h / 2);
+                    ctx.lineWidth = 10; ctx.stroke();
+                } else {
+                    // Edgar sees the Outline + Scent
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 10;
+                    ctx.beginPath(); ctx.moveTo(w / 2 - 30, h / 2); ctx.lineTo(w / 2 + 30, h / 2); ctx.stroke();
+
+                    // Scent particles
+                    ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+                    for (let i = 0; i < 5; i++) {
+                        const px = w / 2 + Math.sin(this.time + i) * 60;
+                        const py = h / 2 + Math.cos(this.time + i) * 60;
+                        ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+            },
+
+            // E: MUTED GLOW-BALL
+            renderExhibitE(ctx, w, h) {
+                const bx = w / 2; const by = h / 2;
+
+                // The Ball
+                const glow = this.mode === 'EDGAR' ? 0.3 : 1; // Dimmer in 'Edgar' (Physics perception) or just logic
+                // Actually script says "dimmer... in the area".
+
+                const pulse = Math.sin(this.time * 5) * 0.5 + 0.5; // Flicker
+
+                const radius = 30;
+                const brightness = (this.mode === 'EDGAR') ? (0.2 + pulse * 0.1) : 0.8;
+
+                const grad = ctx.createRadialGradient(bx, by, 5, bx, by, 100);
+                grad.addColorStop(0, `rgba(0, 255, 0, ${brightness})`);
+                grad.addColorStop(1, "transparent");
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+
+                ctx.fillStyle = "#0f0";
+                ctx.beginPath(); ctx.arc(bx, by, radius, 0, Math.PI * 2); ctx.fill();
+
+                if (this.mode === 'EDGAR') {
+                    // Visualize the "Hungry Darkness" / Absorption
+                    ctx.strokeStyle = "rgba(0,0,255,0.3)";
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = this.time + (i * Math.PI * 2 / 8);
+                        ctx.moveTo(bx + Math.cos(angle) * 40, by + Math.sin(angle) * 40);
+                        ctx.lineTo(bx + Math.cos(angle) * 150, by + Math.sin(angle) * 150);
+                    }
+                    ctx.stroke();
+                    ctx.fillStyle = "#aaa";
+                    ctx.fillText("WARNING: PHOTON DRAIN DETECTED", bx - 80, by + 120);
+                }
+            }
+        };
+
+        const App = {
+            currentExhibit: 'C',
+            init() {
+                AudioEngine.init();
+                Viz.init();
+                this.setExhibit('C');
+            },
+
+            setExhibit(id) {
+                this.currentExhibit = id;
+                Viz.exhibit = id;
+
+                document.querySelectorAll('.exhibit-block').forEach(el => el.classList.remove('active'));
+                document.getElementById('ex-' + id).classList.add('active');
+
+                AudioEngine.playCue(id);
+
+                let inf = "";
+                if (id === 'C') inf = "Anomaly: Shadow Deviation (Light Bending)";
+                if (id === 'D') inf = "Anomaly: Refractive Index Match (Invisibility)";
+                if (id === 'E') inf = "Anomaly: Photon Absorption (Energy Drain)";
+                document.getElementById('hud-inference').innerText = inf;
+            }
+        };
+
+        App.init();
+
+    </script>
+</body>
+
+</html>

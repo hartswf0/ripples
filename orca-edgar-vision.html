@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCA // EDGAR-VISION</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* BLUE HOUR PALETTE */
+            --bg: #050510;
+            --fg: #ffd700;
+            --dim: #1a1a3a;
+            --gold: #ffd700;
+            --blue: #00bfff;
+            --pink: #ff69b4;
+            --shadow: #333;
+            --white: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* CRT OVERLAY */
+        #crt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(0, 0, 255, 0.03), rgba(0, 100, 200, 0.02), rgba(0, 0, 100, 0.03));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 99;
+            opacity: 0.6;
+        }
+
+        /* VIGNETTE (Edgar's peripheral vision) */
+        #vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+            z-index: 98;
+        }
+
+        /* UI LAYOUT */
+        #interface {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            width: 95vw;
+            height: 90vh;
+            gap: 20px;
+        }
+
+        /* GRID */
+        #grid-wrapper {
+            position: relative;
+            border: 1px solid var(--dim);
+            overflow: hidden;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        #grid-canvas {
+            display: block;
+        }
+
+        /* INFO PANEL */
+        aside {
+            border-left: 1px solid var(--dim);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            font-size: 12px;
+            line-height: 1.5;
+            background: rgba(5, 5, 20, 0.5);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: var(--dim);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .stat-block {
+            border: 1px solid var(--dim);
+            padding: 10px;
+        }
+
+        .active-mode {
+            color: var(--gold);
+            text-shadow: 0 0 5px var(--gold);
+        }
+
+        .inactive-mode {
+            color: var(--dim);
+        }
+
+        .worldtext-log {
+            flex-grow: 1;
+            overflow-y: hidden;
+            border-top: 1px dashed var(--dim);
+            padding-top: 10px;
+            font-size: 10px;
+            color: var(--fg);
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+            opacity: 0.8;
+            animation: fadeSlide 0.3s ease-out;
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 0.8;
+                transform: translateX(0);
+            }
+        }
+
+        .log-PHOTON {
+            color: var(--gold);
+        }
+
+        .log-DIFFUSION {
+            color: var(--blue);
+        }
+
+        .log-SHADOW {
+            color: var(--shadow);
+        }
+
+        .log-SCENT {
+            color: var(--pink);
+        }
+
+        .log-SYS {
+            color: #fff;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+            margin-bottom: 10px;
+        }
+
+        /* LEGEND */
+        .legend {
+            font-size: 10px;
+            color: #888;
+            line-height: 1.8;
+        }
+
+        .legend span {
+            display: inline-block;
+            width: 15px;
+            text-align: center;
+            margin-right: 5px;
+        }
+
+        .leg-P {
+            color: #ff00ff;
+        }
+
+        .leg-G {
+            color: #00ffff;
+        }
+
+        .leg-B {
+            color: #00ff00;
+        }
+
+        .leg-L {
+            color: #ff69b4;
+        }
+
+        .leg-A {
+            color: #8b4513;
+        }
+
+        .leg-X {
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="crt"></div>
+    <div id="vignette"></div>
+
+    <div id="interface">
+        <div id="grid-wrapper">
+            <canvas id="grid-canvas"></canvas>
+        </div>
+
+        <aside>
+            <div>
+                <h1>EDGAR-VISION</h1>
+                <span class="subtitle">"I DON'T JUST BARK. I INFER."</span>
+
+                <div class="stat-block">
+                    <div>SCENARIO: <span id="scene-name" style="color:#fff">BLUE_HOUR</span></div>
+                    <div>TICK: <span id="tick-disp">0000</span></div>
+                    <div style="margin-top:10px;">
+                        <span id="status-run" class="inactive-mode">● RUNNING</span> |
+                        <span id="status-vis" class="inactive-mode">◎ VISION</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; color: var(--dim); font-size: 10px;">
+                    [SPACE] PLAY/PAUSE<br>
+                    [E] EDGAR-VISION TOGGLE<br>
+                    [R] SHIFT SCENARIO<br>
+                    [CLICK] SPAWN PHOTON
+                </div>
+
+                <div class="legend" style="margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
+                    <strong style="color:#fff;">ENTITY KEY:</strong><br>
+                    <span class="leg-P">P</span> PRISM (Refract)<br>
+                    <span class="leg-G">G</span> GLASSES (Reflect)<br>
+                    <span class="leg-B">B</span> GLOW-BALL (Phosphor)<br>
+                    <span class="leg-L">L</span> LAMBCHOP (Scent)<br>
+                    <span class="leg-A">A</span> ANTLER (Cold)<br>
+                    <span class="leg-X">X</span> BLANK (Absorb)
+                </div>
+            </div>
+
+            <div class="worldtext-log" id="worldtext">
+                <div class="log-entry">> THE BLUE HOUR BEGINS. PRESS SPACE.</div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        /**
+         * EDGAR-VISION AUTONOMIC ENGINE
+         * Physics-based cellular automata for optics mystery.
+         */
+
+        // --- CONFIG ---
+        const COLS = 46;
+        const ROWS = 28;
+        const CHAR_W = 10;
+        const CHAR_H = 18;
+
+        // --- SCENARIOS ---
+        const SCENARIOS = [
+            {
+                id: 'BLUE_HOUR',
+                entities: ['P', 'G', 'B'],
+                density: 0.04,
+                desc: "The Great Diffusion. Light refracts. Edgar watches."
+            },
+            {
+                id: 'SHADOW_ANOMALY',
+                entities: ['G', 'X', 'L'],
+                density: 0.05,
+                desc: "The Mysterious Blank appears. Chair moved. Glasses on floor."
+            },
+            {
+                id: 'NOT_ALONE',
+                entities: ['P', 'G', 'A', 'B', 'L', 'X'],
+                density: 0.07,
+                desc: "Full inference mode. All toys. Cold antler. Dim glow-ball."
+            }
+        ];
+
+        // --- ENTITY COLORS ---
+        const ENTITY_COLORS = {
+            'P': '#ff00ff', // Prism
+            'G': '#00ffff', // Glasses
+            'B': '#00ff00', // Glow-Ball
+            'L': '#ff69b4', // Lambchop
+            'A': '#8b4513', // Antler
+            'X': '#222222'  // Mysterious Blank
+        };
+
+        // --- STATE ---
+        let grid = [];
+        let nextGrid = [];
+        let ripples = [];
+        let tick = 0;
+        let isPlaying = false;
+        let edgarVisionActive = false;
+        let currentScenarioIdx = 0;
+
+        // --- AUDIO ---
+        const Audio = {
+            synth: null,
+            drone: null,
+            ready: false,
+
+            init: async () => {
+                if (Audio.ready) return;
+                await Tone.start();
+
+                Audio.synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.02, decay: 0.1, sustain: 0.1, release: 2 }
+                }).toDestination();
+                Audio.synth.volume.value = -12;
+
+                Audio.drone = new Tone.Oscillator(80, "sine").toDestination();
+                Audio.drone.volume.value = -30;
+                Audio.drone.start();
+
+                Audio.ready = true;
+                log("OPTICS ONLINE", "SYS");
+            },
+
+            trigger: (type) => {
+                if (!Audio.ready) return;
+
+                if (type === 'PRISM') {
+                    // Harmonic chord for refraction
+                    Audio.synth.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+                }
+                if (type === 'GLASS') {
+                    // Ping for reflection
+                    Audio.synth.triggerAttackRelease("B5", "16n");
+                }
+                if (type === 'ABSORB') {
+                    // Low thud for shadow
+                    Audio.synth.triggerAttackRelease("F2", "32n");
+                }
+                if (type === 'GLOW') {
+                    // Swell for phosphorescence
+                    Audio.drone.frequency.rampTo(150, 1);
+                    setTimeout(() => Audio.drone.frequency.rampTo(80, 2), 1000);
+                }
+                if (type === 'RESET') {
+                    Audio.drone.frequency.rampTo(80, 0.1);
+                }
+            }
+        };
+
+        // --- GRID LOGIC ---
+        function initGrid(scenarioIdx = 0) {
+            grid = new Array(ROWS * COLS).fill('.');
+            ripples = [];
+
+            const scene = SCENARIOS[scenarioIdx];
+            document.getElementById('scene-name').innerText = scene.id;
+            log(`PERSPECTIVE: ${scene.id}`, "SYS");
+            log(scene.desc, "SYS");
+
+            let count = Math.floor((ROWS * COLS) * scene.density);
+            while (count > 0) {
+                let x = Math.floor(Math.random() * COLS);
+                let y = Math.floor(Math.random() * ROWS);
+                if (grid[y * COLS + x] === '.') {
+                    let ent = scene.entities[Math.floor(Math.random() * scene.entities.length)];
+                    grid[y * COLS + x] = ent;
+                    count--;
+                }
+            }
+
+            // Spawn initial photon from "window" (top-right)
+            spawnRipple(COLS - 2, 1, 'PHOTON');
+        }
+
+        function shiftPerspective() {
+            Audio.trigger('RESET');
+            currentScenarioIdx = (currentScenarioIdx + 1) % SCENARIOS.length;
+            const cvs = document.getElementById('grid-canvas');
+            cvs.style.filter = "invert(1)";
+            setTimeout(() => cvs.style.filter = "invert(0)", 100);
+            initGrid(currentScenarioIdx);
+        }
+
+        // --- RUNTIME ---
+        function runTick() {
+            tick++;
+            document.getElementById('tick-disp').innerText = tick.toString().padStart(4, '0');
+            nextGrid = [...grid];
+
+            // Clear visual artifacts
+            for (let i = 0; i < nextGrid.length; i++) {
+                if ('·~░≈*'.includes(nextGrid[i])) {
+                    nextGrid[i] = '.';
+                }
+            }
+
+            // Random mutations
+            if (Math.random() < 0.03) {
+                const x = Math.floor(Math.random() * COLS);
+                const y = Math.floor(Math.random() * ROWS);
+                const types = ['PHOTON', 'DIFFUSION', 'SCENT'];
+                spawnRipple(x, y, types[Math.floor(Math.random() * 3)]);
+            }
+
+            // Ripple Physics
+            let activeRipples = [];
+            ripples.forEach(r => {
+                r.age++;
+
+                for (let dy = -r.age; dy <= r.age; dy++) {
+                    for (let dx = -r.age; dx <= r.age; dx++) {
+                        let d2 = dx * dx + dy * dy;
+                        if (d2 <= r.age * r.age && d2 > (r.age - 1) * (r.age - 1)) {
+                            let tx = r.x + dx;
+                            let ty = r.y + dy;
+                            if (tx >= 0 && tx < COLS && ty >= 0 && ty < ROWS) {
+                                let idx = ty * COLS + tx;
+                                let cell = grid[idx];
+
+                                // COLLISION LOGIC
+                                if (cell !== '.' && !'·~░≈*'.includes(cell)) {
+                                    // Hit an entity!
+                                    handleCollision(cell, r.type, tx, ty);
+                                    nextGrid[idx] = '*';
+                                } else {
+                                    // Draw Wave
+                                    let waveChar = '.';
+                                    if (r.type === 'PHOTON') waveChar = '·';
+                                    else if (r.type === 'DIFFUSION') waveChar = '~';
+                                    else if (r.type === 'SHADOW') waveChar = '░';
+                                    else if (r.type === 'SCENT') waveChar = '≈';
+
+                                    if (waveChar !== '.') nextGrid[idx] = waveChar;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (r.age < r.max) activeRipples.push(r);
+            });
+            ripples = activeRipples;
+
+            // Entity Cleanup
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] === '*') {
+                    const scene = SCENARIOS[currentScenarioIdx];
+                    nextGrid[i] = scene.entities[Math.floor(Math.random() * scene.entities.length)];
+                }
+            }
+
+            grid = nextGrid;
+            draw();
+        }
+
+        function handleCollision(entity, rippleType, x, y) {
+            if (entity === 'P' && rippleType === 'PHOTON') {
+                // Prism: Refract into rainbow
+                Audio.trigger('PRISM');
+                log(`[P] PRISM refracted PHOTON. ROYGBIV split.`, 'PHOTON');
+                // Spawn multiple ripples in different directions
+                spawnRipple(x + 1, y, 'DIFFUSION');
+                spawnRipple(x, y + 1, 'DIFFUSION');
+            }
+            else if (entity === 'G' && rippleType === 'PHOTON') {
+                // Glasses: Specular Reflection
+                Audio.trigger('GLASS');
+                log(`[G] GLASSES reflected. Specular bounce.`, 'PHOTON');
+                spawnRipple(x, y, 'PHOTON'); // Bounce
+            }
+            else if (entity === 'X') {
+                // Mysterious Blank: Absorb
+                Audio.trigger('ABSORB');
+                log(`[X] BLANK absorbed light. Void hungers.`, 'SHADOW');
+                spawnRipple(x, y, 'SHADOW');
+            }
+            else if (entity === 'B') {
+                // Glow-Ball: Phosphorescence
+                Audio.trigger('GLOW');
+                log(`[B] GLOW-BALL pulsing. Photons stored.`, 'DIFFUSION');
+            }
+            else if (entity === 'L') {
+                // Lambchop: Scent Trail
+                log(`[L] LAMBCHOP detected. Plush scent trail.`, 'SCENT');
+                spawnRipple(x, y, 'SCENT');
+            }
+            else if (entity === 'A') {
+                // Antler: Cold Anomaly
+                log(`[A] ANTLER is cold. Thermal deviation.`, 'SYS');
+            }
+        }
+
+        function spawnRipple(x, y, type) {
+            ripples.push({ x, y, type, age: 0, max: 10 });
+        }
+
+        // --- VISUALIZATION ---
+        const canvas = document.getElementById('grid-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = document.getElementById('grid-wrapper').offsetWidth;
+            canvas.height = document.getElementById('grid-wrapper').offsetHeight;
+        }
+        window.addEventListener('resize', resize);
+        setTimeout(resize, 100);
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = '16px monospace';
+            ctx.textBaseline = 'top';
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const char = grid[y * COLS + x];
+                    const px = x * CHAR_W + 15;
+                    const py = y * CHAR_H + 15;
+
+                    // Color Logic
+                    ctx.fillStyle = '#1a1a3a'; // Dim default
+
+                    if (char === '·') ctx.fillStyle = '#ffd700'; // Photon
+                    else if (char === '~') ctx.fillStyle = '#00bfff'; // Diffusion
+                    else if (char === '░') ctx.fillStyle = '#333'; // Shadow
+                    else if (char === '≈') ctx.fillStyle = '#ff69b4'; // Scent
+                    else if (char === '*') { ctx.fillStyle = '#fff'; }
+                    else if (ENTITY_COLORS[char]) {
+                        ctx.fillStyle = ENTITY_COLORS[char];
+                    }
+
+                    // Edgar-Vision Mode: Add labels
+                    if (char !== '.' && char !== '·' && char !== '~' && char !== '░' && char !== '≈') {
+                        ctx.fillText(char, px, py);
+
+                        if (edgarVisionActive && ENTITY_COLORS[char]) {
+                            // Draw glow
+                            ctx.save();
+                            ctx.shadowColor = ENTITY_COLORS[char];
+                            ctx.shadowBlur = 10;
+                            ctx.fillText(char, px, py);
+                            ctx.restore();
+                        }
+                    } else if (char !== '.') {
+                        ctx.fillText(char, px, py);
+                    }
+                }
+            }
+        }
+
+        // --- LOGGING ---
+        function log(text, type) {
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerText = `> ${text}`;
+            const logContainer = document.getElementById('worldtext');
+            logContainer.prepend(div);
+            if (logContainer.children.length > 15) logContainer.lastChild.remove();
+        }
+
+        // --- CONTROLS ---
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                isPlaying = !isPlaying;
+                document.getElementById('status-run').className = isPlaying ? 'active-mode' : 'inactive-mode';
+                if (isPlaying) Audio.init();
+            }
+            if (e.key.toUpperCase() === 'R') shiftPerspective();
+            if (e.key.toUpperCase() === 'E') {
+                edgarVisionActive = !edgarVisionActive;
+                document.getElementById('status-vis').className = edgarVisionActive ? 'active-mode' : 'inactive-mode';
+                log(edgarVisionActive ? "EDGAR-VISION: ON" : "EDGAR-VISION: OFF", "SYS");
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            Audio.init();
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left - 15) / CHAR_W);
+            const y = Math.floor((e.clientY - rect.top - 15) / CHAR_H);
+            if (x >= 0 && y >= 0) spawnRipple(x, y, 'PHOTON');
+        });
+
+        // Boot
+        initGrid(0);
+        setInterval(() => {
+            if (isPlaying) runTick();
+        }, 120);
+
+    </script>
+</body>
+
+</html>

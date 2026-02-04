@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // SCOUT_OPTICS_V19</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* SCOUT PALETTE */
+            --color-bg: #020205;
+            /* Midnight */
+            --color-north: #e0ffff;
+            /* Polaris White */
+            --color-moss: #556b2f;
+            /* Dark Olive Green */
+            --color-lantern: #ff8c00;
+            /* Candlelight */
+            --color-quilt: #b22222;
+            /* Madder Red */
+            --color-twilight: #191970;
+            /* Midnight Blue */
+            --color-edgar: #daa520;
+            /* Golden Fur */
+
+            /* UI PALETTE */
+            --ui-text: #e0e0e0;
+            /* Starlight Text */
+            --ui-dim: rgba(224, 255, 255, 0.2);
+            --font-stack: 'Georgia', serif;
+            /* Narrative font */
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-stack);
+            color: var(--ui-text);
+        }
+
+        /* --- THE CHASSIS --- */
+        .monitor-frame {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* --- LAYERS --- */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #layer-grid {
+            z-index: 10;
+            display: block;
+        }
+
+        #layer-raycaster {
+            z-index: 20;
+            display: none;
+            background: #000;
+        }
+
+        .active-mode-grid #layer-grid {
+            display: block;
+            pointer-events: auto;
+        }
+
+        .active-mode-grid #layer-raycaster {
+            display: none;
+            pointer-events: none;
+        }
+
+        .active-mode-void #layer-grid {
+            display: none;
+            pointer-events: none;
+        }
+
+        .active-mode-void #layer-raycaster {
+            display: block;
+            pointer-events: auto;
+        }
+
+        /* --- UI OVERLAYS --- */
+        .crt-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 50%, #000 150%);
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
+        #viz-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-ui {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--color-moss);
+            color: var(--ui-text);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-ui:hover {
+            border-color: var(--color-north);
+            background: var(--color-moss);
+        }
+
+        .btn-lantern {
+            border-color: var(--color-lantern);
+            color: var(--color-lantern);
+        }
+
+        .btn-lantern:hover {
+            background: var(--color-lantern);
+            color: #000;
+        }
+
+        .reader-panel {
+            position: absolute;
+            left: 20px;
+            top: 80px;
+            bottom: 120px;
+            width: 320px;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            pointer-events: none;
+        }
+
+        .panel-header {
+            border-bottom: 1px solid var(--color-north);
+            padding-bottom: 5px;
+            color: var(--color-north);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .poem-text {
+            border-left: 2px solid var(--color-moss);
+            padding-left: 15px;
+            min-height: 100px;
+            color: #ccc;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            line-height: 1.5;
+            font-size: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            font-style: italic;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 25;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .hud-minimap {
+            width: 120px;
+            height: 120px;
+            background: rgba(10, 10, 20, 0.8);
+            border: 1px solid #444;
+            pointer-events: auto;
+            border-radius: 50%;
+            /* Compass style */
+        }
+
+        /* --- RAYCASTER UI --- */
+        #raycaster-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        .scanner {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 600px;
+            pointer-events: none;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: center;
+        }
+
+        .scanner-text {
+            background: rgba(5, 5, 20, 0.9);
+            padding: 20px;
+            border: 1px solid var(--color-north);
+            color: var(--ui-text);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+            font-family: 'Courier New', monospace;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 35;
+        }
+
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #020205;
+            z-index: 30000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--color-north);
+        }
+    </style>
+</head>
+
+<body class="active-mode-grid">
+
+    <div id="boot-screen">
+        <div style="font-size: 2rem; letter-spacing: 4px; margin-bottom: 20px; font-family: 'Courier New';">
+            SCOUT OPTICS // v19
+        </div>
+        <div style="font-size: 1rem; color: #889; margin-bottom: 40px; font-style: italic;">
+            "The star that does not wander."
+        </div>
+        <button onclick="System.init()"
+            style="background: transparent; color: var(--color-north); border: 1px solid var(--color-north); padding: 15px 30px; font-family: inherit; font-size: 1rem; cursor: pointer; text-transform: uppercase;">
+            Follow the North Star
+        </button>
+    </div>
+
+    <div class="monitor-frame">
+        <div class="crt-overlay"></div>
+
+        <!-- HEADER -->
+        <div class="header-controls">
+            <button class="btn-ui" onclick="GridRenderer.toggleView()" id="view-btn">MAP: STARS</button>
+            <button class="btn-ui btn-lantern" id="mode-toggle" onclick="System.toggleMode()">ENTER HOUSE</button>
+            <button class="btn-ui"
+                onclick="alert('Use the BIG DIPPER to find NORTH.\nUse the LANTERN to find EDGAR.')">?</button>
+        </div>
+
+        <!-- LAYER 1: HEAVENS (GRID) -->
+        <div id="layer-grid" class="layer">
+            <canvas id="viz-canvas"></canvas>
+
+            <div class="reader-panel" id="reader-panel">
+                <div id="zone-header" class="panel-header">CELESTIAL NAVIGATION</div>
+                <div id="text-display" class="poem-text">
+                    "I didn't just guess the way North.<br>
+                    I observed the reflection of the moon in the still water."
+                </div>
+            </div>
+
+            <div class="hud-overlay">
+                <div class="hud-panel" id="ui-coords">LAT: 38°N</div>
+                <canvas id="minimap-canvas" class="hud-minimap"></canvas>
+            </div>
+        </div>
+
+        <!-- LAYER 2: TWILIGHT INTERIOR (RAYCASTER) -->
+        <div id="layer-raycaster" class="layer">
+            <canvas id="raycaster-canvas"></canvas>
+            <div class="crosshair"></div>
+
+            <div class="scanner">
+                <div class="scanner-text" id="scanner-output">
+                    > ROOM: THE TWILIGHT INTERIOR<br>
+                    > LIGHT: BLUE HOUR (SCARCE PHOTONS)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- NARRATIVE DATA ---
+        const SCOUT_DATA = {
+            north: [
+                "POLARIS: The Constant.",
+                "Latitude confirmed. We are moving North.",
+                "The star that does not wander.",
+                "Cool-white glow. Steady photon stream.",
+                "Celestial Anchor."
+            ],
+            moss: [
+                "THE MOSS: Convex Tree Bark.",
+                "Grows on the shadow side.",
+                "Evidence: Damp, soft texture.",
+                "Inference: This side is North.",
+                "Qualitative Observation."
+            ],
+            lantern: [
+                "THE LANTERN: Signal Beacon.",
+                "Polished tin backing acts as a MIRROR.",
+                "Focusing photons into a beam.",
+                "Quilt overlay for DIFFUSION.",
+                "Soft, invisible glow."
+            ],
+            quilt: [
+                "THE QUILT: Monkey Wrench Pattern.",
+                "Evidence: Geometric code on the fence.",
+                "Inference: 'Gather your tools.'",
+                "Color: Madder Red (Low visibility at night).",
+                "Textstile Steganography."
+            ]
+        };
+
+        const ZONES = {
+            NORTH: { name: "POLARIS", color: "#e0ffff", type: "STAR" },
+            WOODS: { name: "DEEP WOODS", color: "#556b2f", type: "TERRAIN" },
+            PATH: { name: "THE PATH", color: "#8b4513", type: "CLUE" },
+            HOUSE: { name: "SAFE HOUSE", color: "#ff8c00", type: "DESTINATION" }
+        };
+
+        // --- AUDIO ---
+        const AudioEngine = {
+            initialized: false,
+            windSynth: null, starSynth: null,
+            async init() {
+                if (this.initialized) return;
+                await Tone.start();
+                this.windSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' }, envelope: { attack: 2, decay: 2, sustain: 1 }
+                }).toDestination();
+                this.windSynth.volume.value = -25;
+
+                this.starSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.5, decay: 1, sustain: 0.5, release: 2 }
+                }).toDestination();
+                this.starSynth.volume.value = -15;
+
+                this.initialized = true;
+                // Start wind
+                this.windSynth.triggerAttack();
+            },
+            triggerStar() {
+                if (!this.initialized) return;
+                const notes = ["C5", "E5", "G5", "B5", "D6"];
+                this.starSynth.triggerAttackRelease(notes[Math.floor(Math.random() * notes.length)], "2n");
+            },
+            triggerClue() {
+                if (!this.initialized) return;
+                this.starSynth.triggerAttackRelease(["A3", "C4"], "4n");
+            }
+        };
+
+        // --- GRID RENDERER (CELESTIAL MAP) ---
+        const GridRenderer = {
+            canvas: document.getElementById('viz-canvas'),
+            ctx: document.getElementById('viz-canvas').getContext('2d'),
+            minimapCtx: document.getElementById('minimap-canvas').getContext('2d'),
+            stars: [],
+            zoom: 1.0, PanX: 0, PanY: 0,
+            viewMode: 'STARS',
+            time: 0, mousePos: null,
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                // Interaction
+                this.canvas.addEventListener('mousemove', e => {
+                    this.mousePos = { x: e.clientX, y: e.clientY };
+                });
+
+                // Generate Starfield
+                for (let i = 0; i < 300; i++) {
+                    const r = Math.random() * 500;
+                    const theta = Math.random() * Math.PI * 2;
+                    let type = "STAR";
+                    let size = Math.random() * 2;
+                    let text = "Starlight";
+
+                    // Constellation logic: Big Dipper pointing to Polaris
+                    if (i === 0) { // Polaris
+                        this.stars.push({ x: 0, y: -200, size: 6, color: "#fff", type: "POLARIS", text: SCOUT_DATA.north });
+                        continue;
+                    }
+
+                    if (Math.random() > 0.95) {
+                        type = Math.random() > 0.5 ? "LANTERN" : "MOSS";
+                        size = 4;
+                    }
+
+                    this.stars.push({
+                        x: r * Math.cos(theta),
+                        y: r * Math.sin(theta),
+                        size: size,
+                        color: type === "LANTERN" ? "#ff8c00" : (type === "MOSS" ? "#556b2f" : "#fff"),
+                        type: type,
+                        text: type === "LANTERN" ? SCOUT_DATA.lantern : (type === "MOSS" ? SCOUT_DATA.moss : ["Distant Star"])
+                    });
+                }
+            },
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.cx = this.canvas.width / 2; this.cy = this.canvas.height / 2;
+            },
+
+            resetView() { this.PanX = 0; this.PanY = 0; this.zoom = 1.0; },
+            toggleView() {
+                this.viewMode = this.viewMode === 'STARS' ? 'CONSTELLATIONS' : 'STARS';
+                document.getElementById('view-btn').innerText = "MAP: " + this.viewMode;
+            },
+
+            loop() {
+                if (System.mode !== 'GRID') return;
+                this.time += 0.005;
+
+                // Deep Sky Background
+                const grad = this.ctx.createRadialGradient(this.cx, this.cy, 100, this.cx, this.cy, this.canvas.height);
+                grad.addColorStop(0, "#050510");
+                grad.addColorStop(1, "#000");
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                let closest = null; let minDist = 50;
+
+                this.stars.forEach(star => {
+                    // Rotate sky around Polaris
+                    const angle = this.time * 0.1;
+                    // Polaris (0, -200) stays relatively fixed or rotates in place
+                    // Simulate Earth rotation: All stars rotate around Polaris
+
+                    // Simple projection for now
+                    const screenX = this.cx + star.x + this.PanX;
+                    const screenY = this.cy + star.y + this.PanY;
+
+                    // Draw
+                    this.ctx.fillStyle = star.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(screenX, screenY, star.size * this.zoom, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Twinkle
+                    if (Math.random() > 0.99) {
+                        this.ctx.fillStyle = "#fff";
+                        this.ctx.fillRect(screenX - 1, screenY - 1, 3, 3);
+                    }
+
+                    // Hover
+                    if (this.mousePos) {
+                        const d = Math.hypot(screenX - this.mousePos.x, screenY - this.mousePos.y);
+                        if (d < minDist) { minDist = d; closest = star; }
+                    }
+                });
+
+                if (closest && closest !== this.hoverStar) {
+                    this.hoverStar = closest;
+                    const snippet = Array.isArray(closest.text) ? closest.text[Math.floor(Math.random() * closest.text.length)] : closest.text;
+                    document.getElementById('text-display').innerHTML = `> ${closest.type}<br>"${snippet}"`;
+                    AudioEngine.triggerStar();
+                }
+
+                if (closest) {
+                    this.ctx.strokeStyle = "rgba(255,255,255,0.5)";
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.cx + closest.x + this.PanX, this.cy + closest.y + this.PanY, 20, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+
+                // Draw Compass Map
+                this.minimapCtx.clearRect(0, 0, 120, 120);
+                this.minimapCtx.strokeStyle = "#444";
+                this.minimapCtx.beginPath();
+                this.minimapCtx.moveTo(60, 10); this.minimapCtx.lineTo(60, 110);
+                this.minimapCtx.moveTo(10, 60); this.minimapCtx.lineTo(110, 60);
+                this.minimapCtx.stroke();
+                this.minimapCtx.fillStyle = "#e0ffff";
+                this.minimapCtx.font = "10px Courier";
+                this.minimapCtx.fillText("N", 57, 10);
+            }
+        };
+
+        // --- RAYCASTER (INTERIOR) ---
+        const RaycasterEngine = {
+            canvas: document.getElementById('raycaster-canvas'),
+            ctx: document.getElementById('raycaster-canvas').getContext('2d'),
+            map: [], textures: [],
+            player: { x: 3.5, y: 3.5, dirX: -1, dirY: 0, planeX: 0, planeY: 0.66 },
+            keys: { w: false, a: false, s: false, d: false },
+
+            init() {
+                this.genTextures();
+                // 10 Room Labyrinth Layout (8x8 simplified)
+                // 1=Wall, 2=Quilt, 3=Antler, 4=GlowBall, 5=Edgar
+                this.map = [
+                    [1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0, 2, 0, 1],
+                    [1, 0, 3, 0, 0, 0, 0, 1], // Antler
+                    [1, 0, 0, 1, 1, 0, 0, 1], // Wall divider
+                    [1, 0, 0, 1, 5, 0, 0, 1], // Edgar Hidden
+                    [1, 4, 0, 0, 0, 0, 0, 1], // Glow ball
+                    [1, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1]
+                ];
+
+                window.addEventListener('keydown', e => {
+                    if (e.key === 'w') this.keys.w = true;
+                    if (e.key === 's') this.keys.s = true;
+                    if (e.key === 'a') this.keys.a = true;
+                    if (e.key === 'd') this.keys.d = true;
+                });
+                window.addEventListener('keyup', e => {
+                    if (e.key === 'w') this.keys.w = false;
+                    if (e.key === 's') this.keys.s = false;
+                    if (e.key === 'a') this.keys.a = false;
+                    if (e.key === 'd') this.keys.d = false;
+                });
+            },
+
+            genTextures() {
+                const items = ["QUILT", "ANTLER", "GLOW", "EDGAR", "WALL"];
+                const colors = ["#b22222", "#d2b48c", "#00ff00", "#daa520", "#333"];
+
+                items.forEach((item, i) => {
+                    const c = document.createElement('canvas');
+                    c.width = 64; c.height = 64;
+                    const x = c.getContext('2d');
+                    x.fillStyle = i === 4 ? "#222" : "#111"; // BG
+                    x.fillRect(0, 0, 64, 64);
+
+                    x.fillStyle = colors[i];
+                    x.font = "bold 12px Courier";
+                    x.textAlign = "center";
+                    x.fillText(item, 32, 32);
+
+                    // Visual clues
+                    if (item === "QUILT") {
+                        x.strokeStyle = "white"; x.strokeRect(10, 10, 44, 44);
+                    }
+                    if (item === "GLOW") {
+                        x.shadowBlur = 10; x.shadowColor = "#00ff00";
+                        x.beginPath(); x.arc(32, 45, 10, 0, Math.PI * 2); x.fill();
+                    }
+
+                    this.textures.push(c);
+                });
+            },
+
+            update() {
+                const ms = 0.05, rs = 0.03;
+                if (this.keys.w) { this.player.x += this.player.dirX * ms; this.player.y += this.player.dirY * ms; }
+                if (this.keys.s) { this.player.x -= this.player.dirX * ms; this.player.y -= this.player.dirY * ms; }
+                if (this.keys.d) {
+                    const oldDir = this.player.dirX;
+                    this.player.dirX = this.player.dirX * Math.cos(-rs) - this.player.dirY * Math.sin(-rs);
+                    this.player.dirY = oldDir * Math.sin(-rs) + this.player.dirY * Math.cos(-rs);
+                    const oldPlane = this.player.planeX;
+                    this.player.planeX = this.player.planeX * Math.cos(-rs) - this.player.planeY * Math.sin(-rs);
+                    this.player.planeY = oldPlane * Math.sin(-rs) + this.player.planeY * Math.cos(-rs);
+                }
+                if (this.keys.a) {
+                    const oldDir = this.player.dirX;
+                    this.player.dirX = this.player.dirX * Math.cos(rs) - this.player.dirY * Math.sin(rs);
+                    this.player.dirY = oldDir * Math.sin(rs) + this.player.dirY * Math.cos(rs);
+                    const oldPlane = this.player.planeX;
+                    this.player.planeX = this.player.planeX * Math.cos(rs) - this.player.planeY * Math.sin(rs);
+                    this.player.planeY = oldPlane * Math.sin(rs) + this.player.planeY * Math.cos(rs);
+                }
+            },
+
+            render() {
+                if (System.mode !== 'VOID') return;
+                this.update();
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                // Twilight Blue Floor/Ceiling
+                const grad = this.ctx.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, "#000");
+                grad.addColorStop(0.5, "#191970"); // Twilight Horizon
+                grad.addColorStop(1, "#050510");
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, 0, w, h);
+
+                for (let x = 0; x < w; x += 4) {
+                    const camX = 2 * x / w - 1;
+                    const rayDirX = this.player.dirX + this.player.planeX * camX;
+                    const rayDirY = this.player.dirY + this.player.planeY * camX;
+
+                    let mapX = Math.floor(this.player.x), mapY = Math.floor(this.player.y);
+                    let sideDistX, sideDistY, perpDist;
+                    let stepX, stepY, hit = 0, side;
+
+                    const deltaDistX = Math.abs(1 / rayDirX), deltaDistY = Math.abs(1 / rayDirY);
+
+                    if (rayDirX < 0) { stepX = -1; sideDistX = (this.player.x - mapX) * deltaDistX; }
+                    else { stepX = 1; sideDistX = (mapX + 1.0 - this.player.x) * deltaDistX; }
+                    if (rayDirY < 0) { stepY = -1; sideDistY = (this.player.y - mapY) * deltaDistY; }
+                    else { stepY = 1; sideDistY = (mapY + 1.0 - this.player.y) * deltaDistY; }
+
+                    while (hit === 0) {
+                        if (sideDistX < sideDistY) { sideDistX += deltaDistX; mapX += stepX; side = 0; }
+                        else { sideDistY += deltaDistY; mapY += stepY; side = 1; }
+                        if (this.map[mapX] && this.map[mapX][mapY] && this.map[mapX][mapY] > 0) hit = this.map[mapX][mapY];
+                    }
+
+                    if (side === 0) perpDist = (mapX - this.player.x + (1 - stepX) / 2) / rayDirX;
+                    else perpDist = (mapY - this.player.y + (1 - stepY) / 2) / rayDirY;
+
+                    const lineHeight = Math.floor(h / perpDist);
+                    const drawStart = -lineHeight / 2 + h / 2;
+
+                    // Determine texture
+                    // 1=Wall(4), 2=Quilt(0), 3=Antler(1), 4=Glow(2), 5=Edgar(3)
+                    let texIdx = 4;
+                    if (hit === 2) texIdx = 0;
+                    if (hit === 3) texIdx = 1;
+                    if (hit === 4) texIdx = 2;
+                    if (hit === 5) texIdx = 3;
+
+                    const tex = this.textures[texIdx];
+                    this.ctx.globalAlpha = Math.min(1, 4 / perpDist); // Gloom
+                    this.ctx.drawImage(tex, x, drawStart, 4, lineHeight);
+                    this.ctx.globalAlpha = 1;
+
+                    // Check Logic
+                    if (x === w / 2) {
+                        if (hit === 2) document.getElementById('scanner-output').innerHTML = "> OBJECT: QUILT<br>PATTERN: MONKEY WRENCH (Gather Tools)";
+                        else if (hit === 3) document.getElementById('scanner-output').innerHTML = "> OBJECT: ANTLER<br>Evidence: Broken Bone Texture.";
+                        else if (hit === 4) document.getElementById('scanner-output').innerHTML = "> OBJECT: GLOW BALL<br>Physics: Phosphorescence (Stored Light).";
+                        else if (hit === 5) document.getElementById('scanner-output').innerHTML = "> TARGET: EDGAR FOUND!<br>Status: Safe.";
+                        else document.getElementById('scanner-output').innerHTML = "> SCANNING ROOM...";
+                    }
+                }
+            }
+        };
+
+        // --- SYSTEM ---
+        const System = {
+            mode: 'GRID',
+            init() {
+                document.getElementById('boot-screen').style.display = 'none';
+                AudioEngine.init();
+                GridRenderer.init();
+                RaycasterEngine.init();
+                this.loop();
+            },
+            toggleMode() {
+                this.mode = this.mode === 'GRID' ? 'VOID' : 'GRID';
+                document.body.className = this.mode === 'GRID' ? 'active-mode-grid' : 'active-mode-void';
+                document.getElementById('mode-toggle').innerText = this.mode === 'GRID' ? 'ENTER HOUSE' : 'EXIT HOUSE';
+            },
+            loop() {
+                requestAnimationFrame(() => this.loop());
+                if (this.mode === 'GRID') GridRenderer.loop();
+                if (this.mode === 'VOID') RaycasterEngine.render();
+            }
+        };
+    </script>
+</body>
+
+</html>
