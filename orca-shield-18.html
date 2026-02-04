@@ -414,24 +414,40 @@
             <div class="hud-overlay">
                 <div class="hud-panel" id="ui-coords">LOC: 0,0</div>
 
-                <!-- MOBILE CONTROLS -->
+                <!-- MOBILE CONTROLS: DUAL ANALOG JOYSTICKS -->
                 <div id="mobile-controls"
-                    style="position:fixed; bottom:20px; right:20px; z-index:10000; display:none; flex-direction:column; gap:10px; opacity:0.8;">
-                    <div style="display:flex; justify-content:center;">
-                        <button id="btn-up"
-                            style="width:60px; height:60px; background:rgba(0,0,0,0.8); border:2px solid #ff8c00; color:#ff8c00; font-size:24px; border-radius:50%; touch-action: manipulation;">▲</button>
+                    style="position:fixed; bottom:20px; left:0; right:0; z-index:10000; display:none; justify-content:space-between; padding:0 20px; pointer-events:none;">
+
+                    <!-- LEFT JOYSTICK (MOVE) -->
+                    <div id="joystick-left"
+                        style="width:120px; height:120px; background:rgba(0,0,0,0.5); border:2px solid #00ffff; border-radius:50%; position:relative; pointer-events:auto; touch-action:none;">
+                        <div id="joystick-left-knob"
+                            style="width:50px; height:50px; background:#00ffff; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0.8;">
+                        </div>
+                        <div
+                            style="position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:10px; color:#00ffff; letter-spacing:2px;">
+                            MOVE</div>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button id="btn-left"
-                            style="width:60px; height:60px; background:rgba(0,0,0,0.8); border:2px solid #ff8c00; color:#ff8c00; font-size:24px; border-radius:50%; touch-action: manipulation;">◀</button>
-                        <button id="btn-down"
-                            style="width:60px; height:60px; background:rgba(0,0,0,0.8); border:2px solid #ff8c00; color:#ff8c00; font-size:24px; border-radius:50%; touch-action: manipulation;">▼</button>
-                        <button id="btn-right"
-                            style="width:60px; height:60px; background:rgba(0,0,0,0.8); border:2px solid #ff8c00; color:#ff8c00; font-size:24px; border-radius:50%; touch-action: manipulation;">▶</button>
-                    </div>
-                    <div style="display:flex; justify-content:center; margin-top:10px;">
+
+                    <!-- CENTER: SCORE HUD -->
+                    <div id="game-hud"
+                        style="display:flex; flex-direction:column; align-items:center; gap:5px; pointer-events:none;">
+                        <div style="font-size:24px; color:#ffd700; font-weight:bold; text-shadow:0 0 10px #ffd700;"
+                            id="score-display">0</div>
+                        <div style="font-size:10px; color:#888; letter-spacing:2px;">GLYPHS</div>
                         <button id="btn-scan"
-                            style="width:80px; height:80px; background:#ff8c00; border:none; color:#000; font-weight:bold; font-size:16px; border-radius:50%; touch-action: manipulation;">SCAN</button>
+                            style="margin-top:10px; width:60px; height:60px; background:#ff8c00; border:none; color:#000; font-weight:bold; font-size:12px; border-radius:50%; pointer-events:auto; touch-action:manipulation;">PING</button>
+                    </div>
+
+                    <!-- RIGHT JOYSTICK (LOOK) -->
+                    <div id="joystick-right"
+                        style="width:120px; height:120px; background:rgba(0,0,0,0.5); border:2px solid #ff8c00; border-radius:50%; position:relative; pointer-events:auto; touch-action:none;">
+                        <div id="joystick-right-knob"
+                            style="width:50px; height:50px; background:#ff8c00; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0.8;">
+                        </div>
+                        <div
+                            style="position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:10px; color:#ff8c00; letter-spacing:2px;">
+                            LOOK</div>
                     </div>
                 </div>
                 <canvas id="minimap-canvas" class="hud-minimap"></canvas>
@@ -987,33 +1003,71 @@
                     document.getElementById('mobile-controls').style.display = 'flex';
                 }
 
-                // TOUCH CONTROLS FOR MOBILE
-                this.touchStart = null;
-                this.canvas.addEventListener('touchstart', e => {
-                    e.preventDefault();
-                    const t = e.touches[0];
-                    this.touchStart = { x: t.clientX, y: t.clientY };
-                }, { passive: false });
+                // DUAL JOYSTICK SYSTEM
+                this.joystickLeft = { x: 0, y: 0, active: false };
+                this.joystickRight = { x: 0, y: 0, active: false };
 
-                this.canvas.addEventListener('touchmove', e => {
-                    e.preventDefault();
-                    if (!this.touchStart) return;
-                    const t = e.touches[0];
-                    const dx = t.clientX - this.touchStart.x;
-                    const dy = t.clientY - this.touchStart.y;
+                const setupJoystick = (id, joystickState, knobId) => {
+                    const pad = document.getElementById(id);
+                    const knob = document.getElementById(knobId);
+                    if (!pad || !knob) return;
 
-                    // Forward/Back based on vertical swipe
-                    this.keys.w = dy < -20;
-                    this.keys.s = dy > 20;
-                    // Turn based on horizontal swipe
-                    this.keys.a = dx < -20;
-                    this.keys.d = dx > 20;
-                }, { passive: false });
+                    const handleMove = (clientX, clientY) => {
+                        const rect = pad.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        const maxDist = rect.width / 2 - 25;
 
-                this.canvas.addEventListener('touchend', () => {
-                    this.touchStart = null;
-                    this.keys.w = this.keys.s = this.keys.a = this.keys.d = false;
-                });
+                        let dx = clientX - centerX;
+                        let dy = clientY - centerY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist > maxDist) {
+                            dx = (dx / dist) * maxDist;
+                            dy = (dy / dist) * maxDist;
+                        }
+
+                        joystickState.x = dx / maxDist;
+                        joystickState.y = dy / maxDist;
+                        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                    };
+
+                    pad.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        joystickState.active = true;
+                        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+                    }, { passive: false });
+
+                    pad.addEventListener('touchmove', (e) => {
+                        e.preventDefault();
+                        if (joystickState.active) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+                    }, { passive: false });
+
+                    pad.addEventListener('touchend', () => {
+                        joystickState.active = false;
+                        joystickState.x = 0;
+                        joystickState.y = 0;
+                        knob.style.transform = 'translate(-50%, -50%)';
+                    });
+                };
+
+                setupJoystick('joystick-left', this.joystickLeft, 'joystick-left-knob');
+                setupJoystick('joystick-right', this.joystickRight, 'joystick-right-knob');
+
+                // COLLECTIBLES SYSTEM
+                this.score = 0;
+                this.collectibles = [
+                    { x: 3.5, y: 3.5, collected: false, glyph: '◆' },
+                    { x: 8.5, y: 2.5, collected: false, glyph: '★' },
+                    { x: 15.5, y: 2.5, collected: false, glyph: '◆' },
+                    { x: 20.5, y: 2.5, collected: false, glyph: '★' },
+                    { x: 3.5, y: 6.5, collected: false, glyph: '●' },
+                    { x: 10.5, y: 6.5, collected: false, glyph: '◆' },
+                    { x: 18.5, y: 6.5, collected: false, glyph: '★' },
+                    { x: 5.5, y: 10.5, collected: false, glyph: '●' },
+                    { x: 14.5, y: 10.5, collected: false, glyph: '★' },
+                    { x: 5.5, y: 14.5, collected: false, glyph: '◆' },
+                    { x: 18.5, y: 14.5, collected: false, glyph: '●' }
+                ];
 
                 // FLASHLIGHT MODE
                 this.flashlightMode = 'WIDE';
@@ -1125,20 +1179,38 @@
 
             update() {
                 // GARDEN WALK PHYSICS (Heavier, Smoother)
-                const targetMS = 0.15; // Slower base speed
-                const rs = 0.03; // Slower turning
+                const targetMS = 0.15;
+                const rs = 0.05; // Faster turning for mobile
 
                 // Initialize velocity if missing
                 if (!this.player.vx) this.player.vx = 0;
                 if (!this.player.vy) this.player.vy = 0;
 
-                const damping = 0.90; // Drift effect
-                const accel = 0.02;
+                const damping = 0.90;
+                const accel = 0.025;
 
-                // Input to Impulse
-                let dx = 0, dy = 0;
-                if (this.keys.w) { dx += this.player.dirX; dy += this.player.dirY; }
-                if (this.keys.s) { dx -= this.player.dirX; dy -= this.player.dirY; }
+                // JOYSTICK INPUT (Mobile) or Keyboard
+                let moveX = 0, moveY = 0, rotateAmt = 0;
+
+                // Left joystick = move forward/back + strafe
+                if (this.joystickLeft && this.joystickLeft.active) {
+                    moveX = -this.joystickLeft.y; // Forward/back
+                    moveY = this.joystickLeft.x;  // Strafe (optional)
+                }
+                // Right joystick = rotation
+                if (this.joystickRight && this.joystickRight.active) {
+                    rotateAmt = this.joystickRight.x * rs * 2;
+                }
+
+                // Keyboard fallback
+                if (this.keys.w) moveX += 1;
+                if (this.keys.s) moveX -= 1;
+                if (this.keys.a) rotateAmt -= rs;
+                if (this.keys.d) rotateAmt += rs;
+
+                // Apply movement impulse
+                let dx = this.player.dirX * moveX;
+                let dy = this.player.dirY * moveX;
 
                 this.player.vx += dx * accel;
                 this.player.vy += dy * accel;
@@ -1149,39 +1221,51 @@
                 let newX = this.player.x + this.player.vx;
                 let newY = this.player.y + this.player.vy;
 
-                // Collision with "Soft" Bounce (Haptic visual)
+                // Collision with "Soft" Bounce
                 const wallCheck = (x, y) => this.map[Math.floor(y)] && this.map[Math.floor(y)][Math.floor(x)] && this.map[Math.floor(y)][Math.floor(x)].type === 0;
 
                 if (wallCheck(newX, this.player.y)) {
                     this.player.x = newX;
                 } else {
-                    // Collision X - Visual Shake?
-                    this.player.vx *= -0.5; // Bounce back slightly
+                    this.player.vx *= -0.5;
                 }
 
                 if (wallCheck(this.player.x, newY)) {
                     this.player.y = newY;
                 } else {
-                    // Collision Y
                     this.player.vy *= -0.5;
                 }
 
-                // Rotation
-                if (this.keys.d) {
+                // Rotation (joystick or keyboard)
+                if (rotateAmt !== 0) {
                     const oldDir = this.player.dirX;
-                    this.player.dirX = this.player.dirX * Math.cos(-rs) - this.player.dirY * Math.sin(-rs);
-                    this.player.dirY = oldDir * Math.sin(-rs) + this.player.dirY * Math.cos(-rs);
+                    this.player.dirX = this.player.dirX * Math.cos(-rotateAmt) - this.player.dirY * Math.sin(-rotateAmt);
+                    this.player.dirY = oldDir * Math.sin(-rotateAmt) + this.player.dirY * Math.cos(-rotateAmt);
                     const oldPlane = this.player.planeX;
-                    this.player.planeX = this.player.planeX * Math.cos(-rs) - this.player.planeY * Math.sin(-rs);
-                    this.player.planeY = oldPlane * Math.sin(-rs) + this.player.planeY * Math.cos(-rs);
+                    this.player.planeX = this.player.planeX * Math.cos(-rotateAmt) - this.player.planeY * Math.sin(-rotateAmt);
+                    this.player.planeY = oldPlane * Math.sin(-rotateAmt) + this.player.planeY * Math.cos(-rotateAmt);
                 }
-                if (this.keys.a) {
-                    const oldDir = this.player.dirX;
-                    this.player.dirX = this.player.dirX * Math.cos(rs) - this.player.dirY * Math.sin(rs);
-                    this.player.dirY = oldDir * Math.sin(rs) + this.player.dirY * Math.cos(rs);
-                    const oldPlane = this.player.planeX;
-                    this.player.planeX = this.player.planeX * Math.cos(rs) - this.player.planeY * Math.sin(rs);
-                    this.player.planeY = oldPlane * Math.sin(rs) + this.player.planeY * Math.cos(rs);
+
+                // COLLECTIBLE PICKUP CHECK
+                if (this.collectibles) {
+                    for (const c of this.collectibles) {
+                        if (c.collected) continue;
+                        const dist = Math.hypot(this.player.x - c.x, this.player.y - c.y);
+                        if (dist < 0.6) {
+                            c.collected = true;
+                            this.score++;
+                            // Update score display
+                            const scoreEl = document.getElementById('score-display');
+                            if (scoreEl) {
+                                scoreEl.textContent = this.score;
+                                scoreEl.style.transform = 'scale(1.5)';
+                                setTimeout(() => scoreEl.style.transform = 'scale(1)', 200);
+                            }
+                            // Haptic feedback
+                            if (navigator.vibrate) navigator.vibrate(50);
+                            AudioEngine.ping();
+                        }
+                    }
                 }
 
                 // DIAGNOSTIC KEY (T) - Cycle Flashlights
@@ -1851,6 +1935,59 @@
 
                                 this.ctx.restore();
                             }
+                        }
+                    }
+                }
+            }
+
+            // RENDER COLLECTIBLE GLYPHS
+            if (this.collectibles) {
+                const collectibleSprites = this.collectibles
+                    .filter(c => !c.collected)
+                    .map(c => {
+                        const dx = c.x - this.player.x;
+                        const dy = c.y - this.player.y;
+                        return { ...c, dist: Math.sqrt(dx * dx + dy * dy), dx, dy };
+                    })
+                    .sort((a, b) => b.dist - a.dist);
+
+                for (const c of collectibleSprites) {
+                    const invDet = 1.0 / (this.player.planeX * this.player.dirY - this.player.dirX * this.player.planeY);
+                    const transformX = invDet * (this.player.dirY * c.dx - this.player.dirX * c.dy);
+                    const transformY = invDet * (-this.player.planeY * c.dx + this.player.planeX * c.dy);
+
+                    if (transformY > 0.3) {
+                        const screenX = Math.floor((w / 2) * (1 + transformX / transformY));
+                        const spriteSize = Math.abs(Math.floor(h / transformY * 0.6));
+                        const screenY = Math.floor(h / 2 + spriteSize * 0.2);
+
+                        if (screenX > 0 && screenX < w && (zBuffer[screenX] > transformY || !zBuffer[screenX])) {
+                            const floatOffset = Math.sin(time * 3 + c.x + c.y) * 10;
+
+                            this.ctx.save();
+                            this.ctx.translate(screenX, screenY + floatOffset);
+
+                            const distDiff = Math.abs(c.dist - pulseDist);
+                            if (distDiff < 5) {
+                                this.ctx.shadowColor = "#ffd700";
+                                this.ctx.shadowBlur = 20 + (5 - distDiff) * 5;
+                            }
+
+                            const glyphSize = Math.max(20, Math.min(60, spriteSize * 0.4));
+                            this.ctx.font = `bold ${glyphSize}px 'Courier New'`;
+                            this.ctx.fillStyle = "#ffd700";
+                            this.ctx.textAlign = "center";
+                            this.ctx.textBaseline = "middle";
+                            this.ctx.fillText(c.glyph, 0, 0);
+
+                            this.ctx.strokeStyle = "rgba(255, 215, 0, 0.5)";
+                            this.ctx.lineWidth = 2;
+                            this.ctx.beginPath();
+                            this.ctx.arc(0, 0, glyphSize * 0.7, 0, Math.PI * 2);
+                            this.ctx.stroke();
+
+                            this.ctx.shadowBlur = 0;
+                            this.ctx.restore();
                         }
                     }
                 }
