@@ -485,6 +485,58 @@
                     <button class="scanner-btn" onclick="RaycasterEngine.speakBuffer()">🔊 VOCALIZE</button>
                 </div>
             </div>
+
+            <!-- LIDAR TUTORIAL OVERLAY -->
+            <div id="lidar-tutorial"
+                style="position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:20000; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px; text-align:center;">
+                <div style="font-size:1.5rem; color:#00ffff; letter-spacing:4px; margin-bottom:20px;">BLUE HOUR LIDAR
+                </div>
+                <div style="font-size:0.9rem; color:#aaa; max-width:400px; line-height:1.6; margin-bottom:30px;">
+                    Navigate the darkness using echolocation pulses.<br><br>
+                    <span style="color:#00ffff;">◀ LEFT STICK:</span> Move forward/back<br>
+                    <span style="color:#ff8c00;">RIGHT STICK ▶:</span> Look around<br>
+                    <span style="color:#ffd700;">★ COLLECT GLYPHS:</span> Walk into gold symbols<br>
+                    <span style="color:#fff;">ARROWS:</span> Alternative D-pad controls<br>
+                    <span style="color:#fff;">LANDMARKS:</span> Tap to teleport
+                </div>
+                <button onclick="document.getElementById('lidar-tutorial').style.display='none'"
+                    style="background:#00ffff; color:#000; border:none; padding:15px 40px; font-family:inherit; font-size:1rem; cursor:pointer; font-weight:bold;">
+                    BEGIN EXPLORATION
+                </button>
+            </div>
+
+            <!-- D-PAD ARROWS (Alternative Controls) -->
+            <div id="dpad-controls"
+                style="position:absolute; bottom:160px; left:20px; z-index:10000; display:flex; flex-direction:column; gap:5px; opacity:0.7;">
+                <div style="display:flex; justify-content:center;">
+                    <button id="dpad-up" class="dpad-btn"
+                        style="width:50px; height:50px; background:rgba(0,255,255,0.2); border:2px solid #00ffff; color:#00ffff; font-size:20px; border-radius:8px;">▲</button>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button id="dpad-left" class="dpad-btn"
+                        style="width:50px; height:50px; background:rgba(0,255,255,0.2); border:2px solid #00ffff; color:#00ffff; font-size:20px; border-radius:8px;">◀</button>
+                    <button id="dpad-down" class="dpad-btn"
+                        style="width:50px; height:50px; background:rgba(0,255,255,0.2); border:2px solid #00ffff; color:#00ffff; font-size:20px; border-radius:8px;">▼</button>
+                    <button id="dpad-right" class="dpad-btn"
+                        style="width:50px; height:50px; background:rgba(0,255,255,0.2); border:2px solid #00ffff; color:#00ffff; font-size:20px; border-radius:8px;">▶</button>
+                </div>
+            </div>
+
+            <!-- TELEPORT LANDMARKS -->
+            <div id="teleport-panel"
+                style="position:absolute; bottom:160px; right:20px; z-index:10000; display:flex; flex-direction:column; gap:5px;">
+                <div style="font-size:10px; color:#ffd700; letter-spacing:2px; text-align:center; margin-bottom:5px;">
+                    TELEPORT</div>
+                <button onclick="RaycasterEngine.teleportTo(3.5, 3.5)"
+                    style="background:rgba(255,215,0,0.2); border:1px solid #ffd700; color:#ffd700; padding:8px 12px; font-size:11px; cursor:pointer;">◆
+                    GLYPH 1</button>
+                <button onclick="RaycasterEngine.teleportTo(10.5, 6.5)"
+                    style="background:rgba(255,215,0,0.2); border:1px solid #ffd700; color:#ffd700; padding:8px 12px; font-size:11px; cursor:pointer;">★
+                    GLYPH 2</button>
+                <button onclick="RaycasterEngine.teleportTo(14.5, 10.5)"
+                    style="background:rgba(255,215,0,0.2); border:1px solid #ffd700; color:#ffd700; padding:8px 12px; font-size:11px; cursor:pointer;">●
+                    GLYPH 3</button>
+            </div>
         </div>
     </div>
 
@@ -1077,11 +1129,46 @@
                 this.minimapCtx = this.minimapCanvas.getContext('2d');
                 this.minimapCanvas.width = 150;
                 this.minimapCanvas.height = 150;
+
+                // Initialize D-Pad controls
+                this.initDPad();
             },
 
             setFlashlight(mode) {
                 this.flashlightMode = mode;
                 AudioEngine.ping();
+            },
+
+            teleportTo(x, y) {
+                // Smooth teleport with screen flash
+                const canvas = this.canvas;
+                canvas.style.transition = 'opacity 0.2s';
+                canvas.style.opacity = '0';
+                setTimeout(() => {
+                    this.player.x = x;
+                    this.player.y = y;
+                    canvas.style.opacity = '1';
+                    AudioEngine.ping();
+                    const scanOut = document.getElementById('scanner-output');
+                    if (scanOut) scanOut.innerHTML = `> TELEPORTED TO (${x.toFixed(1)}, ${y.toFixed(1)})`;
+                }, 200);
+            },
+
+            initDPad() {
+                const bindDPad = (id, key) => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[key] = true; });
+                        btn.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[key] = false; });
+                        btn.addEventListener('mousedown', () => this.keys[key] = true);
+                        btn.addEventListener('mouseup', () => this.keys[key] = false);
+                        btn.addEventListener('mouseleave', () => this.keys[key] = false);
+                    }
+                };
+                bindDPad('dpad-up', 'w');
+                bindDPad('dpad-down', 's');
+                bindDPad('dpad-left', 'a');
+                bindDPad('dpad-right', 'd');
             },
 
             resize() {
@@ -1479,9 +1566,39 @@
                 this.loop();
             },
             toggleMode() {
-                this.mode = this.mode === 'GRID' ? 'VOID' : 'GRID';
-                document.body.className = this.mode === 'GRID' ? 'active-mode-grid' : 'active-mode-void';
-                document.getElementById('mode-toggle').innerText = this.mode === 'GRID' ? 'ENTER LIDAR' : 'EXIT LIDAR';
+                const gridLayer = document.getElementById('layer-grid');
+                const voidLayer = document.getElementById('layer-raycaster');
+                const modeBtn = document.getElementById('mode-toggle');
+                const tutorial = document.getElementById('lidar-tutorial');
+
+                // Smooth crossfade transition
+                if (this.mode === 'GRID') {
+                    // Entering LIDAR
+                    this.mode = 'VOID';
+                    document.body.className = 'active-mode-void';
+                    modeBtn.innerText = 'EXIT LIDAR';
+
+                    // Show tutorial on first entry
+                    if (!this.tutorialShown) {
+                        tutorial.style.display = 'flex';
+                        this.tutorialShown = true;
+                    }
+
+                    // Fade in LIDAR
+                    voidLayer.style.transition = 'opacity 0.4s ease-out';
+                    voidLayer.style.opacity = '0';
+                    setTimeout(() => voidLayer.style.opacity = '1', 50);
+                } else {
+                    // Exiting LIDAR
+                    this.mode = 'GRID';
+                    document.body.className = 'active-mode-grid';
+                    modeBtn.innerText = 'ENTER LIDAR';
+
+                    // Fade in GRID
+                    gridLayer.style.transition = 'opacity 0.4s ease-out';
+                    gridLayer.style.opacity = '0';
+                    setTimeout(() => gridLayer.style.opacity = '1', 50);
+                }
             },
             loop() {
                 requestAnimationFrame(() => this.loop());
