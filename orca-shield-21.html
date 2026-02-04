@@ -493,9 +493,10 @@
             async setupAudio() {
                 if (this.synth) return;
                 await Tone.start();
-                this.synth = new Tone.AMSynth().toDestination(); // Narrator voice sim
-                this.noise = new Tone.Noise("pink").toDestination(); // Tape hiss
-                this.noise.volume.value = -20;
+                this.synth = new Tone.AMSynth().toDestination();
+                this.synth.volume.value = -8;
+                this.noise = new Tone.Noise("pink").toDestination();
+                this.noise.volume.value = -18;
             },
 
             toggle() {

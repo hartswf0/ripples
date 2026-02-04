@@ -263,17 +263,31 @@
     <script>
         // --- AUDIO ---
         const AudioEngine = {
-            init() {
-                Tone.start();
-                this.drone = new Tone.Player("https://tonejs.github.io/audio/berklee/gong_1.mp3").toDestination();
-                this.drone.playbackRate = 0.5;
+            ready: false,
+            async init() {
+                if (this.ready) return;
+                await Tone.start();
                 this.synth = new Tone.AMSynth().toDestination();
-                this.synth.volume.value = -15;
+                this.synth.volume.value = -10;
+                // Dog bark synth
+                this.bark = new Tone.MembraneSynth().toDestination();
+                this.bark.volume.value = -5;
+                // Ambient drone
+                this.drone = new Tone.Oscillator(60, "sine").toDestination();
+                this.drone.volume.value = -25;
+                this.ready = true;
             },
-            playCue(type) {
+            async playCue(type) {
+                if (!this.ready) await this.init();
                 if (type === 'C') this.synth.triggerAttackRelease("C3", "4n");
                 if (type === 'D') this.synth.triggerAttackRelease("F#3", "4n");
                 if (type === 'E') this.synth.triggerAttackRelease("A3", "4n");
+            },
+            async bark() {
+                if (!this.ready) await this.init();
+                // Virtual dog bark: membrane synth with slide
+                this.bark.triggerAttackRelease("G2", "8n");
+                setTimeout(() => this.bark.triggerAttackRelease("E2", "16n"), 100);
             }
         };
 

@@ -377,16 +377,22 @@
 
         // --- AUDIO ---
         const AudioEngine = {
-            init() {
-                Tone.start();
+            ready: false,
+            async init() {
+                if (this.ready) return;
+                await Tone.start();
                 this.drone = new Tone.Oscillator(100, "sine").toDestination();
                 this.drone.volume.value = -30;
                 this.clicks = new Tone.MembraneSynth().toDestination();
+                this.clicks.volume.value = -10;
+                this.ready = true;
             },
-            playTick() {
-                this.clicks.triggerAttackRelease("C6", "32n", Tone.now(), 0.1);
+            async playTick() {
+                if (!this.ready) await this.init();
+                this.clicks.triggerAttackRelease("C6", "32n");
             },
-            playDrone(active) {
+            async playDrone(active) {
+                if (!this.ready) await this.init();
                 if (active) this.drone.start();
                 else this.drone.stop();
             }
