@@ -193,7 +193,18 @@
 
     <div class="header">
         <div class="title">THE HOLLER ARCHIVES // EDGAR-VISION</div>
-        <div class="meta">CASE ID: SHATTERED_SHINE</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button onclick="AudioEngine.dramaticIntro()"
+                style="background:#ffd700; color:#000; border:none; padding:8px 15px; cursor:pointer; font-family:inherit; font-weight:bold;">▶
+                PLAY EPISODE</button>
+            <button onclick="AudioEngine.bark()"
+                style="background:#222; color:#ffd700; border:1px solid #ffd700; padding:6px 12px; cursor:pointer; font-family:inherit;">🐕
+                BARK</button>
+            <button onclick="AudioEngine.thunder()"
+                style="background:#222; color:#888; border:1px solid #444; padding:6px 12px; cursor:pointer; font-family:inherit;">⚡
+                THUNDER</button>
+            <span class="meta">CASE ID: SHATTERED_SHINE</span>
+        </div>
     </div>
 
     <div class="container">
@@ -261,33 +272,137 @@
     </div>
 
     <script>
-        // --- AUDIO ---
+        // --- RADIO PLAY AUDIO ENGINE ---
         const AudioEngine = {
             ready: false,
+
             async init() {
                 if (this.ready) return;
                 await Tone.start();
-                this.synth = new Tone.AMSynth().toDestination();
-                this.synth.volume.value = -10;
-                // Dog bark synth
-                this.bark = new Tone.MembraneSynth().toDestination();
-                this.bark.volume.value = -5;
-                // Ambient drone
-                this.drone = new Tone.Oscillator(60, "sine").toDestination();
-                this.drone.volume.value = -25;
+
+                // NARRATOR VOICE (FM synth simulates radio voice)
+                this.narrator = new Tone.FMSynth({
+                    modulationIndex: 8,
+                    harmonicity: 3,
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 }
+                }).toDestination();
+                this.narrator.volume.value = -12;
+
+                // DOG BARK (membrane + noise burst)
+                this.barkMembrane = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 2,
+                    envelope: { attack: 0.001, decay: 0.15, sustain: 0 }
+                }).toDestination();
+                this.barkMembrane.volume.value = -8;
+
+                // THUNDER / IMPACT (low rumble)
+                this.thunder = new Tone.NoiseSynth({
+                    noise: { type: 'brown' },
+                    envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 1.5 }
+                }).toDestination();
+                this.thunder.volume.value = -10;
+
+                // RADIO STATIC (filtered white noise)
+                this.static = new Tone.Noise('white').toDestination();
+                this.static.volume.value = -30;
+
+                // WAR OF THE WORLDS DRONE (eerie oscillator)
+                this.drone = new Tone.Oscillator(55, 'sawtooth').toDestination();
+                this.drone.volume.value = -28;
+                this.droneFilter = new Tone.Filter(200, 'lowpass').toDestination();
+                this.drone.disconnect();
+                this.drone.connect(this.droneFilter);
+
+                // REVERB for atmosphere
+                this.reverb = new Tone.Reverb({ decay: 3, wet: 0.4 }).toDestination();
+                this.narrator.connect(this.reverb);
+
                 this.ready = true;
             },
-            async playCue(type) {
-                if (!this.ready) await this.init();
-                if (type === 'C') this.synth.triggerAttackRelease("C3", "4n");
-                if (type === 'D') this.synth.triggerAttackRelease("F#3", "4n");
-                if (type === 'E') this.synth.triggerAttackRelease("A3", "4n");
-            },
+
             async bark() {
                 if (!this.ready) await this.init();
-                // Virtual dog bark: membrane synth with slide
-                this.bark.triggerAttackRelease("G2", "8n");
-                setTimeout(() => this.bark.triggerAttackRelease("E2", "16n"), 100);
+                // Two-tone bark like a real dog
+                this.barkMembrane.triggerAttackRelease('G2', '16n');
+                setTimeout(() => this.barkMembrane.triggerAttackRelease('D2', '32n'), 80);
+                setTimeout(() => this.barkMembrane.triggerAttackRelease('G2', '16n'), 200);
+            },
+
+            async barkDistant() {
+                if (!this.ready) await this.init();
+                this.barkMembrane.volume.value = -20;
+                this.barkMembrane.triggerAttackRelease('A2', '8n');
+                setTimeout(() => { this.barkMembrane.volume.value = -8; }, 300);
+            },
+
+            async thunder() {
+                if (!this.ready) await this.init();
+                this.thunder.triggerAttackRelease('4n');
+            },
+
+            async staticBurst(duration = 0.3) {
+                if (!this.ready) await this.init();
+                this.static.volume.value = -15;
+                this.static.start();
+                setTimeout(() => {
+                    this.static.stop();
+                    this.static.volume.value = -30;
+                }, duration * 1000);
+            },
+
+            async droneStart() {
+                if (!this.ready) await this.init();
+                this.drone.start();
+                // Slowly sweep the filter for eerie effect
+                this.droneFilter.frequency.rampTo(800, 5);
+            },
+
+            async droneStop() {
+                if (!this.ready) await this.init();
+                this.droneFilter.frequency.rampTo(100, 1);
+                setTimeout(() => this.drone.stop(), 1000);
+            },
+
+            async narratorSpeak(notes = ['C3', 'E3', 'G3', 'C4']) {
+                if (!this.ready) await this.init();
+                // Simulate dramatic speech rhythm
+                notes.forEach((note, i) => {
+                    setTimeout(() => {
+                        this.narrator.triggerAttackRelease(note, '8n');
+                    }, i * 200 + Math.random() * 50);
+                });
+            },
+
+            async playCue(type) {
+                if (!this.ready) await this.init();
+                if (type === 'C') {
+                    // Shadow scene: eerie
+                    this.narratorSpeak(['C3', 'Eb3', 'G3']);
+                    setTimeout(() => this.barkDistant(), 800);
+                }
+                if (type === 'D') {
+                    // Hidden bone: suspense
+                    this.thunder();
+                    setTimeout(() => this.narratorSpeak(['F#3', 'A3', 'C4']), 500);
+                }
+                if (type === 'E') {
+                    // Glow ball: mysterious
+                    this.droneStart();
+                    this.narratorSpeak(['A3', 'C4', 'E4', 'A4']);
+                    setTimeout(() => this.droneStop(), 4000);
+                }
+            },
+
+            async dramaticIntro() {
+                if (!this.ready) await this.init();
+                // Radio drama opening sequence
+                this.staticBurst(0.5);
+                setTimeout(() => this.droneStart(), 600);
+                setTimeout(() => this.narratorSpeak(['C3', 'G3', 'C4', 'E4', 'G4']), 1000);
+                setTimeout(() => this.bark(), 2500);
+                setTimeout(() => this.thunder(), 3500);
+                setTimeout(() => this.droneStop(), 5000);
             }
         };
 
