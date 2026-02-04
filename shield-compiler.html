@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHIELD COMPILER: OPERATIVE EKPHRASIS</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-muted: #444;
+            --text-bright: #e0e0e0;
+            --accent-forge: #ff4500;
+            --accent-cosmos: #9370db;
+            --accent-peace: #ffd700;
+            --accent-war: #8b0000;
+            --accent-rural: #228b22;
+            --accent-ocean: #00ced1;
+            --grid-gap: 2px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-bright);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* LAYOUT */
+        #app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        #grid-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #shield-grid {
+            display: grid;
+            grid-template-columns: repeat(24, 1fr);
+            grid-template-rows: repeat(24, 1fr);
+            width: 90vmin;
+            height: 90vmin;
+            gap: var(--grid-gap);
+            background: #111;
+            border: 1px solid #333;
+        }
+
+        #data-panel {
+            width: 400px;
+            border-left: 1px solid #333;
+            background: #0f0f0f;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        /* GRID CELLS */
+        .cell {
+            background-color: #1a1a1a;
+            border-radius: 1px;
+            cursor: crosshair;
+            transition: all 0.1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell:hover {
+            transform: scale(1.5);
+            z-index: 100;
+            box-shadow: 0 0 10px currentColor;
+            border: 1px solid #fff;
+        }
+
+        .cell.active {
+            border: 1px solid #fff;
+        }
+
+        /* ZONES & COLORS */
+        .zone-forge {
+            background-color: rgba(178, 34, 34, 0.2);
+            color: var(--accent-forge);
+        }
+
+        .zone-cosmos {
+            background-color: rgba(75, 0, 130, 0.2);
+            color: var(--accent-cosmos);
+        }
+
+        .zone-peace {
+            background-color: rgba(255, 215, 0, 0.1);
+            color: var(--accent-peace);
+        }
+
+        .zone-war {
+            background-color: rgba(139, 0, 0, 0.2);
+            color: var(--accent-war);
+        }
+
+        .zone-rural {
+            background-color: rgba(34, 139, 34, 0.15);
+            color: var(--accent-rural);
+        }
+
+        .zone-ocean {
+            background-color: rgba(0, 0, 139, 0.2);
+            color: var(--accent-ocean);
+        }
+
+        .cell::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            opacity: 0.3;
+        }
+
+        /* DATA PANEL TYPOGRAPHY */
+        h1 {
+            font-size: 1.2rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-top: 0;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin: 0;
+            color: #fff;
+            line-height: 1.1;
+        }
+
+        .meta-tag {
+            display: inline-block;
+            background: #222;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            margin-right: 5px;
+            color: #aaa;
+            border: 1px solid #333;
+        }
+
+        #readout-zone {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+        }
+
+        #readout-text {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            border-left: 2px solid #333;
+            padding-left: 15px;
+            min-height: 100px;
+        }
+
+        #readout-coords {
+            font-family: monospace;
+            color: #555;
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        /* INTRO OVERLAY */
+        #intro {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+            padding: 20px;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #fff;
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="intro">
+        <h1 style="border:none; color:white;">APOLLINAIRE → BAJOHR GRID</h1>
+        <p style="max-width: 600px; line-height: 1.6; color: #aaa;">
+            <b>Topology:</b> RINGS<br>
+            <b>Input:</b> The Iliad, Book XVIII<br>
+            <b>Status:</b> Compiled<br><br>
+            The text is not described; it is forged into a causal substrate.<br>
+            Navigation is reading. Move your cursor to traverse the Shield.
+        </p>
+        <button onclick="document.getElementById('intro').style.display='none'">Enter the Forge</button>
+    </div>
+
+    <div id="app">
+        <div id="grid-container">
+            <div id="shield-grid"></div>
+        </div>
+
+        <div id="data-panel">
+            <h1>Scanner Output</h1>
+            <span id="readout-zone" style="color: var(--text-muted)">WAITING FOR INPUT...</span>
+            <h2 id="readout-header">THE SHIELD OF ACHILLES</h2>
+            <div id="readout-text">
+                Hover over the grid cells to sample the text substrate.
+                <br><br>
+                Center: The Forge<br>
+                Ring 1: Cosmos<br>
+                Ring 2: Cities (Peace/War)<br>
+                Ring 3: Rural Life<br>
+                Rim: Oceanus
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-forge)"></div>Forge
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-cosmos)"></div>Cosmos
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-peace)"></div>Peace
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-war)"></div>War
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-rural)"></div>Rural
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent-ocean)"></div>Ocean
+                </div>
+            </div>
+
+            <div id="readout-coords">
+                X: -- | Y: -- | R: -- | θ: --
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * THE SOURCE TEXT
+         * Segments of the poem indexed for the compiler.
+         */
+        const POEM_DATA = {
+            forge: [
+                "Thee, welcome, goddess! what occasion calls",
+                "And Vulcan's joy and duty to obey.",
+                "To the black labours of his forge retires.",
+                "Soon as he bade them blow, the bellows turn'd",
+                "And twenty forges catch at once the fires;",
+                "In hissing flames huge silver bars are roll'd",
+                "The ponderous hammer loads his better hand",
+                "And thick, strong strokes, the doubling vaults rebound."
+            ],
+            cosmos: [
+                "There shone the image of the master-mind:",
+                "There earth, there heaven, there ocean he design'd;",
+                "The unwearied sun, the moon completely round;",
+                "The starry lights that heaven's high convex crown'd;",
+                "The Pleiads, Hyads, with the northern team;",
+                "And great Orion's more refulgent beam;",
+                "The Bear, revolving, points his golden eye,"
+            ],
+            peace: [
+                "Two cities radiant on the shield appear,",
+                "The image one of peace, and one of war.",
+                "Here sacred pomp and genial feast delight,",
+                "Along the street the new-made brides are led,",
+                "The youthful dancers in a circle bound",
+                "Through the fair streets the matrons in a row",
+                "The reverend elders nodded o'er the case;",
+                "Two golden talents lay amidst, in sight"
+            ],
+            war: [
+                "Another part (a prospect differing far)",
+                "Glow'd with refulgent arms, and horrid war.",
+                "Two mighty hosts a leaguer'd town embrace,",
+                "One would pillage, one would burn the place.",
+                "They march; by Pallas and by Mars made bold:",
+                "Gold were the gods, their radiant garments gold",
+                "Fate stalk'd amidst them, grim with human gore.",
+                "And the whole war came out, and met the eye"
+            ],
+            rural: [
+                "A field deep furrow'd next the god design'd,",
+                "The shining shares full many ploughmen guide,",
+                "Behind, the rising earth in ridges roll'd;",
+                "Another field rose high with waving grain;",
+                "With bended sickles stand the reaper train:",
+                "Next, ripe in yellow gold, a vineyard shines,",
+                "Two lions rushing from the wood appear'd;",
+                "They tore his flesh, and drank his sable blood."
+            ],
+            ocean: [
+                "Thus the broad shield complete the artist crown'd",
+                "In living silver seem'd the waves to roll,",
+                "And beat the buckler's verge, and bound the whole.",
+                "Oceanus flows",
+                "The River Bounds",
+                "Silver Tide",
+                "Unending Stream"
+            ]
+        };
+
+        /**
+         * THE COMPILER LOGIC
+         * Constants for the 24x24 grid topology.
+         */
+        const GRID_SIZE = 24;
+        const CENTER = 11.5; // Visual center index
+
+        // Topology Zones (Radius ranges)
+        const ZONES = {
+            FORGE: { name: "THE FORGE", class: "zone-forge", minR: 0, maxR: 3.5 },
+            COSMOS: { name: "COSMOS", class: "zone-cosmos", minR: 3.5, maxR: 6 },
+            CITIES: { name: "CITIES", class: "zone-neutral", minR: 6, maxR: 9.5 }, // Logic splits this later
+            RURAL: { name: "RURAL", class: "zone-rural", minR: 9.5, maxR: 11.5 },
+            OCEAN: { name: "OCEANUS", class: "zone-ocean", minR: 11.5, maxR: 99 }
+        };
+
+        function initGrid() {
+            const gridEl = document.getElementById('shield-grid');
+
+            // Generate 576 cells
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = createCell(x, y);
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function createCell(x, y) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+
+            // 1. Calculate Topology
+            // Shift coords to be relative to center
+            const dx = x - CENTER;
+            const dy = y - CENTER;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            const theta = Math.atan2(dy, dx); // Radians -PI to PI
+
+            // 2. Assign Data based on Topology
+            const data = mapLocationToContent(r, theta);
+
+            // 3. Apply Visuals
+            cell.classList.add(data.cssClass);
+
+            // 4. Interaction
+            cell.addEventListener('mouseenter', () => updatePanel(data, x, y, r, theta));
+
+            // 5. Store data on element for debug
+            cell.dataset.zone = data.zoneName;
+
+            return cell;
+        }
+
+        /**
+         * THE OPERATIVE MAPPING FUNCTION
+         * Maps (r, theta) -> Text/Meaning
+         */
+        function mapLocationToContent(r, theta) {
+            let content = {
+                zoneName: "VOID",
+                cssClass: "",
+                header: "",
+                text: "",
+                tags: []
+            };
+
+            // --- FORGE (Center) ---
+            if (r < ZONES.FORGE.maxR) {
+                content.zoneName = ZONES.FORGE.name;
+                content.cssClass = ZONES.FORGE.class;
+                content.header = "VULCAN'S HAMMER";
+                content.tags = ["FIRE", "BRASS", "ORIGIN"];
+                // Pick text based on distance (closer to center = louder/shorter)
+                const idx = Math.floor(Math.abs(r * 2 + theta)) % POEM_DATA.forge.length;
+                content.text = POEM_DATA.forge[idx];
+            }
+            // --- COSMOS (Ring 1) ---
+            else if (r < ZONES.COSMOS.maxR) {
+                content.zoneName = ZONES.COSMOS.name;
+                content.cssClass = ZONES.COSMOS.class;
+                content.header = "THE FIRMAMENT";
+                content.tags = ["STARS", "ETERNAL", "FIXED"];
+                const idx = Math.floor(Math.abs(theta * 3)) % POEM_DATA.cosmos.length;
+                content.text = POEM_DATA.cosmos[idx];
+            }
+            // --- CITIES (Ring 2 - Split Hemispheres) ---
+            else if (r < ZONES.CITIES.maxR) {
+                // Upper-Right (-PI/2 to PI) approx -> Peace
+                // Actually let's do visual top/right vs bottom/left
+                // -PI is left, 0 is right, -PI/2 is top, PI/2 is bottom
+
+                // Let's create a diagonal split for drama
+                if (theta > -2 && theta < 1) {
+                    // Peace Sector
+                    content.zoneName = "CITY OF PEACE";
+                    content.cssClass = "zone-peace";
+                    content.header = "MARRIAGE & LAW";
+                    content.tags = ["CIVIL", "MUSIC", "LIGHT"];
+                    const idx = Math.floor(Math.abs(r * theta * 5)) % POEM_DATA.peace.length;
+                    content.text = POEM_DATA.peace[idx];
+                } else {
+                    // War Sector
+                    content.zoneName = "CITY OF WAR";
+                    content.cssClass = "zone-war";
+                    content.header = "AMBUSH & STRIFE";
+                    content.tags = ["BLOOD", "IRON", "TUMULT"];
+                    const idx = Math.floor(Math.abs(r * theta * 5)) % POEM_DATA.war.length;
+                    content.text = POEM_DATA.war[idx];
+                }
+            }
+            // --- RURAL (Ring 3) ---
+            else if (r < ZONES.RURAL.maxR) {
+                content.zoneName = ZONES.RURAL.name;
+                content.cssClass = ZONES.RURAL.class;
+                content.header = "THE EARTH";
+                content.tags = ["LABOR", "GROWTH", "BEAST"];
+                const idx = Math.floor(Math.abs(theta * 4 + r)) % POEM_DATA.rural.length;
+                content.text = POEM_DATA.rural[idx];
+            }
+            // --- OCEANUS (Rim) ---
+            else {
+                content.zoneName = ZONES.OCEAN.name;
+                content.cssClass = ZONES.OCEAN.class;
+                content.header = "THE BOUNDARY";
+                content.tags = ["WATER", "LIMIT", "SILVER"];
+                // Ocean text is fragmented
+                const idx = Math.floor(Math.abs(theta * 10)) % POEM_DATA.ocean.length;
+                content.text = POEM_DATA.ocean[idx];
+            }
+
+            return content;
+        }
+
+        function updatePanel(data, x, y, r, theta) {
+            const zoneEl = document.getElementById('readout-zone');
+            const headerEl = document.getElementById('readout-header');
+            const textEl = document.getElementById('readout-text');
+            const coordsEl = document.getElementById('readout-coords');
+
+            // Update Text
+            zoneEl.innerText = data.zoneName;
+            zoneEl.style.color = getComputedStyle(document.querySelector(`.${data.cssClass}`)).color;
+
+            headerEl.innerText = data.header;
+
+            // Format tags
+            const tagHTML = data.tags.map(t => `<span class="meta-tag">${t}</span>`).join('');
+            textEl.innerHTML = `"${data.text}"<br><br>${tagHTML}`;
+
+            // Update Coords
+            coordsEl.innerText = `X: ${x} | Y: ${y} | R: ${r.toFixed(1)} | θ: ${theta.toFixed(2)}`;
+        }
+
+        // Boot
+        window.onload = initGrid;
+
+    </script>
+</body>
+
+</html>

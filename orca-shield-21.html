@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // CASE_FILE_21</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* ARCHIVIST PALETTE */
+            --bg-color: #121214;
+            --panel-bg: #1e1e24;
+            --text-main: #e0e0e0;
+            /* Off-white */
+            --text-dim: #757575;
+
+            --accent-gold: #ffb74d;
+            /* Amber / Golden Hound */
+            --accent-data: #4fc3f7;
+            /* Cyan / Sensor Data */
+            --accent-alert: #ef5350;
+            /* Red / Disappearance */
+
+            --font-mono: 'Courier New', monospace;
+            --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        .top-bar {
+            height: 60px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: #18181b;
+            z-index: 100;
+        }
+
+        .case-title {
+            font-family: var(--font-mono);
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            background: rgba(239, 83, 80, 0.2);
+            color: var(--accent-alert);
+            border: 1px solid var(--accent-alert);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+        }
+
+        /* --- MAIN LAYOUT --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR (Tapes) --- */
+        .sidebar {
+            width: 250px;
+            background: #151518;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #222;
+        }
+
+        .tape-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tape-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tape-item:hover,
+        .tape-item.active {
+            background: #25252b;
+        }
+
+        .tape-icon {
+            font-size: 1.2rem;
+        }
+
+        .tape-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tape-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .tape-meta {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* --- VIEWER --- */
+        .viewer-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- VIEWER 1: PODCAST PLAYER --- */
+        #view-podcast {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #222 0%, #000 100%);
+        }
+
+        .waveform-container {
+            width: 80%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            margin-bottom: 40px;
+        }
+
+        .bar {
+            width: 4px;
+            background: var(--accent-gold);
+            border-radius: 2px;
+            transition: height 0.1s;
+        }
+
+        .script-box {
+            width: 70%;
+            max-width: 700px;
+            height: 200px;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn-ctrl {
+            background: transparent;
+            border: 1px solid var(--text-dim);
+            color: var(--text-main);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-ctrl:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .btn-play {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: scale(1.1);
+        }
+
+        /* --- VIEWER 2: EVIDENCE BOARD --- */
+        #view-evidence {
+            flex: 1;
+            display: none;
+            overflow-y: auto;
+            padding: 40px;
+            background: #121214 url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiNmZmYiLz48L3N2Zz4=');
+        }
+
+        .doc-paper {
+            background: #e3e3e3;
+            color: #111;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+            font-family: 'Georgia', serif;
+            position: relative;
+        }
+
+        .doc-stamp {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            border: 2px solid var(--accent-alert);
+            color: var(--accent-alert);
+            padding: 5px 10px;
+            font-weight: bold;
+            font-family: var(--font-sans);
+            transform: rotate(-10deg);
+            opacity: 0.8;
+        }
+
+        .doc-header {
+            border-bottom: 2px solid #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .doc-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .doc-meta {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #555;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            border-bottom: 1px solid #000;
+            padding: 10px;
+            background: #ddd;
+        }
+
+        .data-table td {
+            border-bottom: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .row-highlight {
+            background: rgba(239, 83, 80, 0.1);
+        }
+
+        /* --- INTERACTION --- */
+        .interaction-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #000;
+            border-top: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+        }
+
+        .interaction-overlay.active {
+            transform: translateY(0);
+        }
+
+        .detective-box {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+        }
+
+        .choice-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background: var(--accent-data);
+            color: #000;
+            border-color: var(--accent-data);
+        }
+
+        /* --- UTILS --- */
+        .hidden {
+            display: none !important;
+        }
+
+        .active-view {
+            display: flex !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <div class="case-title">
+            <span>📂</span>
+            <span>CASE FILE: GOLDEN HOUND</span>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);">
+            ARCHIVIST TERMINAL v2.1
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="sidebar">
+            <div class="sidebar-header">Media Assets</div>
+            <div class="tape-list">
+                <div class="tape-item active" onclick="App.setView('podcast')">
+                    <span class="tape-icon">📼</span>
+                    <div class="tape-info">
+                        <div class="tape-name">Intro_Tape_01.wav</div>
+                        <div class="tape-meta">NARRATOR INTRO</div>
+                    </div>
+                </div>
+                <div class="tape-item" onclick="App.openExhibit('A')">
+                    <span class="tape-icon">📄</span>
+                    <div class="tape-info">
+                        <div class="tape-name">Exhibit_A_Logs.pdf</div>
+                        <div class="tape-meta">SENSOR DATA</div>
+                    </div>
+                </div>
+                <!-- Locked Items -->
+                <div class="tape-item" style="opacity: 0.5; cursor: not-allowed;">
+                    <span class="tape-icon">🔒</span>
+                    <div class="tape-info">
+                        <div class="tape-name">Corrupted_File_B</div>
+                        <div class="tape-meta">REQUIRES KEY</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="viewer-area">
+
+            <!-- VIEW: PODCAST -->
+            <div id="view-podcast" class="active-view">
+                <div class="waveform-container" id="waveform">
+                    <!-- Bars generated by JS -->
+                </div>
+                <div class="script-box" id="script-display">
+                    "It started on a Tuesday..."
+                </div>
+                <div class="controls">
+                    <button class="btn-ctrl" onclick="PodcastPlayer.rewind()">⏪</button>
+                    <button class="btn-ctrl btn-play" id="play-btn" onclick="PodcastPlayer.toggle()">▶</button>
+                    <button class="btn-ctrl" onclick="PodcastPlayer.forward()">⏩</button>
+                </div>
+            </div>
+
+            <!-- VIEW: EVIDENCE -->
+            <div id="view-evidence">
+                <div id="doc-container">
+                    <!-- Injected Content -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DETECTIVE HUD -->
+    <div class="interaction-overlay" id="detective-hud">
+        <div class="detective-box">
+            <span style="color: var(--accent-data);">DETECTIVE TASK #1:</span>
+            <span>Based on the 95dB Impact Sound, which object was dropped?</span>
+            <button class="choice-btn" onclick="App.submitChoice('LAMB')">The Plush Lamb</button>
+            <button class="choice-btn" onclick="App.submitChoice('FRISBEE')">The Plastic Frisbee</button>
+            <button class="choice-btn" onclick="App.submitChoice('ANTLER')">The Deer Antler</button>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT = [
+            { t: 0, text: "NARRATOR: It started on a Tuesday." },
+            { t: 2500, text: "A Tuesday that felt like any other in the foothills of the Smoky Mountains." },
+            { t: 6000, text: "The humidity was at 80%. The wind was blowing Southeast at 5 miles per hour..." },
+            { t: 10000, text: "Quantitative data, as the scientists say." },
+            { t: 13000, text: "But the Qualitative data? That’s where the story gets dark." },
+            { t: 16000, text: "The air felt heavy. The shadows stretched too long for 4:00 PM." },
+            { t: 20000, text: "Mark, the owner—'The Maker'—put on his boots." },
+            { t: 23000, text: "He walked out the door. And inside the house, the laws of physics... broke." },
+            { t: 28000, text: "Edgar, the Golden Retriever, didn't just run away." },
+            { t: 31000, text: "He was erased." },
+            { t: 34000, text: "We have the evidence. We have the maps. Somewhere in this house..." },
+            { t: 38000, text: "Is a dog." },
+            { t: 40000, text: "Let's look at the file." }
+        ];
+
+        const EXHIBITS = {
+            A: `
+            <div class="doc-paper">
+                <div class="doc-stamp">EXHIBIT A</div>
+                <div class="doc-header">
+                    <div class="doc-title">SMART-HOME LOG</div>
+                    <div class="doc-meta">SOURCE: LIVING ROOM HUB // DATE: OCT 12</div>
+                </div>
+                <p><strong>CONTEXT:</strong> Automated sensor array located in "The Valley" (Living Room).</p>
+                
+                <table class="data-table">
+                    <tr><th>TIME</th><th>EVENT</th><th>DATA</th><th>NOTE</th></tr>
+                    <tr><td>4:00 PM</td><td>Door Locks</td><td>Status: SECURE</td><td>Mark leaves premises.</td></tr>
+                    <tr><td>4:01 PM</td><td>Motion Sensor</td><td>Detected: 1 Object</td><td>Subject: Edgar (Canine).</td></tr>
+                    <tr class="row-highlight"><td>4:02 PM</td><td>Light Sensor</td><td>Lumen Drop: 100%</td><td><strong>ANOMALY:</strong> Total Darkness.</td></tr>
+                    <tr class="row-highlight"><td>4:03 PM</td><td>Audio Sensor</td><td>Sound: 95 Decibels</td><td>Impact Event. "Thunder/Crash".</td></tr>
+                    <tr><td>4:05 PM</td><td>Motion Sensor</td><td>Detected: 0 Objects</td><td>SUBJECT VANISHED.</td></tr>
+                </table>
+                
+                <div style="margin-top: 20px; border-top: 1px dashed #999; padding-top: 10px; color: #555; font-style: italic;">
+                    <span style="color:red;">DETECTIVE NOTE:</span> 95 Decibels is equivalent to a lawnmower or a shout. An object falling on the hardwood floor must be dense to create this wave.
+                </div>
+            </div>`
+        };
+
+        const PodcastPlayer = {
+            playing: false,
+            startTime: 0,
+            interval: null,
+            synth: null, noise: null,
+
+            init() {
+                // Waveform gen
+                const container = document.getElementById('waveform');
+                for (let i = 0; i < 30; i++) {
+                    const d = document.createElement('div');
+                    d.className = 'bar';
+                    d.style.height = '10px';
+                    container.appendChild(d);
+                }
+            },
+
+            async setupAudio() {
+                if (this.synth) return;
+                await Tone.start();
+                this.synth = new Tone.AMSynth().toDestination(); // Narrator voice sim
+                this.noise = new Tone.Noise("pink").toDestination(); // Tape hiss
+                this.noise.volume.value = -20;
+            },
+
+            toggle() {
+                if (this.playing) this.stop();
+                else this.play();
+            },
+
+            async play() {
+                await this.setupAudio();
+                this.playing = true;
+                this.startTime = Date.now();
+                document.getElementById('play-btn').innerText = "⏸";
+                this.noise.start();
+
+                this.interval = setInterval(() => {
+                    this.update();
+                }, 50);
+            },
+
+            stop() {
+                this.playing = false;
+                document.getElementById('play-btn').innerText = "▶";
+                clearInterval(this.interval);
+                this.noise.stop();
+            },
+
+            update() {
+                const elapsed = Date.now() - this.startTime;
+
+                // Find current script line
+                const line = SCRIPT.reverse().find(s => s.t <= elapsed);
+                SCRIPT.reverse(); // put back
+
+                if (line) {
+                    document.getElementById('script-display').innerText = line.text;
+                }
+
+                if (elapsed > 43000) { this.stop(); App.openExhibit('A'); return; }
+
+                // Visualizer
+                const bars = document.querySelectorAll('.bar');
+                bars.forEach((b, i) => {
+                    // Simulate voice activity for visualizer
+                    const h = Math.random() * 50 + 10;
+                    b.style.height = (Math.sin(elapsed * 0.01 + i) > 0 ? h : 10) + "px";
+                });
+
+                // Audio Sim
+                // Randomly trigger synth to simulate speech cadence lightly
+                if (Math.random() > 0.9) {
+                    this.synth.triggerAttackRelease("C2", "16n", Tone.now(), 0.1);
+                }
+            }
+        };
+
+        const App = {
+            init() {
+                PodcastPlayer.init();
+            },
+
+            setView(id) {
+                document.getElementById('view-podcast').classList.remove('active-view');
+                document.getElementById('view-evidence').classList.remove('active-view');
+
+                document.getElementById('detective-hud').classList.remove('active');
+
+                if (id === 'podcast') {
+                    document.getElementById('view-podcast').classList.add('active-view');
+                } else if (id === 'evidence') {
+                    document.getElementById('view-evidence').classList.add('active-view');
+                    // Show HUD if Exhibit A
+                    if (this.currentExhibit === 'A') {
+                        setTimeout(() => document.getElementById('detective-hud').classList.add('active'), 1000);
+                    }
+                }
+            },
+
+            openExhibit(id) {
+                this.currentExhibit = id;
+                document.getElementById('doc-container').innerHTML = EXHIBITS[id];
+                this.setView('evidence');
+                PodcastPlayer.stop();
+            },
+
+            submitChoice(choice) {
+                if (choice === 'ANTLER') {
+                    alert("CORRECT.\n\nDEDUCTION VERIFIED.\nThe Deer Antler is dense enough to create a 95dB impact.\n\nNEW EXHIBITS UNLOCKED.");
+                    // In a full app, this would unlock Exhibit B
+                } else {
+                    alert("INCORRECT.\n\nPhysics Data Mismatch.\nObject density/elasticity insufficient for 95dB impact.");
+                }
+            }
+        };
+
+        App.init();
+
+    </script>
+</body>
+
+</html>

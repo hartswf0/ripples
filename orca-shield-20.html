@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // TWILIGHT_PROTOCOL_V20</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* TWILIGHT PALETTE */
+            --color-bg: #050510;
+            /* Deep Void */
+            --color-twilight: #483d8b;
+            /* Slate Blue */
+            --color-prism: #e6e6fa;
+            /* Lavender Fog */
+            --color-edgar: #ffd700;
+            /* Golden Soul */
+            --color-danger: #dc143c;
+            /* Crimson Warning */
+
+            /* TOY PALETTE */
+            --color-duck: #ff8c00;
+            /* High-Vis Orange */
+            --color-orb: #00ff00;
+            /* Phosphor Green */
+            --color-antler: #8b4513;
+            /* Bone Brown */
+            --color-lamb: #ffc0cb;
+            /* Soft Pink */
+
+            /* UI PALETTE */
+            --ui-text: #00fa9a;
+            /* Medium Spring Green (Night Vision) */
+            --ui-dim: rgba(0, 250, 154, 0.2);
+            --font-main: 'Courier New', monospace;
+            --font-display: 'Impact', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-main);
+            color: var(--ui-text);
+        }
+
+        /* --- THE CHASSIS --- */
+        .monitor-frame {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* --- LAYERS --- */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #layer-grid {
+            z-index: 10;
+            display: block;
+        }
+
+        #layer-raycaster {
+            z-index: 20;
+            display: none;
+            background: #000;
+        }
+
+        #layer-casefiles {
+            z-index: 30;
+            display: none;
+            pointer-events: auto;
+            background: rgba(0, 0, 0, 0.95);
+        }
+
+        .active-mode-grid #layer-grid {
+            display: block;
+        }
+
+        .active-mode-game #layer-grid {
+            display: none;
+        }
+
+        .active-mode-game #layer-raycaster {
+            display: block;
+        }
+
+        .active-mode-files #layer-casefiles {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- CRT FX --- */
+        .crt-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 60%, #000 130%);
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.2;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+
+        #viz-canvas,
+        #raycaster-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #viz-canvas {
+            cursor: crosshair;
+        }
+
+        #raycaster-canvas {
+            cursor: none;
+            image-rendering: pixelated;
+        }
+
+        /* --- HEADER & CONTROLS --- */
+        .header-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-ui {
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid var(--ui-text);
+            color: var(--ui-text);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px var(--ui-dim);
+            transition: all 0.2s;
+        }
+
+        .btn-ui:hover {
+            background: var(--ui-text);
+            color: #000;
+        }
+
+        .btn-alert {
+            color: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+
+        .btn-alert:hover {
+            background: var(--color-danger);
+            color: #fff;
+        }
+
+        /* --- READER PANEL (GRID MODE) --- */
+        .reader-panel {
+            position: absolute;
+            left: 20px;
+            top: 80px;
+            bottom: 120px;
+            width: 350px;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .panel-header {
+            border-bottom: 2px solid var(--ui-text);
+            padding-bottom: 5px;
+            color: var(--ui-text);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .log-entry {
+            background: rgba(0, 20, 10, 0.8);
+            border-left: 3px solid var(--color-duck);
+            padding: 15px;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 2px #000;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* --- CASE FILES (EVIDENCE) --- */
+        .file-container {
+            width: 80%;
+            max-width: 800px;
+            background: #111;
+            border: 2px solid var(--ui-text);
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 250, 154, 0.1);
+            color: #eee;
+        }
+
+        .file-title {
+            font-size: 1.5rem;
+            color: var(--color-edgar);
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 5px;
+        }
+
+        .detail-label {
+            color: #888;
+            font-weight: bold;
+        }
+
+        .detail-val {
+            color: var(--ui-text);
+            font-family: monospace;
+        }
+
+        .code-input-area {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #code-input {
+            background: #000;
+            border: 1px solid var(--color-edgar);
+            color: var(--color-edgar);
+            font-size: 1.5rem;
+            width: 100px;
+            text-align: center;
+            padding: 5px;
+            letter-spacing: 5px;
+        }
+
+        /* --- GAME HUD (RAYCASTER) --- */
+        .hud-status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: var(--ui-text);
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px var(--ui-text);
+            z-index: 40;
+        }
+
+        .hud-ready-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--color-danger);
+            font-family: var(--font-display);
+            font-size: 5rem;
+            display: none;
+            z-index: 100;
+            text-shadow: 0 0 20px #000;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .item-belt {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 40;
+        }
+
+        .belt-slot {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #444;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .belt-slot.active {
+            border-color: var(--ui-text);
+            box-shadow: 0 0 15px var(--ui-dim);
+        }
+
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 50000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glitch-text {
+            color: var(--ui-text);
+            font-size: 2rem;
+            font-family: var(--font-display);
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+            animation: glitch 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="active-mode-grid">
+
+    <div id="boot-screen">
+        <div class="glitch-text">TWILIGHT PROTOCOL</div>
+        <div style="color: #666; margin-bottom: 40px; font-family: var(--font-main);">
+            LOADING THE BALLAD OF THE GOLDEN HOUND...<br>
+            INITIALIZING PHYSICS ENGINE...<br>
+            CALIBRATING PRISM...
+        </div>
+        <button onclick="System.init()" class="btn-ui" style="font-size: 1.2rem; padding: 15px 40px;">OPEN CASE
+            FILE</button>
+    </div>
+
+    <div class="monitor-frame">
+        <div class="crt-overlay"></div>
+
+        <!-- HEADER -->
+        <div class="header-controls">
+            <button class="btn-ui" onclick="System.setMode('GRID')">MAP: INTERIOR</button>
+            <button class="btn-ui" onclick="System.setMode('FILES')">EVIDENCE LOGS</button>
+            <button class="btn-ui btn-alert" onclick="System.setMode('GAME')">ENTER LIMINAL</button>
+        </div>
+
+        <!-- GRID: MAP OF THE HOLLER -->
+        <div id="layer-grid" class="layer">
+            <canvas id="viz-canvas"></canvas>
+            <div class="reader-panel">
+                <div class="panel-header">ARCHIVIST LOG</div>
+                <div class="log-entry" id="grid-log">
+                    "The house is laid out like the State of Tennessee.<br>
+                    West: The Lowland Kitchen.<br>
+                    Middle: The Basin Living Room.<br>
+                    East: The Mountain Bedrooms."
+                </div>
+                <div class="log-entry" style="border-color: var(--color-edgar);">
+                    Subject: Edgar<br>
+                    Status: DISPLACED<br>
+                    Last Known: Heading East (Upstairs).
+                </div>
+            </div>
+            <div style="position: absolute; bottom: 20px; left: 20px; color: #666;">
+                DRAG TO SCAN MAP // CLICK ZONES FOR DATA
+            </div>
+        </div>
+
+        <!-- FILES: EVIDENCE BOARD -->
+        <div id="layer-casefiles" class="layer">
+            <div class="file-container" id="file-viewer">
+                <!-- Content injected by JS -->
+            </div>
+            <div class="code-input-area">
+                <span style="color: var(--ui-text);">ENTER QUANTITATIVE CODE:</span>
+                <input type="text" id="code-input" maxlength="3" placeholder="---">
+                <button class="btn-ui" onclick="GameLogic.checkCode()">UNLOCK DOOR</button>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <button class="btn-ui" onclick="GameLogic.showFile('A')">EXHIBIT A</button>
+                <button class="btn-ui" onclick="GameLogic.showFile('B')">EXHIBIT B</button>
+                <button class="btn-ui" onclick="GameLogic.showFile('C')">EXHIBIT C</button>
+                <button class="btn-ui" onclick="GameLogic.showFile('D')">EXHIBIT D</button>
+            </div>
+        </div>
+
+        <!-- GAME: RAYCASTER LIMINAL -->
+        <div id="layer-raycaster" class="layer">
+            <canvas id="raycaster-canvas"></canvas>
+
+            <div class="hud-ready-warning" id="ready-warning">DONT MOVE</div>
+
+            <div class="hud-status" id="hud-status">STATUS: SEARCHING...</div>
+
+            <div class="item-belt">
+                <div class="belt-slot active" onclick="GameLogic.equip('ANTLER')" title="Seismic Drop">🦌</div>
+                <div class="belt-slot" onclick="GameLogic.equip('ORB')" title="Doppler Throw">🟢</div>
+                <div class="belt-slot" onclick="GameLogic.equip('DUCK')" title="High-Vis Shield">🦆</div>
+                <div class="belt-slot" onclick="GameLogic.equip('LAMB')" title="Sound Dampener">🐑</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const EVIDENCE = {
+            A: {
+                title: "EXHIBIT A: SENSOR LOG",
+                content: [
+                    { l: "LOCATION", v: "LIVING ROOM (The Basin)" },
+                    { l: "4:00 PM", v: "Front Door Locks. Mark leaves." },
+                    { l: "4:02 PM", v: "Lumen Drop: 100% (Darkness)." },
+                    { l: "4:03 PM", v: "AUDIO: 95 DECIBELS (Impact)." },
+                    { l: "INFERENCE", v: "A heavy object was dropped." }
+                ]
+            },
+            B: {
+                title: "EXHIBIT B: THE MAP",
+                content: [
+                    { l: "METAPHOR", v: "TENNESSEE GEOGRAPHY" },
+                    { l: "WEST", v: "Kitchen tiles (River Lowlands)." },
+                    { l: "MIDDLE", v: "Living Room carpet (Plains)." },
+                    { l: "EAST", v: "Bedrooms (The Mountains)." },
+                    { l: "SUSPECT", v: "The Vacuum (Wampus Cat)." }
+                ]
+            },
+            C: {
+                title: "EXHIBIT C: ORAL HISTORY",
+                content: [
+                    { l: "WITNESS", v: "HONEY (Niece)" },
+                    { l: "OBSERVATION", v: "Light bent upward to ceiling." },
+                    { l: "PHENOMENON", v: "REFRACTION (Prism)." },
+                    { l: "CLUE", v: "Paw print seen in RED light." },
+                    { l: "PHYSICS", v: "Red bends least. Edgar was near source." }
+                ]
+            },
+            D: {
+                title: "EXHIBIT D: CRIME LAB",
+                content: [
+                    { l: "ITEM", v: "GOLDEN FIBER" },
+                    { l: "LENGTH", v: "45mm (Quantitative)" },
+                    { l: "SMELL", v: "PINE NEEDLES (Qualitative)" },
+                    { l: "LOCATION", v: "Found on Orange Frisbee." },
+                    { l: "DEDUCTION", v: "Pine = East TN = Bedrooms." }
+                ]
+            }
+        };
+
+        const ZONES = {
+            KITCHEN: { x: -80, y: 0, r: 40, color: "#4682b4", name: "WEST TN (KITCHEN)", text: "Tile floors. River Lowlands. No Pine smell here." },
+            LIVING: { x: 0, y: 0, r: 50, color: "#daa520", name: "MIDDLE TN (LIVING)", text: "Carpet Plains. Site of the 95dB Impact." },
+            BEDROOM: { x: 90, y: 0, r: 40, color: "#228b22", name: "EAST TN (BEDRMS)", text: "The Mountains. Pine Air Freshener detected." }
+        };
+
+        // --- AUDIO ENGINE ---
+        const AudioEngine = {
+            init() {
+                Tone.start();
+                this.ambience = new Tone.Noise("brown").toDestination();
+                this.ambience.volume.value = -20;
+                this.ambience.start();
+
+                this.thud = new Tone.MembraneSynth().toDestination();
+                this.whistle = new Tone.Oscillator(800, "sine").toDestination();
+            },
+            playDrop() { this.thud.triggerAttackRelease("C1", "8n"); },
+            playWhistle() {
+                this.whistle.start();
+                this.whistle.frequency.rampTo(400, 1);
+                this.whistle.stop("+1");
+            },
+            playStatic() {
+                const noise = new Tone.Noise("white").toDestination();
+                noise.volume.value = -10;
+                noise.start(); noise.stop("+0.2");
+            }
+        };
+
+        // --- GAME LOGIC ---
+        const GameLogic = {
+            currentFile: 'A',
+            equipped: 'ANTLER',
+            readyMode: false,
+
+            showFile(id) {
+                this.currentFile = id;
+                const data = EVIDENCE[id];
+                const html = `<div class="file-title">${data.title}</div>` +
+                    data.content.map(r => `<div class="detail-row"><span class="detail-label">${r.l}</span><span class="detail-val">${r.v}</span></div>`).join('');
+                document.getElementById('file-viewer').innerHTML = html;
+            },
+
+            checkCode() {
+                const val = document.getElementById('code-input').value;
+                if (val === "133") {
+                    alert("CODE ACCEPTED. DOOR UNLOCKED.\n\nEDGAR FOUND.\n\nCASE CLOSED.");
+                } else {
+                    alert("ACCESS DENIED.\n\nHint: (Fiber Length) + (Decibels) - (Rainbow Colors)");
+                }
+            },
+
+            equip(item) {
+                this.equipped = item;
+                document.querySelectorAll('.belt-slot').forEach(el => el.classList.remove('active'));
+                event.target.classList.add('active');
+
+                let status = "";
+                if (item === 'ANTLER') status = "EQUIPPED: HEAVY ANTLER (Seismic)";
+                if (item === 'ORB') status = "EQUIPPED: GLOW ORB (Scout)";
+                if (item === 'DUCK') status = "EQUIPPED: DUCK SHIELD (High-Vis)";
+                if (item === 'LAMB') status = "EQUIPPED: LAMBCHOP (Stealth)";
+                document.getElementById('hud-status').innerText = status;
+            }
+        };
+
+        // --- RENDERERS ---
+        const GridRenderer = {
+            canvas: document.getElementById('viz-canvas'),
+            ctx: document.getElementById('viz-canvas').getContext('2d'),
+            panX: 0, panY: 0, zoom: 1,
+
+            loop() {
+                const w = this.canvas.width = window.innerWidth;
+                const h = this.canvas.height = window.innerHeight;
+                const cx = w / 2 + this.panX; const cy = h / 2 + this.panY;
+
+                this.ctx.fillStyle = "#050510"; this.ctx.fillRect(0, 0, w, h);
+
+                // Draw Tennessee Zones
+                Object.values(ZONES).forEach(z => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx + z.x * 2, cy + z.y * 2, z.r * 2, 0, Math.PI * 2);
+                    this.ctx.fillStyle = z.color;
+                    this.ctx.globalAlpha = 0.3;
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = z.color;
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.stroke();
+
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.font = "12px Courier New";
+                    this.ctx.fillText(z.name, cx + z.x * 2 - 40, cy + z.y * 2);
+                });
+            }
+        };
+
+        const RaycasterRenderer = {
+            canvas: document.getElementById('raycaster-canvas'),
+            ctx: document.getElementById('raycaster-canvas').getContext('2d'),
+            player: { x: 0, y: 0, dir: 0 },
+
+            loop() {
+                const w = this.canvas.width = window.innerWidth;
+                const h = this.canvas.height = window.innerHeight;
+
+                // Liminal Hallway Effect
+                // Floor
+                let grad = this.ctx.createLinearGradient(0, h / 2, 0, h);
+                grad.addColorStop(0, "#000");
+                grad.addColorStop(1, "#222");
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, h / 2, w, h / 2);
+
+                // Ceiling (Twilight)
+                grad = this.ctx.createLinearGradient(0, 0, 0, h / 2);
+                grad.addColorStop(0, "#191970");
+                grad.addColorStop(1, "#000");
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, 0, w, h / 2);
+
+                // Random Pulse (Ready Position Mechanic)
+                if (Math.random() > 0.98 && !GameLogic.readyMode) {
+                    this.triggerReadyCheck();
+                }
+
+                if (GameLogic.readyMode) {
+                    this.ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+                    this.ctx.fillRect(0, 0, w, h);
+                }
+            },
+
+            triggerReadyCheck() {
+                GameLogic.readyMode = true;
+                const warn = document.getElementById('ready-warning');
+                warn.style.display = 'block';
+                AudioEngine.playStatic();
+
+                setTimeout(() => {
+                    GameLogic.readyMode = false;
+                    warn.style.display = 'none';
+                }, 2000);
+            }
+        };
+
+        // --- SYSTEM CORE ---
+        const System = {
+            mode: 'GRID',
+
+            init() {
+                document.getElementById('boot-screen').style.display = 'none';
+                AudioEngine.init();
+                GameLogic.showFile('A');
+                this.loop();
+            },
+
+            setMode(m) {
+                this.mode = m;
+                document.body.className = `active-mode-${m.toLowerCase()}`;
+            },
+
+            loop() {
+                requestAnimationFrame(() => this.loop());
+                if (this.mode === 'GRID') GridRenderer.loop();
+                if (this.mode === 'GAME') RaycasterRenderer.loop();
+            }
+        };
+    </script>
+</body>
+
+</html>

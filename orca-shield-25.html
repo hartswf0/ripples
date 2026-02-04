@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // REBUS_PIPELINE_V25</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* PALETTE */
+            --bg-iconic: #111;
+            --ink-iconic: #eee;
+            --accent-teal: #00bcd4;
+            --accent-gold: #ffd700;
+            --accent-red: #ff3333;
+
+            --bg-crt: #050a05;
+            --ink-crt: #0f0;
+
+            /* TYPOGRAPHY */
+            --font-mono: 'Courier New', monospace;
+            --font-sans: 'Helvetica Neue', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-iconic);
+            color: var(--ink-iconic);
+            font-family: var(--font-mono);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s;
+        }
+
+        /* --- LAYOUT --- */
+        .header {
+            height: 60px;
+            border-bottom: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .meta-id {
+            font-size: 0.7rem;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        .thesis {
+            font-weight: bold;
+            color: var(--accent-gold);
+            letter-spacing: 2px;
+        }
+
+        .main-stage {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* LEFT: WORLD SPECS (ZONES) */
+        .zone-panel {
+            width: 250px;
+            border-right: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+            background: #080808;
+            font-size: 0.7rem;
+        }
+
+        .zone-item {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #222;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .zone-item:hover,
+        .zone-item.active {
+            border-color: var(--accent-teal);
+            background: rgba(0, 188, 212, 0.1);
+        }
+
+        .z-name {
+            color: var(--accent-teal);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .z-op {
+            color: #888;
+        }
+
+        /* CENTER: THE REBUS SHIELD */
+        .shield-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+
+        #rebus-display {
+            font-family: var(--font-mono);
+            white-space: pre;
+            font-size: 14px;
+            line-height: 16px;
+            color: var(--ink-iconic);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+
+        /* Interactive Tokens */
+        .token {
+            display: inline-block;
+            cursor: pointer;
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+
+        .token:hover {
+            color: var(--accent-teal);
+            text-shadow: 0 0 10px var(--accent-teal);
+        }
+
+        .token-sound:hover {
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px var(--accent-gold);
+        }
+
+        .token-alarm:hover {
+            color: var(--accent-red);
+            text-shadow: 0 0 10px var(--accent-red);
+        }
+
+        /* RIGHT: LEGEND / TRANSLATION */
+        .info-panel {
+            width: 300px;
+            border-left: 1px solid #333;
+            padding: 20px;
+            background: #080808;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .legend-box {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.8rem;
+        }
+
+        .trans-box {
+            height: 150px;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .key-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            border-bottom: 1px dotted #333;
+            padding-bottom: 2px;
+        }
+
+        /* CRT MODE overrides */
+        body.mode-crt {
+            background-color: var(--bg-crt);
+            color: var(--ink-crt);
+        }
+
+        body.mode-crt .rebus-display {
+            text-shadow: 0 0 5px var(--ink-crt), 0 0 10px var(--ink-crt);
+        }
+
+        body.mode-crt .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* UTILS */
+        .btn-toggle {
+            padding: 5px 10px;
+            background: #222;
+            border: 1px solid #444;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-family: inherit;
+            margin-left: 10px;
+        }
+
+        .btn-toggle.active {
+            background: var(--accent-teal);
+            color: #000;
+            border-color: var(--accent-teal);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div>
+            <div class="meta-id">UNIV_MEDIA_COMPILER_REBUS_WORLD_TEXT_PIPELINE_v1</div>
+            <div class="thesis">"NON VERBIS, SED REBUS"</div>
+        </div>
+        <div>
+            <span style="font-size: 0.7rem; color:#666;">PROFILE:</span>
+            <button class="btn-toggle active" onclick="App.setMode('ICONIC')">STATIC_ICONIC</button>
+            <button class="btn-toggle" onclick="App.setMode('CRT')">DOCUMENTARY_CRT</button>
+        </div>
+    </div>
+
+    <div class="main-stage">
+
+        <!-- LEFT: ZONES -->
+        <div class="zone-panel" id="zone-list">
+            <!-- Populated via JS -->
+        </div>
+
+        <!-- CENTER: SHIELD -->
+        <div class="shield-container">
+            <div id="rebus-display"></div>
+        </div>
+
+        <!-- RIGHT: LEGEND -->
+        <div class="info-panel">
+            <h4 style="margin-top:0; color:#666;">DECODER KEY</h4>
+            <div class="legend-box" id="legend-content"></div>
+            <div class="trans-box">
+                <strong style="color:var(--accent-teal)">TRANSLATION:</strong>
+                <p id="trans-text">Hover over tokens to decode.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="scanline"></div>
+
+    <script>
+        const ZONES = [
+            { id: "Z1", name: "INVOCATION", op: "PRODUCE", act: "INVOCATION" },
+            { id: "Z2", name: "BRIDGE", op: "REPAIR", act: "DECREE" },
+            { id: "Z3", name: "OPTICS", op: "PRODUCE", act: "CHANT" },
+            { id: "Z4", name: "EVIDENCE", op: "MAINTAIN", act: "DECREE" },
+            { id: "Z5", name: "FRACTURE", op: "REPAIR", act: "QUESTION" },
+            { id: "Z6", name: "SEAL", op: "TRANSFORM", act: "SEAL" }
+        ];
+
+        const LEGEND = [
+            { t: "(o)", m: "Eye / Lens / Optics POV" },
+            { t: "/_\\", m: "Roof / House Container" },
+            { t: "~~~", m: "Diffusion / Blue Hour" },
+            { t: "[]", m: "Box / Containment" },
+            { t: "{}", m: "Secret / Hidden" },
+            { t: "___", m: "Ground / Floor" },
+            { t: "/\\/\\", m: "Ridge / High Ground" },
+            { t: "--->", m: "Bridge / Pipeline" },
+            { t: "!=", m: "Alarm / Anomaly" },
+            { t: "$", m: "Value / Cost" },
+            { t: "?", m: "Doubt / Fracture" },
+            { t: "ROYGBIV", m: "Refracted Spectrum" }
+        ];
+
+        // The ASCII Art, carefully escaped
+        // We will inject spans for interactive tokens
+        const RAW_SHIELD = `
+                         (o)   (o)
+                        /  \\___/  \\            ROYGBIV  ->  R A I N B O W
+                     __/____________\\__
+                    /                  \\
+                   /    [TXT]--->[PRM]  \\
+                  /   ----------------   \\
+                 |   R O L E :  [MC]      |
+                 |                         |
+                 |      E D G A R - V I S I O N
+                 |        (o)=EYE   /_\\=ROOF
+                 |       ___GREAT___DIFFUSION___
+                 |      ~~~BLUE~~~HOUR~~~(o)~~~
+                 |                         |
+                 |   [GLASS]  =  [PRISM]  ->  R/O/Y/G/B/I/V
+                 |         /\\/\\  refract  /\\/\\
+                 |                         |
+                 |   [TWIN]   (o)(o)   [CIRCLES]
+                 |    GLASSES on ___RUG___  !=ALARM
+                 |                         |
+                 |   CONVEX  >  gather PHOTON$  >  INFER
+                 |   CONCAVE <  desk HIGH RIDGE  <  FLOOR
+                 |                         |
+                 |   [BOX]{SECRET}:  [LAMBCHOP]  plush-scent
+                 |   [TOY]  =  [ANTLER]  $40  (cold)
+                 |   [TOOL] =  [GLOW-BALL]  (dim)  ~~~
+                 |                         |
+                 |   EDGAR-VISION TOGGLE:
+                 |   2=TOO  4=FOR  8=ATE  C=SEE  U=YOU  R=ARE
+                 |   PHOSPHOR:  trail trail trail  ---> footprints
+                 |   SPECULAR:  glasses catch beam ---> sensor door
+                 |                         |
+                 |   Q?  "NOT ALONE"  =  [MYSTERIOUS][BLANK]
+                  \\                        /
+                   \\____   HISTORY   ____/
+                        \\____over____/
+                             TIME
+`;
+
+        const App = {
+            mode: 'ICONIC',
+
+            init() {
+                this.renderZones();
+                this.renderShield();
+                this.renderLegend();
+                AudioEngine.init();
+            },
+
+            setMode(m) {
+                this.mode = m;
+                document.body.className = m === 'CRT' ? 'mode-crt' : '';
+                document.querySelectorAll('.btn-toggle').forEach(b => {
+                    b.classList.toggle('active', b.innerText.includes(m));
+                });
+            },
+
+            renderZones() {
+                const list = document.getElementById('zone-list');
+                ZONES.forEach(z => {
+                    const el = document.createElement('div');
+                    el.className = 'zone-item';
+                    el.innerHTML = `<div class="z-name">${z.id}: ${z.name}</div><div class="z-op">${z.op} // ${z.act}</div>`;
+                    list.appendChild(el);
+                });
+            },
+
+            renderLegend() {
+                const list = document.getElementById('legend-content');
+                LEGEND.forEach(l => {
+                    const el = document.createElement('div');
+                    el.className = 'key-row';
+                    el.innerHTML = `<span>${l.t}</span><span>${l.m}</span>`;
+                    list.appendChild(el);
+                });
+            },
+
+            renderShield() {
+                const display = document.getElementById('rebus-display');
+                // Simple parser to wrap tokens
+                let html = RAW_SHIELD.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                // Wrap known tokens
+                const tokens = [
+                    { k: "\\(o\\)", c: "token" },
+                    { k: "\\[.*?\\]", c: "token" }, // [BOX], [TXT]
+                    { k: "\\{.*?\\}", c: "token" }, // {SECRET}
+                    { k: "~~~", c: "token" },
+                    { k: "ROYGBIV", c: "token" },
+                    { k: "/\\\\/\\\\", c: "token" }, // /\/\
+                    { k: "!=", c: "token-alarm" },
+                    { k: "\\$([0-9]+)?", c: "token" },
+                    { k: " trail ", c: "token" },
+                    { k: "--->", c: "token" },
+                    // Sound Tokens
+                    { k: "\\bC\\b", c: "token-sound" },
+                    { k: "\\bU\\b", c: "token-sound" },
+                    { k: "\\bR\\b", c: "token-sound" },
+                    { k: "\\b2\\b", c: "token-sound" },
+                    { k: "\\b4\\b", c: "token-sound" },
+                    { k: "\\b8\\b", c: "token-sound" }
+                ];
+
+                tokens.forEach(tk => {
+                    const regex = new RegExp(`(${tk.k})`, 'g');
+                    html = html.replace(regex, `<span class="${tk.c}" onmouseenter="App.explain(this)" onclick="App.interact(this)">$1</span>`);
+                });
+
+                display.innerHTML = html;
+            },
+
+            explain(el) {
+                const txt = el.innerText;
+                const entry = LEGEND.find(l => txt.includes(l.t)); // Simple match
+                let msg = "Processing...";
+
+                if (entry) msg = entry.m;
+                else if (txt.includes("trail")) msg = "Repetition Operator: Path/Cycle";
+                else if (txt.match(/[CUR248]/)) msg = "Phonetic Substitute (Sound)";
+                else if (txt.includes("TXT")) msg = "Raw Input (Narrative)";
+                else if (txt.includes("PRM")) msg = "Prompt Object";
+
+                document.getElementById('trans-text').style.color = "#fff";
+                document.getElementById('trans-text').innerText = `[${txt}] :: ${msg}`;
+            },
+
+            interact(el) {
+                const txt = el.innerText;
+                // Sound interaction
+                if (txt === "C") AudioEngine.play("C4");
+                else if (txt === "U") AudioEngine.play("D4");
+                else if (txt === "R") AudioEngine.play("E4");
+                else if (txt === "2") AudioEngine.play("F4");
+                else if (txt === "4") AudioEngine.play("G4");
+                else if (txt === "8") AudioEngine.play("A4");
+                else AudioEngine.play("click");
+            }
+        };
+
+        const AudioEngine = {
+            synth: null,
+            init() {
+                if (this.synth) return;
+                Tone.start();
+                this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                this.synth.volume.value = -10;
+            },
+            play(note) {
+                this.init();
+                if (note === 'click') this.synth.triggerAttackRelease("C6", "32n", Tone.now(), 0.1);
+                else this.synth.triggerAttackRelease(note, "8n");
+            }
+        };
+
+        // Start
+        App.init();
+
+    </script>
+</body>
+
+</html>

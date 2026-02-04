@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORCA // REBUS_ENGINE_V24</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            /* REBUS PALETTE */
+            --bg-paper: #f0f0e0;
+            --ink-black: #1a1a1a;
+            --ink-red: #d02020;
+            --ink-blue: #2040d0;
+            --ink-gold: #c5a000;
+
+            --font-typewriter: 'Courier Prime', 'Courier New', monospace;
+            --font-hand: 'Brush Script MT', cursive;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-paper);
+            color: var(--ink-black);
+            font-family: var(--font-typewriter);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UI CHROME --- */
+        .toolbar {
+            height: 50px;
+            border-bottom: 2px solid var(--ink-black);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: #fff;
+        }
+
+        .brand {
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: -1px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #fff;
+            border: 1px solid var(--ink-black);
+            padding: 5px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--ink-black);
+            color: #fff;
+        }
+
+        .btn.active {
+            background: var(--ink-black);
+            color: #fff;
+        }
+
+        /* --- WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: 100%;
+        }
+
+        /* INPUT AREA */
+        .input-panel {
+            width: 300px;
+            border-right: 2px solid var(--ink-black);
+            display: flex;
+            flex-direction: column;
+            background: #fdfdfd;
+        }
+
+        .panel-head {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            background: #eee;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .token-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .token {
+            padding: 10px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border: 1px dashed #999;
+            background: #fff;
+        }
+
+        .token:hover {
+            border-color: var(--ink-black);
+            background: #eee;
+        }
+
+        .token.active {
+            border-color: var(--ink-blue);
+            color: var(--ink-blue);
+            font-weight: bold;
+        }
+
+        /* CANVAS AREA */
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background-image:
+                linear-gradient(#e5e5d0 1px, transparent 1px),
+                linear-gradient(90deg, #e5e5d0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #rebus-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* DECODER OVERLAY */
+        .decoder {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 2px solid var(--ink-black);
+            padding: 15px 30px;
+            box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.2);
+            font-family: var(--font-typewriter);
+            text-align: center;
+            display: none;
+        }
+
+        .decoder.visible {
+            display: block;
+        }
+
+        .decoder strong {
+            color: var(--ink-red);
+        }
+
+        /* HELP MODAL */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div class="brand">HOLLER REBUS ENGINE [v24]</div>
+        <div class="controls">
+            <button class="btn active" id="mode-text" onclick="Engine.setMode('TEXT')">TXT</button>
+            <button class="btn" id="mode-rebus" onclick="Engine.setMode('REBUS')">REBUS</button>
+            <button class="btn" onclick="Engine.toggleDecoder()">DECODE</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="input-panel">
+            <div class="panel-head">SELECT NARRATIVE PACKET</div>
+            <div class="token-list" id="packet-list">
+                <!-- Injected via JS -->
+            </div>
+            <div style="padding: 10px; font-size: 0.7rem; color: #666; border-top: 1px solid #ccc;">
+                PROTOCOL: [TXT] -> [SPATIAL]
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="rebus-canvas"></canvas>
+            <div class="decoder" id="decoder-box">
+                RAW: <span id="raw-text">...</span><br>
+                <strong>MEANING: <span id="translated-text">...</span></strong>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- NARRATIVE DATA ---
+        const PACKETS = [
+            {
+                id: "p1",
+                label: "THE MISSING HOUND",
+                raw: "EDGAR in DOGHOUSE = NULL",
+                rebus: {
+                    type: "CONTAINER",
+                    outer: "DOG HOUSE",
+                    inner: "EMPTY", // Literal 'empty' space or absence
+                    meaning: "Edgar is missing from the Dog House."
+                }
+            },
+            {
+                id: "p2",
+                label: "THIN-FILM INTERFERENCE",
+                raw: "OIL / PUDDLE + LIGHT = RAINBOW",
+                rebus: {
+                    type: "LAYERED",
+                    base: "PUDDLE",
+                    layer: "OIL",
+                    effect: "R A I N B O W",
+                    meaning: "Oil on a puddle creates a rainbow (Interference)."
+                }
+            },
+            {
+                id: "p3",
+                label: "THE CONCAVE HUBCAP",
+                raw: "PHOTONS -> ) HUBCAP ( -> BEAM",
+                rebus: {
+                    type: "FOCUS",
+                    source: "PHOTONS",
+                    lens: "HUBCAP )",
+                    result: "BEAM",
+                    meaning: "The concave hubcap focuses photons into a beam."
+                }
+            },
+            {
+                id: "p4",
+                label: "QUANTUM GRANDPA",
+                raw: "GRANDPA / TIME",
+                rebus: {
+                    type: "FRACTION",
+                    top: "GRANDPA",
+                    bottom: "TIME",
+                    meaning: "Grandpa is lost in time (Grandpa over Time)."
+                }
+            },
+            {
+                id: "p5",
+                label: "SIGNAL FIRE",
+                raw: "FIRE + FIRE + FIRE",
+                rebus: {
+                    type: "REPETITION",
+                    word: "FIRE",
+                    count: 3,
+                    meaning: "Signal Fire (Multiplying/Big Fire)."
+                }
+            }
+        ];
+
+        // --- AUDIO ---
+        const AudioEngine = {
+            synth: null,
+            init() {
+                if (this.synth) return;
+                Tone.start();
+                this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                this.synth.volume.value = -10;
+            },
+            trigger() {
+                this.init();
+                this.synth.triggerAttackRelease(["C4", "E4"], "8n");
+            }
+        };
+
+        // --- REBUS ENGINE ---
+        const Engine = {
+            canvas: document.getElementById('rebus-canvas'),
+            ctx: document.getElementById('rebus-canvas').getContext('2d'),
+            activePacket: PACKETS[0],
+            mode: 'REBUS', // TEXT or REBUS
+            showDecode: false,
+            time: 0,
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.renderValues();
+                this.loop();
+            },
+
+            resize() {
+                this.canvas.width = this.canvas.parentElement.offsetWidth;
+                this.canvas.height = this.canvas.parentElement.offsetHeight;
+                this.cx = this.canvas.width / 2;
+                this.cy = this.canvas.height / 2;
+            },
+
+            renderValues() {
+                const list = document.getElementById('packet-list');
+                list.innerHTML = "";
+                PACKETS.forEach(p => {
+                    const el = document.createElement('div');
+                    el.className = `token ${p === this.activePacket ? 'active' : ''}`;
+                    el.innerText = p.label;
+                    el.onclick = () => {
+                        this.activePacket = p;
+                        this.renderValues();
+                        AudioEngine.trigger();
+                    };
+                    list.appendChild(el);
+                });
+
+                // Decoder
+                document.getElementById('raw-text').innerText = this.activePacket.raw;
+                document.getElementById('translated-text').innerText = this.activePacket.rebus.meaning;
+            },
+
+            setMode(m) {
+                this.mode = m;
+                document.getElementById('mode-text').classList.toggle('active', m === 'TEXT');
+                document.getElementById('mode-rebus').classList.toggle('active', m === 'REBUS');
+            },
+
+            toggleDecoder() {
+                this.showDecode = !this.showDecode;
+                document.getElementById('decoder-box').classList.toggle('visible', this.showDecode);
+            },
+
+            loop() {
+                requestAnimationFrame(() => this.loop());
+                this.time += 0.02;
+
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                // BG
+                ctx.fillStyle = "#f0f0e0";
+                ctx.fillRect(0, 0, w, h);
+
+                // Grid (Notebook style)
+                ctx.strokeStyle = "rgba(0, 100, 255, 0.1)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let y = 0; y < h; y += 25) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+                ctx.stroke();
+
+                // Margin
+                ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
+                ctx.beginPath(); ctx.moveTo(50, 0); ctx.lineTo(50, h); ctx.stroke();
+
+                // Render Active Content
+                ctx.fillStyle = "#1a1a1a";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                if (this.mode === 'TEXT') {
+                    ctx.font = "bold 24px Courier New";
+                    ctx.fillText(this.activePacket.raw, this.cx, this.cy);
+                } else {
+                    this.renderRebus(ctx, this.activePacket.rebus, this.cx, this.cy);
+                }
+            },
+
+            renderRebus(ctx, data, x, y) {
+                ctx.save();
+                ctx.font = "bold 30px Courier New";
+
+                if (data.type === 'CONTAINER') {
+                    // Draw Box
+                    ctx.strokeStyle = "#1a1a1a";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x - 100, y - 60, 200, 120);
+
+                    // Label Outer
+                    ctx.font = "italic 16px Courier New";
+                    ctx.fillStyle = "#666";
+                    ctx.fillText(data.outer, x, y - 80);
+
+                    // Inner
+                    ctx.font = "bold 30px Courier New";
+                    ctx.fillStyle = "#d02020";
+                    ctx.fillText("∅", x, y); // Null symbol
+                    ctx.font = "14px Courier New";
+                    ctx.fillText("(MISSING)", x, y + 25);
+                }
+
+                if (data.type === 'FRACTION') {
+                    // Fraction Line
+                    ctx.beginPath();
+                    ctx.moveTo(x - 80, y);
+                    ctx.lineTo(x + 80, y);
+                    ctx.strokeStyle = "#1a1a1a";
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    // Top
+                    ctx.fillText(data.top, x, y - 40);
+                    // Bottom
+                    ctx.fillText(data.bottom, x, y + 40);
+                }
+
+                if (data.type === 'LAYERED') {
+                    // Base
+                    ctx.fillStyle = "#00f";
+                    ctx.fillText(data.base, x, y + 40); // Puddle
+
+                    // Layer (Oil)
+                    ctx.fillStyle = "#333";
+                    ctx.globalAlpha = 0.7;
+                    ctx.fillText(data.layer, x, y + 10);
+
+                    // Effect (Rainbow) - Arch
+                    ctx.globalAlpha = 1;
+                    const txt = data.effect;
+                    const r = 100;
+                    for (let i = 0; i < txt.length; i++) {
+                        const char = txt[i];
+                        const angle = Math.PI + (i / (txt.length - 1)) * Math.PI;
+                        const px = x + Math.cos(angle) * r;
+                        const py = y + 20 + Math.sin(angle) * r; // Upside down arch? No, Math.PI is left (180), 2PI is right. 
+                        // Start at PI (left), go to 0 (right).
+                        const cleanAngle = Math.PI + (i / (txt.length - 1)) * Math.PI; // wait, cos(PI)=-1 (left), cos(2PI)=1 (right). sin(PI)=0, sin(2PI)=0. sin(1.5PI)=-1 (top).
+                        // Let's just do manual arch
+                        const archAngle = Math.PI + (i / (txt.length - 1)) * Math.PI; // -X to +X?
+                        // Simple arc: 
+                        // Just draw text normally above
+                        ctx.fillStyle = `hsl(${i * 40}, 100%, 50%)`;
+                        ctx.fillText(char, x - 100 + (i * 25), y - 60 + Math.sin(i) * 10);
+                    }
+                }
+
+                if (data.type === 'FOCUS') {
+                    // Hubcap Curve
+                    ctx.font = "60px Courier New";
+                    ctx.fillStyle = "#888";
+                    ctx.fillText(")", x, y);
+
+                    // Photons Incoming
+                    ctx.font = "14px Courier New";
+                    ctx.fillStyle = "#c5a000";
+                    const off = (Math.sin(this.time * 5) * 10);
+                    ctx.fillText("~~~>", x - 80 + off, y - 30);
+                    ctx.fillText("~~~>", x - 80 + off, y + 30);
+
+                    // Beam Outgoing
+                    ctx.fillStyle = "#d02020";
+                    ctx.fillRect(x + 20, y - 2, 100, 4);
+                }
+
+                if (data.type === 'REPETITION') {
+                    ctx.fillStyle = "#d02020";
+                    for (let i = 0; i < data.count; i++) {
+                        const sc = 1 + (i * 0.5);
+                        ctx.save();
+                        ctx.translate(x, y + (i * 40) - 40);
+                        ctx.scale(sc, sc);
+                        ctx.globalAlpha = 1 - (i * 0.2);
+                        ctx.fillText(data.word, 0, 0);
+                        ctx.restore();
+                    }
+                }
+
+                ctx.restore();
+            }
+        };
+
+        Engine.init();
+
+    </script>
+</body>
+
+</html>
