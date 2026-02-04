@@ -467,6 +467,78 @@
                     <button class="scanner-btn" onclick="RaycasterEngine.generateFromBuffer()">👁️ VISION</button>
                 </div>
             </div>
+
+            <!-- VISION MODE TOGGLE -->
+            <div id="vision-modes"
+                style="position:absolute; top:70px; left:50%; transform:translateX(-50%); display:flex; gap:5px; z-index:100;">
+                <button class="btn-ui" style="padding:8px 12px;" onclick="RaycasterEngine.setVision('NORMAL')"
+                    id="vis-normal">🔦 NORMAL</button>
+                <button class="btn-ui" style="padding:8px 12px;" onclick="RaycasterEngine.setVision('PRISM')"
+                    id="vis-prism">🌈 PRISM</button>
+                <button class="btn-ui" style="padding:8px 12px;" onclick="RaycasterEngine.setVision('CONCAVE')"
+                    id="vis-concave">🔍 CONCAVE</button>
+            </div>
+
+            <!-- COLLECTION HUD -->
+            <div id="collect-hud"
+                style="position:absolute; top:20px; left:20px; background:rgba(0,0,0,0.7); border:1px solid var(--ui-text); padding:10px 15px; z-index:100; font-size:0.9rem; color:var(--ui-text);">
+                <div style="letter-spacing:2px; margin-bottom:5px;">TEXT COLLECTED</div>
+                <div id="collect-count" style="font-size:1.5rem; font-weight:bold;">0 / 10</div>
+            </div>
+
+            <!-- MOBILE JOYSTICKS -->
+            <div id="mobile-controls"
+                style="position:absolute; bottom:0; left:0; right:0; height:180px; display:flex; justify-content:space-between; padding:20px; pointer-events:none; z-index:90;">
+                <!-- LEFT: MOVE -->
+                <div id="joystick-left"
+                    style="width:120px; height:120px; background:rgba(0,255,65,0.15); border:2px solid rgba(0,255,65,0.5); border-radius:50%; position:relative; pointer-events:auto; touch-action:none;">
+                    <div id="joystick-left-knob"
+                        style="width:50px; height:50px; background:rgba(0,255,65,0.6); border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">
+                    </div>
+                    <div
+                        style="position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:10px; color:#0f0; letter-spacing:2px;">
+                        MOVE</div>
+                </div>
+
+                <!-- CENTER: D-PAD -->
+                <div id="dpad"
+                    style="display:flex; flex-direction:column; align-items:center; gap:5px; pointer-events:auto;">
+                    <button class="dpad-btn" ontouchstart="RaycasterEngine.keys.w=true"
+                        ontouchend="RaycasterEngine.keys.w=false" onmousedown="RaycasterEngine.keys.w=true"
+                        onmouseup="RaycasterEngine.keys.w=false"
+                        style="width:50px; height:40px; background:rgba(0,255,65,0.3); border:1px solid #0f0; color:#0f0; font-size:18px;">▲</button>
+                    <div style="display:flex; gap:10px;">
+                        <button class="dpad-btn" ontouchstart="RaycasterEngine.keys.a=true"
+                            ontouchend="RaycasterEngine.keys.a=false" onmousedown="RaycasterEngine.keys.a=true"
+                            onmouseup="RaycasterEngine.keys.a=false"
+                            style="width:40px; height:40px; background:rgba(0,255,65,0.3); border:1px solid #0f0; color:#0f0; font-size:18px;">◀</button>
+                        <button class="dpad-btn" ontouchstart="RaycasterEngine.keys.s=true"
+                            ontouchend="RaycasterEngine.keys.s=false" onmousedown="RaycasterEngine.keys.s=true"
+                            onmouseup="RaycasterEngine.keys.s=false"
+                            style="width:40px; height:40px; background:rgba(0,255,65,0.3); border:1px solid #0f0; color:#0f0; font-size:18px;">▼</button>
+                        <button class="dpad-btn" ontouchstart="RaycasterEngine.keys.d=true"
+                            ontouchend="RaycasterEngine.keys.d=false" onmousedown="RaycasterEngine.keys.d=true"
+                            onmouseup="RaycasterEngine.keys.d=false"
+                            style="width:40px; height:40px; background:rgba(0,255,65,0.3); border:1px solid #0f0; color:#0f0; font-size:18px;">▶</button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: LOOK -->
+                <div id="joystick-right"
+                    style="width:120px; height:120px; background:rgba(255,69,0,0.15); border:2px solid rgba(255,69,0,0.5); border-radius:50%; position:relative; pointer-events:auto; touch-action:none;">
+                    <div id="joystick-right-knob"
+                        style="width:50px; height:50px; background:rgba(255,69,0,0.6); border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">
+                    </div>
+                    <div
+                        style="position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:10px; color:#f40; letter-spacing:2px;">
+                        LOOK</div>
+                </div>
+            </div>
+
+            <!-- SCAN BUTTON -->
+            <button id="scan-btn" onclick="RaycasterEngine.scan()"
+                style="position:absolute; bottom:200px; left:50%; transform:translateX(-50%); padding:15px 30px; background:rgba(0,255,65,0.2); border:2px solid #0f0; color:#0f0; font-family:inherit; font-size:1rem; cursor:pointer; z-index:100;">🔊
+                SCAN / COLLECT</button>
         </div>
     </div>
 
@@ -754,7 +826,7 @@
             }
         };
 
-        // --- RAYCASTER ENGINE (TEXT-URE v16) ---
+        // --- RAYCASTER ENGINE (TEXT-URE v17) ---
         const RaycasterEngine = {
             canvas: document.getElementById('raycaster-canvas'),
             ctx: document.getElementById('raycaster-canvas').getContext('2d'),
@@ -762,6 +834,13 @@
             player: { x: 12.5, y: 12.5, dirX: -1, dirY: 0, planeX: 0, planeY: 0.66 },
             keys: { w: false, a: false, s: false, d: false },
             config: { mapSize: 24, texSize: 64 },
+
+            // New: Vision modes and joystick state
+            visionMode: 'NORMAL', // NORMAL, PRISM, CONCAVE
+            joystickLeft: { x: 0, y: 0 },
+            joystickRight: { x: 0, y: 0 },
+            collected: 0,
+            totalCollectibles: 10,
 
             init() {
                 // Generate Textures
@@ -787,6 +866,68 @@
                     if (e.key === 'a' || e.key === 'ArrowLeft') this.keys.a = false;
                     if (e.key === 'd' || e.key === 'ArrowRight') this.keys.d = false;
                 });
+
+                // Initialize mobile joysticks
+                this.initJoysticks();
+            },
+
+            initJoysticks() {
+                const setupJoystick = (id, state, knobId) => {
+                    const zone = document.getElementById(id);
+                    const knob = document.getElementById(knobId);
+                    if (!zone || !knob) return;
+
+                    let active = false;
+                    const rect = () => zone.getBoundingClientRect();
+
+                    const update = (clientX, clientY) => {
+                        const r = rect();
+                        const cx = r.left + r.width / 2;
+                        const cy = r.top + r.height / 2;
+                        let dx = (clientX - cx) / (r.width / 2);
+                        let dy = (clientY - cy) / (r.height / 2);
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        if (len > 1) { dx /= len; dy /= len; }
+                        state.x = dx;
+                        state.y = dy;
+                        knob.style.transform = `translate(calc(-50% + ${dx * 30}px), calc(-50% + ${dy * 30}px))`;
+                    };
+
+                    zone.addEventListener('touchstart', e => { active = true; update(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+                    zone.addEventListener('touchmove', e => { if (active) update(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+                    zone.addEventListener('touchend', () => { active = false; state.x = 0; state.y = 0; knob.style.transform = 'translate(-50%, -50%)'; });
+
+                    zone.addEventListener('mousedown', e => { active = true; update(e.clientX, e.clientY); });
+                    window.addEventListener('mousemove', e => { if (active) update(e.clientX, e.clientY); });
+                    window.addEventListener('mouseup', () => { if (active) { active = false; state.x = 0; state.y = 0; knob.style.transform = 'translate(-50%, -50%)'; } });
+                };
+
+                setupJoystick('joystick-left', this.joystickLeft, 'joystick-left-knob');
+                setupJoystick('joystick-right', this.joystickRight, 'joystick-right-knob');
+            },
+
+            setVision(mode) {
+                this.visionMode = mode;
+                ['NORMAL', 'PRISM', 'CONCAVE'].forEach(m => {
+                    const btn = document.getElementById('vis-' + m.toLowerCase());
+                    if (btn) {
+                        btn.style.background = (m === mode) ? 'var(--ui-text)' : 'rgba(0,0,0,0.5)';
+                        btn.style.color = (m === mode) ? '#000' : 'var(--color-secondary)';
+                    }
+                });
+                AudioEngine.trigger(mode);
+            },
+
+            collect() {
+                if (this.collected < this.totalCollectibles) {
+                    this.collected++;
+                    const hud = document.getElementById('collect-count');
+                    if (hud) hud.innerText = `${this.collected} / ${this.totalCollectibles}`;
+                    AudioEngine.rippleThud(0.8);
+                    if (this.collected >= this.totalCollectibles) {
+                        setTimeout(() => alert('COLLECTION COMPLETE! All text fragments gathered.'), 500);
+                    }
+                }
             },
 
             genTextures() {
@@ -809,10 +950,26 @@
             },
 
             update() {
-                const ms = 0.05, rs = 0.03;
-                if (this.keys.w) { this.player.x += this.player.dirX * ms; this.player.y += this.player.dirY * ms; }
-                if (this.keys.s) { this.player.x -= this.player.dirX * ms; this.player.y -= this.player.dirY * ms; }
-                if (this.keys.d) {
+                const ms = 0.06, rs = 0.04;
+
+                // MOVEMENT: Keyboard OR Left Joystick (forward/back)
+                let moveForward = this.keys.w || this.joystickLeft.y < -0.3;
+                let moveBack = this.keys.s || this.joystickLeft.y > 0.3;
+
+                if (moveForward) {
+                    this.player.x += this.player.dirX * ms;
+                    this.player.y += this.player.dirY * ms;
+                }
+                if (moveBack) {
+                    this.player.x -= this.player.dirX * ms;
+                    this.player.y -= this.player.dirY * ms;
+                }
+
+                // ROTATION: Keyboard OR Right Joystick (or Left Joystick X for strafe-look)
+                let rotRight = this.keys.d || this.joystickRight.x > 0.3 || this.joystickLeft.x > 0.3;
+                let rotLeft = this.keys.a || this.joystickRight.x < -0.3 || this.joystickLeft.x < -0.3;
+
+                if (rotRight) {
                     const oldDir = this.player.dirX;
                     this.player.dirX = this.player.dirX * Math.cos(-rs) - this.player.dirY * Math.sin(-rs);
                     this.player.dirY = oldDir * Math.sin(-rs) + this.player.dirY * Math.cos(-rs);
@@ -820,7 +977,7 @@
                     this.player.planeX = this.player.planeX * Math.cos(-rs) - this.player.planeY * Math.sin(-rs);
                     this.player.planeY = oldPlane * Math.sin(-rs) + this.player.planeY * Math.cos(-rs);
                 }
-                if (this.keys.a) {
+                if (rotLeft) {
                     const oldDir = this.player.dirX;
                     this.player.dirX = this.player.dirX * Math.cos(rs) - this.player.dirY * Math.sin(rs);
                     this.player.dirY = oldDir * Math.sin(rs) + this.player.dirY * Math.cos(rs);
