@@ -8,216 +8,262 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
-            /* PALETTE */
-            --bg-iconic: #111;
-            --ink-iconic: #eee;
-            --accent-teal: #00bcd4;
-            --accent-gold: #ffd700;
-            --accent-red: #ff3333;
-
-            --bg-crt: #050a05;
-            --ink-crt: #0f0;
-
-            /* TYPOGRAPHY */
-            --font-mono: 'Courier New', monospace;
-            --font-sans: 'Helvetica Neue', sans-serif;
+            --bg: #111;
+            --fg: #eee;
+            --accent: #00bcd4;
+            --gold: #ffd700;
+            --red: #ff3333;
+            --dim: #444;
         }
 
         * {
             box-sizing: border-box;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-iconic);
-            color: var(--ink-iconic);
-            font-family: var(--font-mono);
+            background: var(--bg);
+            color: var(--fg);
+            font-family: 'Courier New', monospace;
             height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: all 0.5s;
         }
 
-        /* --- LAYOUT --- */
+        /* HEADER */
         .header {
-            height: 60px;
-            border-bottom: 2px solid #333;
+            height: 44px;
+            border-bottom: 1px solid #333;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.8);
-        }
-
-        .meta-id {
-            font-size: 0.7rem;
-            color: #666;
-            letter-spacing: 1px;
+            padding: 0 12px;
+            background: rgba(0, 0, 0, 0.9);
+            flex-shrink: 0;
         }
 
         .thesis {
-            font-weight: bold;
-            color: var(--accent-gold);
-            letter-spacing: 2px;
+            font-size: 12px;
+            color: var(--gold);
+            letter-spacing: 1px;
         }
 
-        .main-stage {
-            flex: 1;
+        .mode-btns {
             display: flex;
-            position: relative;
-            overflow: hidden;
+            gap: 5px;
         }
 
-        /* LEFT: WORLD SPECS (ZONES) */
-        .zone-panel {
-            width: 250px;
-            border-right: 1px solid #333;
-            padding: 20px;
-            overflow-y: auto;
-            background: #080808;
-            font-size: 0.7rem;
-        }
-
-        .zone-item {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #222;
-            transition: all 0.3s;
+        .btn-mode {
+            padding: 4px 8px;
+            background: #222;
+            border: 1px solid #444;
+            color: #888;
+            font-size: 10px;
+            font-family: inherit;
             cursor: pointer;
         }
 
-        .zone-item:hover,
-        .zone-item.active {
-            border-color: var(--accent-teal);
-            background: rgba(0, 188, 212, 0.1);
+        .btn-mode.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
         }
 
-        .z-name {
-            color: var(--accent-teal);
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .z-op {
-            color: #888;
-        }
-
-        /* CENTER: THE REBUS SHIELD */
-        .shield-container {
-            flex: 1;
+        /* GRID DISPLAY - ALWAYS 50VH */
+        .grid-display {
+            height: 50vh;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: auto;
+            flex-shrink: 0;
             position: relative;
-            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
         }
 
         #rebus-display {
-            font-family: var(--font-mono);
             white-space: pre;
-            font-size: 14px;
-            line-height: 16px;
-            color: var(--ink-iconic);
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-            position: relative;
+            font-size: 9px;
+            line-height: 11px;
+            color: var(--fg);
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+            padding: 10px;
         }
 
         /* Interactive Tokens */
         .token {
-            display: inline-block;
             cursor: pointer;
-            transition: color 0.2s, text-shadow 0.2s;
+            transition: all 0.2s;
         }
 
-        .token:hover {
-            color: var(--accent-teal);
-            text-shadow: 0 0 10px var(--accent-teal);
+        .token:hover,
+        .token.active {
+            color: var(--accent);
+            text-shadow: 0 0 8px var(--accent);
         }
 
-        .token-sound:hover {
-            color: var(--accent-gold);
-            text-shadow: 0 0 10px var(--accent-gold);
+        .token-sound:hover,
+        .token-sound.active {
+            color: var(--gold);
+            text-shadow: 0 0 8px var(--gold);
         }
 
-        .token-alarm:hover {
-            color: var(--accent-red);
-            text-shadow: 0 0 10px var(--accent-red);
+        .token-alarm:hover,
+        .token-alarm.active {
+            color: var(--red);
+            text-shadow: 0 0 8px var(--red);
         }
 
-        /* RIGHT: LEGEND / TRANSLATION */
-        .info-panel {
-            width: 300px;
-            border-left: 1px solid #333;
-            padding: 20px;
-            background: #080808;
+        /* TABBED PANEL - BOTTOM HALF */
+        .panel-area {
+            flex: 1;
             display: flex;
             flex-direction: column;
+            background: #080808;
+            min-height: 0;
         }
 
-        .legend-box {
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 5px;
+            background: transparent;
+            border: none;
+            color: #666;
+            font-family: inherit;
+            font-size: 11px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
             flex: 1;
             overflow-y: auto;
-            font-size: 0.8rem;
+            padding: 12px;
+            display: none;
         }
 
-        .trans-box {
-            height: 150px;
-            border-top: 1px solid #333;
-            padding-top: 15px;
-            font-size: 0.8rem;
-            color: #aaa;
+        .tab-content.active {
+            display: block;
         }
 
+        /* ZONES TAB */
+        .zone-item {
+            padding: 10px;
+            border: 1px solid #222;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zone-item:active,
+        .zone-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 188, 212, 0.1);
+        }
+
+        .z-name {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .z-op {
+            color: #666;
+            font-size: 10px;
+        }
+
+        /* LEGEND TAB */
         .key-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
-            border-bottom: 1px dotted #333;
-            padding-bottom: 2px;
+            padding: 6px 0;
+            border-bottom: 1px dotted #222;
+            font-size: 11px;
         }
 
-        /* CRT MODE overrides */
+        .key-row span:first-child {
+            color: var(--gold);
+        }
+
+        /* TRANSLATION TAB */
+        .trans-output {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .trans-history {
+            font-size: 10px;
+            color: #666;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .trans-history div {
+            padding: 4px 0;
+            border-bottom: 1px dotted #222;
+        }
+
+        /* EXPAND/COLLAPSE BUTTON */
+        .expand-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 188, 212, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        /* EXPANDED MODE */
+        body.expanded .grid-display {
+            height: calc(100vh - 44px);
+        }
+
+        body.expanded .panel-area {
+            display: none;
+        }
+
+        /* CRT MODE */
         body.mode-crt {
-            background-color: var(--bg-crt);
-            color: var(--ink-crt);
+            background: #050a05;
+            color: #0f0;
         }
 
-        body.mode-crt .rebus-display {
-            text-shadow: 0 0 5px var(--ink-crt), 0 0 10px var(--ink-crt);
+        body.mode-crt #rebus-display {
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
         }
 
-        body.mode-crt .scanline {
+        body.mode-crt::after {
+            content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.2));
+            inset: 0;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.2) 50%);
             background-size: 100% 4px;
             pointer-events: none;
             z-index: 100;
-        }
-
-        /* UTILS */
-        .btn-toggle {
-            padding: 5px 10px;
-            background: #222;
-            border: 1px solid #444;
-            color: #888;
-            cursor: pointer;
-            font-size: 0.7rem;
-            font-family: inherit;
-            margin-left: 10px;
-        }
-
-        .btn-toggle.active {
-            background: var(--accent-teal);
-            color: #000;
-            border-color: var(--accent-teal);
         }
     </style>
 </head>
@@ -225,42 +271,35 @@
 <body>
 
     <div class="header">
-        <div>
-            <div class="meta-id">UNIV_MEDIA_COMPILER_REBUS_WORLD_TEXT_PIPELINE_v1</div>
-            <div class="thesis">"NON VERBIS, SED REBUS"</div>
-        </div>
-        <div>
-            <span style="font-size: 0.7rem; color:#666;">PROFILE:</span>
-            <button class="btn-toggle active" onclick="App.setMode('ICONIC')">STATIC_ICONIC</button>
-            <button class="btn-toggle" onclick="App.setMode('CRT')">DOCUMENTARY_CRT</button>
+        <div class="thesis">NON VERBIS, SED REBUS</div>
+        <div class="mode-btns">
+            <button class="btn-mode active" onclick="App.setMode('ICONIC')">ICONIC</button>
+            <button class="btn-mode" onclick="App.setMode('CRT')">CRT</button>
         </div>
     </div>
 
-    <div class="main-stage">
-
-        <!-- LEFT: ZONES -->
-        <div class="zone-panel" id="zone-list">
-            <!-- Populated via JS -->
-        </div>
-
-        <!-- CENTER: SHIELD -->
-        <div class="shield-container">
-            <div id="rebus-display"></div>
-        </div>
-
-        <!-- RIGHT: LEGEND -->
-        <div class="info-panel">
-            <h4 style="margin-top:0; color:#666;">DECODER KEY</h4>
-            <div class="legend-box" id="legend-content"></div>
-            <div class="trans-box">
-                <strong style="color:var(--accent-teal)">TRANSLATION:</strong>
-                <p id="trans-text">Hover over tokens to decode.</p>
-            </div>
-        </div>
-
+    <!-- GRID DISPLAY - 50VH -->
+    <div class="grid-display">
+        <div id="rebus-display"></div>
+        <button class="expand-btn" onclick="App.toggleExpand()">⤢</button>
     </div>
 
-    <div class="scanline"></div>
+    <!-- TABBED PANELS -->
+    <div class="panel-area">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="App.showTab('zones')">ZONES</button>
+            <button class="tab-btn" onclick="App.showTab('legend')">LEGEND</button>
+            <button class="tab-btn" onclick="App.showTab('decode')">DECODE</button>
+        </div>
+
+        <div class="tab-content active" id="tab-zones"></div>
+        <div class="tab-content" id="tab-legend"></div>
+        <div class="tab-content" id="tab-decode">
+            <div class="trans-output" id="trans-text">Tap tokens to decode.</div>
+            <div style="font-size:10px; color:#666; margin-bottom:10px;">HISTORY:</div>
+            <div class="trans-history" id="trans-history"></div>
+        </div>
+    </div>
 
     <script>
         const ZONES = [
@@ -287,49 +326,49 @@
             { t: "ROYGBIV", m: "Refracted Spectrum" }
         ];
 
-        // The ASCII Art, carefully escaped
-        // We will inject spans for interactive tokens
         const RAW_SHIELD = `
-                         (o)   (o)
-                        /  \\___/  \\            ROYGBIV  ->  R A I N B O W
-                     __/____________\\__
-                    /                  \\
-                   /    [TXT]--->[PRM]  \\
-                  /   ----------------   \\
-                 |   R O L E :  [MC]      |
-                 |                         |
-                 |      E D G A R - V I S I O N
-                 |        (o)=EYE   /_\\=ROOF
-                 |       ___GREAT___DIFFUSION___
-                 |      ~~~BLUE~~~HOUR~~~(o)~~~
-                 |                         |
-                 |   [GLASS]  =  [PRISM]  ->  R/O/Y/G/B/I/V
-                 |         /\\/\\  refract  /\\/\\
-                 |                         |
-                 |   [TWIN]   (o)(o)   [CIRCLES]
-                 |    GLASSES on ___RUG___  !=ALARM
-                 |                         |
-                 |   CONVEX  >  gather PHOTON$  >  INFER
-                 |   CONCAVE <  desk HIGH RIDGE  <  FLOOR
-                 |                         |
-                 |   [BOX]{SECRET}:  [LAMBCHOP]  plush-scent
-                 |   [TOY]  =  [ANTLER]  $40  (cold)
-                 |   [TOOL] =  [GLOW-BALL]  (dim)  ~~~
-                 |                         |
-                 |   EDGAR-VISION TOGGLE:
-                 |   2=TOO  4=FOR  8=ATE  C=SEE  U=YOU  R=ARE
-                 |   PHOSPHOR:  trail trail trail  ---> footprints
-                 |   SPECULAR:  glasses catch beam ---> sensor door
-                 |                         |
-                 |   Q?  "NOT ALONE"  =  [MYSTERIOUS][BLANK]
-                  \\                        /
-                   \\____   HISTORY   ____/
-                        \\____over____/
-                             TIME
+               (o)   (o)
+              /  \\___/  \\       ROYGBIV -> RAINBOW
+           __/____________\\__
+          /                  \\
+         /    [TXT]--->[PRM]  \\
+        /   ----------------   \\
+       |   R O L E :  [MC]      |
+       |                        |
+       |   E D G A R - V I S I O N
+       |     (o)=EYE   /_\\=ROOF
+       |    ___GREAT___DIFFUSION___
+       |   ~~~BLUE~~~HOUR~~~(o)~~~
+       |                        |
+       |  [GLASS] = [PRISM] -> R/O/Y/G/B/I/V
+       |      /\\/\\  refract  /\\/\\
+       |                        |
+       |  [TWIN]  (o)(o)  [CIRCLES]
+       |   GLASSES on ___RUG___ !=ALARM
+       |                        |
+       |  CONVEX > gather PHOTON$ > INFER
+       |  CONCAVE < desk HIGH RIDGE < FLOOR
+       |                        |
+       |  [BOX]{SECRET}: [LAMBCHOP] scent
+       |  [TOY] = [ANTLER] $40 (cold)
+       |  [TOOL]= [GLOW-BALL] (dim) ~~~
+       |                        |
+       |  EDGAR-VISION TOGGLE:
+       |  2=TOO 4=FOR 8=ATE C=SEE U=YOU R=ARE
+       |  PHOSPHOR: trail trail ---> footprints
+       |  SPECULAR: glasses catch ---> sensor
+       |                        |
+       |  Q? "NOT ALONE" = [MYSTERIOUS][BLANK]
+        \\                       /
+         \\____  HISTORY  _____/
+              \\___over___/
+                  TIME
 `;
 
         const App = {
             mode: 'ICONIC',
+            expanded: false,
+            history: [],
 
             init() {
                 this.renderZones();
@@ -340,24 +379,43 @@
 
             setMode(m) {
                 this.mode = m;
-                document.body.className = m === 'CRT' ? 'mode-crt' : '';
-                document.querySelectorAll('.btn-toggle').forEach(b => {
-                    b.classList.toggle('active', b.innerText.includes(m));
+                document.body.classList.remove('mode-crt');
+                if (m === 'CRT') document.body.classList.add('mode-crt');
+                document.querySelectorAll('.btn-mode').forEach(b => {
+                    b.classList.toggle('active', b.innerText === m);
                 });
             },
 
+            toggleExpand() {
+                this.expanded = !this.expanded;
+                document.body.classList.toggle('expanded', this.expanded);
+            },
+
+            showTab(id) {
+                document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                    b.classList.toggle('active', b.innerText.toLowerCase().includes(id.slice(0, 4)));
+                });
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('tab-' + id).classList.add('active');
+            },
+
             renderZones() {
-                const list = document.getElementById('zone-list');
+                const list = document.getElementById('tab-zones');
                 ZONES.forEach(z => {
                     const el = document.createElement('div');
                     el.className = 'zone-item';
                     el.innerHTML = `<div class="z-name">${z.id}: ${z.name}</div><div class="z-op">${z.op} // ${z.act}</div>`;
+                    el.onclick = () => {
+                        document.querySelectorAll('.zone-item').forEach(e => e.classList.remove('active'));
+                        el.classList.add('active');
+                        AudioEngine.play('E4');
+                    };
                     list.appendChild(el);
                 });
             },
 
             renderLegend() {
-                const list = document.getElementById('legend-content');
+                const list = document.getElementById('tab-legend');
                 LEGEND.forEach(l => {
                     const el = document.createElement('div');
                     el.className = 'key-row';
@@ -368,22 +426,19 @@
 
             renderShield() {
                 const display = document.getElementById('rebus-display');
-                // Simple parser to wrap tokens
                 let html = RAW_SHIELD.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-                // Wrap known tokens
                 const tokens = [
                     { k: "\\(o\\)", c: "token" },
-                    { k: "\\[.*?\\]", c: "token" }, // [BOX], [TXT]
-                    { k: "\\{.*?\\}", c: "token" }, // {SECRET}
+                    { k: "\\[.*?\\]", c: "token" },
+                    { k: "\\{.*?\\}", c: "token" },
                     { k: "~~~", c: "token" },
                     { k: "ROYGBIV", c: "token" },
-                    { k: "/\\\\/\\\\", c: "token" }, // /\/\
+                    { k: "/\\\\/\\\\", c: "token" },
                     { k: "!=", c: "token-alarm" },
                     { k: "\\$([0-9]+)?", c: "token" },
                     { k: " trail ", c: "token" },
-                    { k: "--->", c: "token" },
-                    // Sound Tokens
+                    { k: "---&gt;", c: "token" },
                     { k: "\\bC\\b", c: "token-sound" },
                     { k: "\\bU\\b", c: "token-sound" },
                     { k: "\\bR\\b", c: "token-sound" },
@@ -394,15 +449,21 @@
 
                 tokens.forEach(tk => {
                     const regex = new RegExp(`(${tk.k})`, 'g');
-                    html = html.replace(regex, `<span class="${tk.c}" onmouseenter="App.explain(this)" onclick="App.interact(this)">$1</span>`);
+                    html = html.replace(regex, `<span class="${tk.c}" onclick="App.interact(this)" ontouchstart="App.interact(this)">$1</span>`);
                 });
 
                 display.innerHTML = html;
             },
 
-            explain(el) {
+            interact(el) {
                 const txt = el.innerText;
-                const entry = LEGEND.find(l => txt.includes(l.t)); // Simple match
+
+                // Visual feedback
+                el.classList.add('active');
+                setTimeout(() => el.classList.remove('active'), 300);
+
+                // Find meaning
+                const entry = LEGEND.find(l => txt.includes(l.t));
                 let msg = "Processing...";
 
                 if (entry) msg = entry.m;
@@ -410,14 +471,17 @@
                 else if (txt.match(/[CUR248]/)) msg = "Phonetic Substitute (Sound)";
                 else if (txt.includes("TXT")) msg = "Raw Input (Narrative)";
                 else if (txt.includes("PRM")) msg = "Prompt Object";
+                else if (txt.includes("BLANK")) msg = "Shadow / Void / Unknown";
 
-                document.getElementById('trans-text').style.color = "#fff";
-                document.getElementById('trans-text').innerText = `[${txt}] :: ${msg}`;
-            },
+                // Update decode tab
+                document.getElementById('trans-text').innerHTML = `<strong>[${txt}]</strong><br>${msg}`;
 
-            interact(el) {
-                const txt = el.innerText;
-                // Sound interaction
+                // Add to history
+                this.history.unshift(`[${txt}] = ${msg}`);
+                if (this.history.length > 20) this.history.pop();
+                document.getElementById('trans-history').innerHTML = this.history.map(h => `<div>${h}</div>`).join('');
+
+                // Sound
                 if (txt === "C") AudioEngine.play("C4");
                 else if (txt === "U") AudioEngine.play("D4");
                 else if (txt === "R") AudioEngine.play("E4");
@@ -443,9 +507,7 @@
             }
         };
 
-        // Start
         App.init();
-
     </script>
 </body>
 
