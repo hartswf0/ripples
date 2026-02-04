@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REBUS | Launchpad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --deco-gold: #c5a059;
+            --deco-black: #0a0a0b;
+            --deco-zinc: #18181b;
+            --deco-accent: #e5e7eb;
+        }
+
+        body {
+            background-color: var(--deco-black);
+            color: var(--deco-accent);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .serif { font-family: 'Playfair Display', serif; }
+
+        /* Art Deco Geometric Cues */
+        .deco-border {
+            border: 1px solid var(--deco-gold);
+            position: relative;
+        }
+
+        .deco-border::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border: 1px solid rgba(197, 160, 89, 0.3);
+            pointer-events: none;
+        }
+
+        .stepped-corners {
+            clip-path: polygon(
+                0 10px, 10px 10px, 10px 0, 
+                calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px,
+                100% calc(100% - 10px), calc(100% - 10px) calc(100% - 10px), calc(100% - 10px) 100%,
+                10px 100%, 10px calc(100% - 10px), 0 calc(100% - 10px)
+            );
+        }
+
+        /* Iframe & UI Containers */
+        .viewer-bg {
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+
+        .channel-row {
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .channel-row.active {
+            border-left-color: var(--deco-gold);
+            background: rgba(197, 160, 89, 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--deco-black); }
+        ::-webkit-scrollbar-thumb { background: var(--deco-gold); }
+
+        /* Interactive Elements */
+        .knob-ui {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--deco-zinc);
+            border: 1px solid var(--deco-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .knob-ui:active { transform: scale(0.9) rotate(15deg); }
+
+        .status-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 1024px) {
+            .mobile-drawer {
+                transform: translateY(100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .mobile-drawer.open { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col lg:flex-row h-screen">
+
+    <!-- Desktop Sidebar / Mobile Drawer -->
+    <aside id="sidebar" class="mobile-drawer fixed inset-0 z-50 lg:relative lg:translate-y-0 lg:flex lg:flex-col lg:w-80 bg-zinc-950 border-r border-zinc-800 lg:z-auto">
+        <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
+            <div>
+                <h1 class="serif text-xl text-amber-500/90 leading-tight">RIPPLES / SHIELD</h1>
+                <p class="mono text-[9px] uppercase tracking-widest text-zinc-500">Launchpad v1.0</p>
+            </div>
+            <button onclick="toggleDrawer()" class="lg:hidden text-zinc-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="flex-grow overflow-y-auto p-4 space-y-8" id="channel-container">
+            <!-- Channels injected here -->
+        </div>
+
+        <div class="p-4 bg-zinc-900/50 border-t border-zinc-800">
+            <div class="flex flex-col gap-2">
+                <button onclick="showCompare()" class="text-[10px] mono uppercase border border-zinc-700 py-2 hover:bg-zinc-800 transition-colors">Compare Ratings</button>
+                <div class="text-[9px] mono text-center text-zinc-600 uppercase">Non verbis sed rebus</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex flex-col h-full relative">
+        
+        <!-- Header: Now Playing -->
+        <header class="h-16 border-b border-zinc-900 bg-black flex items-center justify-between px-4 lg:px-8">
+            <div class="flex items-center gap-4 truncate">
+                <div class="hidden lg:block">
+                    <div id="status-badge" class="status-badge bg-zinc-800 text-zinc-400">Idle</div>
+                </div>
+                <div class="flex flex-col truncate">
+                    <span id="now-playing-title" class="serif text-sm lg:text-base text-white truncate">Select Signal</span>
+                    <span id="now-playing-group" class="mono text-[9px] uppercase text-zinc-500 tracking-wider">Awaiting Input</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="reload-btn" class="p-2 hover:bg-zinc-800 text-zinc-400 rounded transition-colors" title="Reload (Space)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+                <button id="external-btn" class="p-2 hover:bg-zinc-800 text-amber-500/80 rounded transition-colors" title="Open in New Tab">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Viewer -->
+        <div class="flex-grow viewer-bg relative">
+            <div id="loading-overlay" class="absolute inset-0 z-10 flex items-center justify-center bg-black transition-opacity pointer-events-none opacity-0">
+                <div class="w-8 h-8 border border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
+            </div>
+            
+            <div id="blocked-overlay" class="absolute inset-0 z-20 hidden flex-col items-center justify-center bg-zinc-950 p-8 text-center">
+                <div class="deco-border p-8 max-w-sm">
+                    <h3 class="serif text-lg mb-2">Signal Blocked</h3>
+                    <p class="text-xs text-zinc-500 mb-6">This prototype restricts embedding via CSP or X-Frame-Options.</p>
+                    <button onclick="openCurrentTab()" class="bg-amber-600 text-black px-6 py-2 mono text-xs uppercase font-bold hover:bg-amber-500 transition-all">Open Frequency ↗</button>
+                </div>
+            </div>
+
+            <div id="iframe-mount" class="w-full h-full"></div>
+        </div>
+
+        <!-- Mobile Controls Strip (Fixed) -->
+        <div class="lg:hidden h-20 border-t border-zinc-800 bg-zinc-950 flex items-center justify-around px-4">
+            <button onclick="toggleDrawer()" class="flex flex-col items-center gap-1">
+                <span class="mono text-[8px] text-zinc-500 uppercase">Stations</span>
+                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></div>
+            </button>
+            <button onclick="navigateChannel(-1)" class="flex flex-col items-center gap-1">
+                <span class="mono text-[8px] text-zinc-500 uppercase">Prev</span>
+                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></div>
+            </button>
+            <button onclick="navigateChannel(1)" class="flex flex-col items-center gap-1 text-amber-500/80">
+                <span class="mono text-[8px] uppercase">Next</span>
+                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+            </button>
+            <button onclick="toggleRateModal()" class="flex flex-col items-center gap-1">
+                <span class="mono text-[8px] text-zinc-500 uppercase">Rate</span>
+                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
+            </button>
+        </div>
+
+        <!-- Desktop Rating Overlay (Persistent hint) -->
+        <div class="hidden lg:flex absolute bottom-4 right-4 items-center gap-4 pointer-events-none">
+            <div class="bg-black/80 border border-zinc-800 p-2 mono text-[9px] uppercase text-zinc-500 backdrop-blur-sm">
+                SPACE: REFRESH / NUDGE
+            </div>
+            <button onclick="toggleRateModal()" class="pointer-events-auto bg-amber-600/10 hover:bg-amber-600/20 border border-amber-600/30 px-4 py-2 mono text-[10px] uppercase text-amber-500 transition-all">
+                Evaluate Frequency
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal: Rating -->
+    <div id="rate-modal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-700 w-full max-w-md p-6 stepped-corners relative">
+            <button onclick="toggleRateModal()" class="absolute top-4 right-4 text-zinc-500">&times;</button>
+            <h2 id="rate-target-title" class="serif text-xl mb-1">Orca Shield 18</h2>
+            <p class="mono text-[10px] uppercase text-zinc-500 mb-6">Perceptual Strength Evaluation</p>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="mono text-[10px] uppercase text-zinc-400 block mb-3 tracking-widest">Strength (1–5)</label>
+                    <div id="star-rating" class="flex gap-4">
+                        <!-- Rating stars injected -->
+                    </div>
+                </div>
+                <div>
+                    <label class="mono text-[10px] uppercase text-zinc-400 block mb-3 tracking-widest">Operator Notes</label>
+                    <textarea id="rate-notes" class="w-full h-32 bg-black border border-zinc-800 p-3 text-sm text-zinc-300 focus:border-amber-500 outline-none resize-none" placeholder="Arrangement, relation, interaction..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="saveCurrentRating()" class="flex-grow bg-amber-600 text-black py-3 mono text-xs uppercase font-bold tracking-widest">Commit Data</button>
+                    <button onclick="clearCurrentRating()" class="px-4 border border-zinc-700 text-zinc-500 hover:text-red-400 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Compare -->
+    <div id="compare-modal" class="fixed inset-0 z-[100] hidden bg-black/95 flex items-center justify-center p-4">
+        <div class="bg-zinc-950 border border-zinc-800 w-full max-w-2xl h-[85vh] flex flex-col stepped-corners p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col">
+                    <h2 class="serif text-2xl leading-none">Ecology Map</h2>
+                    <span id="sus-score-display" class="mono text-[10px] uppercase text-amber-500 mt-2 tracking-widest">SUS SCORE: 0.0</span>
+                </div>
+                <button onclick="showCompare()" class="text-zinc-500 text-2xl">&times;</button>
+            </div>
+            <div id="compare-list" class="flex-grow overflow-y-auto space-y-4 pr-2">
+                <!-- Sorted ratings list -->
+            </div>
+            <div class="mt-8 pt-4 border-t border-zinc-800 grid grid-cols-2 gap-3">
+                <button onclick="exportReport()" class="bg-amber-600 text-black py-3 mono text-[10px] uppercase font-bold tracking-widest hover:bg-amber-500 transition-all">Copy Ecology Report</button>
+                <button onclick="exportData()" class="bg-zinc-800 hover:bg-zinc-700 text-white py-3 mono text-[10px] uppercase tracking-widest transition-all">Export JSON Blob</button>
+                <button onclick="clearAllData()" class="col-span-2 mt-2 text-zinc-600 hover:text-red-400 mono text-[9px] uppercase tracking-tighter text-center">Wipe Persistent Storage</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'ripples_launchpad_v1';
+        const channels = [
+            { id: 'best_orca_shield_18', group: 'Best (current)', title: 'Orca Shield 18', url: 'https://hartswf0.github.io/ripples/orca-shield-18.html', note: 'Strong balance of spatial clarity and symbol density.' },
+            { id: 'shield_compiler', group: 'Main Project', title: 'Shield Compiler', url: 'https://hartswf0.github.io/ripples/shield-compiler.html', note: 'Primary testbed for structural writing.' },
+            { id: 'golden_lens', group: 'Golden Lens', title: 'Golden Lens', url: 'https://hartswf0.github.io/ripples/golden-lens.html', note: 'Vibe-coding frames; interaction sketches.' },
+            { id: 'orca_edgar_vision', group: 'Interaction Note', title: 'Orca Edgar Vision', url: 'https://hartswf0.github.io/ripples/orca-edgar-vision.html', note: 'Refresh / Spacebar reference station.' },
+            { id: 'orca_shield_24', group: 'Good References', title: 'Orca Shield 24', url: 'https://hartswf0.github.io/ripples/orca-shield-24.html', note: 'Strong rebus + code intro.' },
+            { id: 'orca_shield_17', group: 'Good References', title: 'Orca Shield 17', url: 'https://hartswf0.github.io/ripples/orca-shield-17.html', note: 'High-density worldtext.' },
+            { id: 'auden_shield_calligram', group: 'Good References', title: 'Auden Shield Calligram', url: 'https://hartswf0.github.io/text-ure/auden-shield/1-calligram.html', note: 'Art Deco semantic architecture.' }
+        ];
+
+        let state = {
+            activeId: null,
+            ratings: JSON.parse(localStorage.getItem(STORAGE_KEY + ':ratings') || '{}'),
+            lastId: localStorage.getItem(STORAGE_KEY + ':last_channel'),
+            tempRating: 0
+        };
+
+        function init() {
+            renderSidebar();
+            const startId = state.lastId || channels[0].id;
+            switchChannel(startId);
+            
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    reloadActive();
+                }
+            });
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('channel-container');
+            container.innerHTML = '';
+            
+            const groups = [...new Set(channels.map(c => c.group))];
+            groups.forEach(groupName => {
+                const section = document.createElement('div');
+                section.innerHTML = `<h3 class="mono text-[10px] uppercase text-zinc-600 tracking-[0.2em] mb-3 mt-4">${groupName}</h3>`;
+                const groupItems = channels.filter(c => c.group === groupName);
+                
+                groupItems.forEach(ch => {
+                    const row = document.createElement('div');
+                    const rated = state.ratings[ch.id];
+                    row.id = `nav-${ch.id}`;
+                    row.className = `channel-row p-3 cursor-pointer group ${state.activeId === ch.id ? 'active' : ''}`;
+                    row.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs uppercase tracking-wide group-hover:text-amber-500 transition-colors">${ch.title}</span>
+                            ${rated ? `<span class="mono text-[9px] text-amber-600">${'●'.repeat(rated.strength)}</span>` : ''}
+                        </div>
+                    `;
+                    row.onclick = () => {
+                        switchChannel(ch.id);
+                        if(window.innerWidth < 1024) toggleDrawer();
+                    };
+                    section.appendChild(row);
+                });
+                container.appendChild(section);
+            });
+        }
+
+        function switchChannel(id) {
+            const ch = channels.find(c => c.id === id);
+            if (!ch) return;
+
+            state.activeId = id;
+            localStorage.setItem(STORAGE_KEY + ':last_channel', id);
+            
+            // Update UI
+            document.getElementById('now-playing-title').innerText = ch.title;
+            document.getElementById('now-playing-group').innerText = ch.group;
+            document.querySelectorAll('.channel-row').forEach(r => r.classList.remove('active'));
+            const activeNav = document.getElementById(`nav-${id}`);
+            if(activeNav) activeNav.classList.add('active');
+
+            // Iframe Lifecycle
+            const mount = document.getElementById('iframe-mount');
+            mount.innerHTML = '';
+            const loader = document.getElementById('loading-overlay');
+            const blocked = document.getElementById('blocked-overlay');
+            
+            loader.style.opacity = '1';
+            blocked.classList.add('hidden');
+            setStatus('Loading...', 'bg-zinc-800');
+
+            const iframe = document.createElement('iframe');
+            iframe.src = ch.url;
+            iframe.className = "w-full h-full border-none";
+            
+            let loadTimer = setTimeout(() => {
+                blocked.classList.remove('hidden');
+                setStatus('Blocked?', 'bg-red-900/40 text-red-400');
+            }, 3500);
+
+            iframe.onload = () => {
+                clearTimeout(loadTimer);
+                loader.style.opacity = '0';
+                setStatus('Embedded', 'bg-green-900/40 text-green-400');
+            };
+
+            mount.appendChild(iframe);
+        }
+
+        function setStatus(text, classes) {
+            const badge = document.getElementById('status-badge');
+            badge.innerText = text;
+            badge.className = `status-badge ${classes}`;
+        }
+
+        function navigateChannel(dir) {
+            const idx = channels.findIndex(c => c.id === state.activeId);
+            let next = (idx + dir) % channels.length;
+            if (next < 0) next = channels.length - 1;
+            switchChannel(channels[next].id);
+        }
+
+        function reloadActive() {
+            const mount = document.getElementById('iframe-mount');
+            const iframe = mount.querySelector('iframe');
+            if(iframe) iframe.src = iframe.src;
+        }
+
+        function openCurrentTab() {
+            const ch = channels.find(c => c.id === state.activeId);
+            if(ch) window.open(ch.url, '_blank', 'noopener,noreferrer');
+        }
+
+        function toggleRateModal() {
+            const modal = document.getElementById('rate-modal');
+            modal.classList.toggle('hidden');
+            if(!modal.classList.contains('hidden')) {
+                const ch = channels.find(c => c.id === state.activeId);
+                document.getElementById('rate-target-title').innerText = ch.title;
+                const rated = state.ratings[state.activeId] || { strength: 0, notes: '' };
+                updateStarUI(rated.strength);
+                document.getElementById('rate-notes').value = rated.notes;
+            }
+        }
+
+        function updateStarUI(val) {
+            state.tempRating = val;
+            const container = document.getElementById('star-rating');
+            container.innerHTML = '';
+            for(let i=1; i<=5; i++) {
+                const star = document.createElement('button');
+                star.className = `w-8 h-8 deco-border flex items-center justify-center transition-all ${i <= val ? 'bg-amber-600 text-black border-amber-600' : 'text-zinc-600 hover:border-amber-500'}`;
+                star.innerText = i;
+                star.onclick = () => updateStarUI(i);
+                container.appendChild(star);
+            }
+        }
+
+        function saveCurrentRating() {
+            state.ratings[state.activeId] = {
+                strength: state.tempRating,
+                notes: document.getElementById('rate-notes').value,
+                updated_at: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEY + ':ratings', JSON.stringify(state.ratings));
+            toggleRateModal();
+            renderSidebar();
+            showToast('Frequency Data Committed');
+        }
+
+        function clearCurrentRating() {
+            delete state.ratings[state.activeId];
+            localStorage.setItem(STORAGE_KEY + ':ratings', JSON.stringify(state.ratings));
+            toggleRateModal();
+            renderSidebar();
+        }
+
+        function showCompare() {
+            const modal = document.getElementById('compare-modal');
+            modal.classList.toggle('hidden');
+            if(!modal.classList.contains('hidden')) {
+                const list = document.getElementById('compare-list');
+                const ratedIds = Object.keys(state.ratings);
+                
+                if(ratedIds.length === 0) {
+                    list.innerHTML = `<div class="text-center py-20 text-zinc-600 mono text-xs uppercase tracking-widest">No signals evaluated yet.</div>`;
+                    document.getElementById('sus-score-display').innerText = "SUS SCORE: 0.0";
+                    return;
+                }
+
+                const sorted = ratedIds
+                    .map(id => ({ ...state.ratings[id], ...channels.find(c => c.id === id) }))
+                    .sort((a,b) => b.strength - a.strength);
+
+                const totalScore = sorted.reduce((acc, curr) => acc + curr.strength, 0);
+                const avgScore = totalScore / sorted.length;
+                const susPercentage = (avgScore / 5 * 100).toFixed(1);
+                document.getElementById('sus-score-display').innerText = `SUS SCORE (SIGNAL-UTILITY-STRENGTH): ${susPercentage}%`;
+
+                list.innerHTML = sorted.map(ch => `
+                    <div class="border border-zinc-800 p-4 flex flex-col gap-2 bg-zinc-900/30">
+                        <div class="flex justify-between items-center">
+                            <span class="serif text-lg text-white">${ch.title}</span>
+                            <span class="mono text-amber-500 text-xs">${'●'.repeat(ch.strength)} <span class="text-zinc-600 ml-1">${ch.strength}/5</span></span>
+                        </div>
+                        <div class="mono text-[9px] uppercase text-zinc-500">${ch.group}</div>
+                        ${ch.notes ? `<p class="text-[11px] text-zinc-400 italic mt-1 border-l border-amber-600/30 pl-3 leading-relaxed">${ch.notes}</p>` : ''}
+                    </div>
+                `).join('');
+            }
+        }
+
+        function exportReport() {
+            const ratedIds = Object.keys(state.ratings);
+            if(ratedIds.length === 0) {
+                showToast('Nothing to report.');
+                return;
+            }
+
+            const sorted = ratedIds
+                .map(id => ({ ...state.ratings[id], ...channels.find(c => c.id === id) }))
+                .sort((a,b) => b.strength - a.strength);
+
+            const totalScore = sorted.reduce((acc, curr) => acc + curr.strength, 0);
+            const avgScore = totalScore / sorted.length;
+            const susScore = (avgScore / 5 * 100).toFixed(1);
+
+            let report = `# RIPPLES / SHIELD / REBUS — ECOLOGY REPORT\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n`;
+            report += `AGGREGATE SUS SCORE (Signal-Utility-Strength): ${susScore}%\n\n`;
+            report += `## RANKED CHANNELS\n\n`;
+
+            sorted.forEach((ch, i) => {
+                report += `${i+1}. ${ch.title} [${ch.strength}/5]\n`;
+                report += `   Group: ${ch.group}\n`;
+                if(ch.notes) report += `   Notes: ${ch.notes}\n`;
+                report += `   URL: ${ch.url}\n\n`;
+            });
+
+            report += `---\nNon verbis sed rebus.`;
+
+            navigator.clipboard.writeText(report);
+            showToast('Markdown Report Copied');
+        }
+
+        function exportData() {
+            const blob = {
+                exported_at: new Date().toISOString(),
+                ecology: state.ratings,
+                channels: channels
+            };
+            const text = JSON.stringify(blob, null, 2);
+            navigator.clipboard.writeText(text);
+            showToast('JSON Blob Copied');
+        }
+
+        function clearAllData() {
+            if(confirm('Wipe all local ecology ratings?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function toggleDrawer() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-24 lg:bottom-12 left-1/2 -translate-x-1/2 z-[200] bg-amber-600 text-black px-6 py-2 mono text-[10px] uppercase font-bold tracking-[0.2em] stepped-corners';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        document.getElementById('reload-btn').onclick = reloadActive;
+        document.getElementById('external-btn').onclick = openCurrentTab;
+
+        init();
+    </script>
+</body>
+</html>
+
