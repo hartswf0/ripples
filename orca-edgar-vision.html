@@ -210,6 +210,96 @@
         .leg-X {
             color: #333;
         }
+
+        /* MOBILE CONTROLS */
+        #mobile-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 20, 0.95);
+            padding: 10px;
+            z-index: 1000;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-top: 1px solid var(--dim);
+        }
+
+        .ctrl-btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .ctrl-btn:active {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .entity-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: 40px;
+        }
+
+        .entity-btn-P {
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .entity-btn-G {
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        .entity-btn-B {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .entity-btn-L {
+            border-color: #ff69b4;
+            color: #ff69b4;
+        }
+
+        .entity-btn-A {
+            border-color: #8b4513;
+            color: #8b4513;
+        }
+
+        .entity-btn-X {
+            border-color: #666;
+            color: #666;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            #interface {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+                height: calc(100vh - 80px);
+            }
+
+            aside {
+                display: none;
+            }
+
+            #mobile-bar {
+                display: flex;
+            }
+
+            #grid-wrapper {
+                height: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -259,6 +349,20 @@
                 <div class="log-entry">> THE BLUE HOUR BEGINS. PRESS SPACE.</div>
             </div>
         </aside>
+
+        <!-- MOBILE CONTROL BAR -->
+        <div id="mobile-bar">
+            <button class="ctrl-btn" id="btn-play" onclick="togglePlay()">▶ START</button>
+            <button class="ctrl-btn" id="btn-vision" onclick="toggleVision()">👁 VISION</button>
+            <button class="ctrl-btn" id="btn-scene" onclick="shiftPerspective()">⟳ SCENE</button>
+            <div style="width:100%; text-align:center; font-size:10px; color:#666; margin:5px 0;">SPAWN ENTITY:</div>
+            <button class="ctrl-btn entity-btn entity-btn-P" onclick="placeEntity('P')">P</button>
+            <button class="ctrl-btn entity-btn entity-btn-G" onclick="placeEntity('G')">G</button>
+            <button class="ctrl-btn entity-btn entity-btn-B" onclick="placeEntity('B')">B</button>
+            <button class="ctrl-btn entity-btn entity-btn-L" onclick="placeEntity('L')">L</button>
+            <button class="ctrl-btn entity-btn entity-btn-A" onclick="placeEntity('A')">A</button>
+            <button class="ctrl-btn entity-btn entity-btn-X" onclick="placeEntity('X')">X</button>
+        </div>
     </div>
 
     <script>
@@ -577,28 +681,75 @@
         }
 
         // --- CONTROLS ---
+        let selectedEntity = null;
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('status-run').className = isPlaying ? 'active-mode' : 'inactive-mode';
+            const btn = document.getElementById('btn-play');
+            if (btn) btn.innerHTML = isPlaying ? '⏸ PAUSE' : '▶ START';
+            if (isPlaying) Audio.init();
+        }
+
+        function toggleVision() {
+            edgarVisionActive = !edgarVisionActive;
+            document.getElementById('status-vis').className = edgarVisionActive ? 'active-mode' : 'inactive-mode';
+            const btn = document.getElementById('btn-vision');
+            if (btn) btn.innerHTML = edgarVisionActive ? '👁 ON' : '👁 OFF';
+            log(edgarVisionActive ? "EDGAR-VISION: ON" : "EDGAR-VISION: OFF", "SYS");
+        }
+
+        function placeEntity(type) {
+            selectedEntity = type;
+            Audio.init();
+            // Place at random location
+            const x = Math.floor(Math.random() * COLS);
+            const y = Math.floor(Math.random() * ROWS);
+            grid[y * COLS + x] = type;
+
+            // Sonification for entity
+            if (type === 'P') Audio.trigger('PRISM');
+            else if (type === 'G') Audio.trigger('GLASS');
+            else if (type === 'B') Audio.trigger('GLOW');
+            else if (type === 'X') Audio.trigger('ABSORB');
+            else Audio.synth && Audio.synth.triggerAttackRelease("E4", "16n");
+
+            log(`PLACED [${type}] at (${x}, ${y})`, "SYS");
+        }
+
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
-                isPlaying = !isPlaying;
-                document.getElementById('status-run').className = isPlaying ? 'active-mode' : 'inactive-mode';
-                if (isPlaying) Audio.init();
+                togglePlay();
             }
             if (e.key.toUpperCase() === 'R') shiftPerspective();
-            if (e.key.toUpperCase() === 'E') {
-                edgarVisionActive = !edgarVisionActive;
-                document.getElementById('status-vis').className = edgarVisionActive ? 'active-mode' : 'inactive-mode';
-                log(edgarVisionActive ? "EDGAR-VISION: ON" : "EDGAR-VISION: OFF", "SYS");
+            if (e.key.toUpperCase() === 'E') toggleVision();
+            // Entity hotkeys
+            if ('PGBLAX'.includes(e.key.toUpperCase())) {
+                placeEntity(e.key.toUpperCase());
             }
         });
 
-        canvas.addEventListener('mousedown', (e) => {
+        // MOUSE + TOUCH handlers
+        function handleCanvasInteraction(clientX, clientY) {
             Audio.init();
             const rect = canvas.getBoundingClientRect();
-            const x = Math.floor((e.clientX - rect.left - 15) / CHAR_W);
-            const y = Math.floor((e.clientY - rect.top - 15) / CHAR_H);
-            if (x >= 0 && y >= 0) spawnRipple(x, y, 'PHOTON');
+            const x = Math.floor((clientX - rect.left - 15) / CHAR_W);
+            const y = Math.floor((clientY - rect.top - 15) / CHAR_H);
+            if (x >= 0 && y >= 0 && x < COLS && y < ROWS) {
+                spawnRipple(x, y, 'PHOTON');
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            handleCanvasInteraction(e.clientX, e.clientY);
         });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleCanvasInteraction(touch.clientX, touch.clientY);
+        }, { passive: false });
 
         // Boot
         initGrid(0);
