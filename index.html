@@ -2,767 +2,901 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies</title>
-    <meta name="description"
-        content="A research framework for imaginary ecologies and nonhuman perspective-taking, built on principles of epistemic humility.">
-    <meta name="keywords" content="ecology, simulation, perspective, phenomenology, epistemic humility, worldtext">
-    <meta name="author" content="GAIA Research Collective">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'JetBrains Mono', monospace;
-            background-color: #050a05;
-            color: #4af626;
-        }
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies</title>
+        <meta name="description"
+                content="A research framework for imaginary ecologies and nonhuman perspective-taking, built on principles of epistemic humility.">
+        <meta name="keywords" content="ecology, simulation, perspective, phenomenology, epistemic humility, worldtext">
+        <meta name="author" content="GAIA Research Collective">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+                body {
+                        font-family: 'JetBrains Mono', monospace;
+                        background-color: #050a05;
+                        color: #4af626;
+                }
 
-        .glass-panel {
-            background: rgba(5, 10, 5, 0.8);
-            border: 1px solid #1e5c12;
-            backdrop-filter: blur(4px);
-        }
+                .glass-panel {
+                        background: rgba(5, 10, 5, 0.8);
+                        border: 1px solid #1e5c12;
+                        backdrop-filter: blur(4px);
+                }
 
-        .glass-panel:hover {
-            border-color: #4af626;
-            box-shadow: 0 0 15px rgba(74, 246, 38, 0.1);
-        }
+                .glass-panel:hover {
+                        border-color: #4af626;
+                        box-shadow: 0 0 15px rgba(74, 246, 38, 0.1);
+                }
 
-        .link-btn {
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
+                .link-btn {
+                        transition: all 0.2s;
+                        border: 1px solid transparent;
+                }
 
-        .link-btn:hover {
-            background: #1e5c12;
-            color: #ccffcc;
-            border-color: #4af626;
-        }
+                .link-btn:hover {
+                        background: #1e5c12;
+                        color: #ccffcc;
+                        border-color: #4af626;
+                }
 
-        .disabled-link {
-            opacity: 0.3;
-            pointer-events: none;
-            cursor: not-allowed;
-        }
+                .disabled-link {
+                        opacity: 0.3;
+                        pointer-events: none;
+                        cursor: not-allowed;
+                }
 
-        .tenet {
-            padding: 8px 12px;
-            border-left: 2px solid #1e5c12;
-            margin-bottom: 8px;
-            font-size: 11px;
-            color: #888;
-        }
+                .tenet {
+                        padding: 8px 12px;
+                        border-left: 2px solid #1e5c12;
+                        margin-bottom: 8px;
+                        font-size: 11px;
+                        color: #888;
+                }
 
-        .tenet:hover {
-            border-color: #4af626;
-            color: #4af626;
-        }
-    </style>
+                .tenet:hover {
+                        border-color: #4af626;
+                        color: #4af626;
+                }
+        </style>
 </head>
 
 <body
-    class="min-h-screen p-8 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black">
+        class="min-h-screen p-8 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black">
 
-    <header class="mb-8 border-b border-[#1e5c12] pb-6">
-        <h1 class="text-3xl font-bold tracking-tighter mb-2">RIPPLES</h1>
-        <p class="text-sm text-[#888] mb-4">Relational Imagination of Perspective, Presence, and Latent Ecologies in
-            Simulated Systems</p>
+        <header class="mb-8 border-b border-[#1e5c12] pb-6">
+                <h1 class="text-3xl font-bold tracking-tighter mb-2">RIPPLES</h1>
+                <p class="text-sm text-[#888] mb-4">Relational Imagination of Perspective, Presence, and Latent
+                        Ecologies in
+                        Simulated Systems</p>
 
-        <div class="flex flex-wrap gap-2 mb-4">
-            <div class="tenet">Fallibilism</div>
-            <div class="tenet">Perspectival Finitude</div>
-            <div class="tenet">The Limits of Models</div>
-            <div class="tenet">Intellectual Generosity</div>
-            <div class="tenet">Operative Fiction</div>
-        </div>
-
-        <div class="flex justify-between items-end text-xs text-[#1e5c12] uppercase tracking-widest">
-            <div class="flex gap-4">
-                <a href="./README.md" class="hover:text-[#4af626] transition-colors">README</a>
-                <a href="./theory/theory.md" class="hover:text-[#4af626] transition-colors">THEORY</a>
-                <a href="./theory/pattern-library.md" class="hover:text-[#4af626] transition-colors">PATTERNS</a>
-                <a href="./orca-docs.html"
-                    class="text-emerald-400 font-bold hover:text-white transition-colors">DOCUMENTATION</a>
-            </div>
-            <p>v1.0 // 2026</p>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto">
-
-        <!-- RESEARCH ESSAYS SECTION -->
-        <section class="mb-12">
-            <div class="flex items-center gap-4 mb-6">
-                <h2 class="text-xl font-bold text-amber-400 uppercase tracking-widest">Research Essays</h2>
-                <div class="flex-1 h-px bg-amber-900/50"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Essay 1: Worldtext Specification -->
-                <a href="./essay-1-worldtext-specification.html"
-                    class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
-                    <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay I</div>
-                    <h3 class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
-                        Worldtext Generator Specification
-                    </h3>
-                    <p class="text-sm text-[#888] mb-4 leading-relaxed">
-                        Theoretical Framework, Technical Specification, and Operative Methodologies for Latent
-                        Ecological Interfaces
-                    </p>
-                    <div class="flex items-center gap-2 text-xs text-amber-600">
-                        <span>→ VIEW REPORT</span>
-                        <span class="opacity-50">// 9 Figures</span>
-                    </div>
-                </a>
-
-                <!-- Essay 2: Generative Nonhuman Ecologies -->
-                <a href="./essay-2-generative-nonhuman-ecologies.html"
-                    class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
-                    <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay II</div>
-                    <h3 class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
-                        Generative Nonhuman Ecologies
-                    </h3>
-                    <p class="text-sm text-[#888] mb-4 leading-relaxed">
-                        Operative Ecologies, Generative Steering, and the Nonhuman Worldtext
-                    </p>
-                    <div class="flex items-center gap-2 text-xs text-amber-600">
-                        <span>→ VIEW REPORT</span>
-                        <span class="opacity-50">// 9 Figures</span>
-                    </div>
-                </a>
-
-                <!-- Essay 3: Imaginary Ecologies Framework -->
-                <a href="./essay-3-imaginary-ecologies-framework.html"
-                    class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
-                    <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay III</div>
-                    <h3 class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
-                        Imaginary Ecologies Framework
-                    </h3>
-                    <p class="text-sm text-[#888] mb-4 leading-relaxed">
-                        Relational Imagination of Perspective, Presence, and Latent Ecologies in Simulacra
-                    </p>
-                    <div class="flex items-center gap-2 text-xs text-amber-600">
-                        <span>→ VIEW REPORT</span>
-                        <span class="opacity-50">// 9 Figures</span>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <!-- HIGH-FIDELITY WAVE (NEW) -->
-        <section class="mb-12">
-            <div class="flex items-center gap-4 mb-6">
-                <h2 class="text-xl font-bold text-emerald-400 uppercase tracking-widest">High-Fidelity Wave (v8-v16)
-                </h2>
-                <div class="flex-grow h-px bg-emerald-900/50 mx-4"></div>
-                <a href="./orca-core.html"
-                    class="bg-emerald-500/10 border border-emerald-500/50 text-emerald-400 px-4 py-1 rounded text-[10px] font-bold tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all">
-                    ORCA_CORE_HUB // LAUNCH
-                </a>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- ORCA-08 -->
-                <div
-                    class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
-                    <a href="./orca-08.html" class="flex-1">
-                        <div class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">v08 // HYBRID OS</div>
-                        <h3 class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">Orca Stable</h3>
-                        <p class="text-[10px] text-[#666] mt-2">Gull/Pilot audio integration with stable terminal logic.
-                            <span class="text-emerald-900 font-bold ml-1">[DESKTOP OPTIMIZED]</span>
-                        </p>
-                    </a>
-                    <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
-                        <a href="https://gemini.google.com/share/8197f9e39f5e" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
-                        <a href="https://gemini.google.com/share/f833f9221100" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
-                    </div>
+                <div class="flex flex-wrap gap-2 mb-4">
+                        <div class="tenet">Fallibilism</div>
+                        <div class="tenet">Perspectival Finitude</div>
+                        <div class="tenet">The Limits of Models</div>
+                        <div class="tenet">Intellectual Generosity</div>
+                        <div class="tenet">Operative Fiction</div>
                 </div>
-                <!-- RIPPLE-12 -->
-                <div
-                    class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
-                    <a href="./ripple-12.html" class="flex-1">
-                        <div class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">v12 // OMNISCIENCE
+
+                <div class="flex justify-between items-end text-xs text-[#1e5c12] uppercase tracking-widest">
+                        <div class="flex gap-4">
+                                <a href="./README.md" class="hover:text-[#4af626] transition-colors">README</a>
+                                <a href="./theory/theory.md" class="hover:text-[#4af626] transition-colors">THEORY</a>
+                                <a href="./theory/pattern-library.md"
+                                        class="hover:text-[#4af626] transition-colors">PATTERNS</a>
+                                <a href="./orca-docs.html"
+                                        class="text-emerald-400 font-bold hover:text-white transition-colors">DOCUMENTATION</a>
+                                <a href="./golden-lens.html"
+                                        class="text-amber-400 font-bold hover:text-white transition-colors">GOLDEN
+                                        LENS</a>
                         </div>
-                        <h3 class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">Omni Deck</h3>
-                        <p class="text-[10px] text-[#666] mt-2">Unified chat/sculpting interface with persistent AI
-                            links.
-                        </p>
-                    </a>
-                    <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
-                        <a href="https://gemini.google.com/share/0a825b92df82" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
-                        <a href="https://gemini.google.com/share/cb55936595ae" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
-                    </div>
+                        <p>v1.0 // 2026</p>
                 </div>
-                <!-- RIPPLES-03 -->
-                <div
-                    class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
-                    <a href="./ripples-03.html" class="flex-1">
-                        <div class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">v03 // ECOSYSTEM</div>
-                        <h3 class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">Unified Eco</h3>
-                        <p class="text-[10px] text-[#666] mt-2">ASCII feed integration with Intel Net visualization.</p>
-                    </a>
-                    <div class="flex gap-3 mt-3 pt-2 border-t border-emerald-900/30">
-                        <a href="https://gemini.google.com/share/5e43c35a67a9" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
-                        <a href="https://gemini.google.com/share/109bc03e18d6" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
-                    </div>
-                </div>
-                <!-- ORCA-MOSS-16 -->
-                <div
-                    class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
-                    <a href="./orca-moss-16.html" class="flex-1">
-                        <div class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">v16 // MONITOR</div>
-                        <h3 class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">Moss Monitor</h3>
-                        <p class="text-[10px] text-[#666] mt-2">Isometric TUI with Neural Interface context menus.</p>
-                    </a>
-                    <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
-                        <a href="https://gemini.google.com/share/a5f59871878b" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
-                        <a href="https://gemini.google.com/share/e79b402b3bed" target="_blank"
-                            class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
-                    </div>
-                </div>
-            </div>
-        </section>
+        </header>
 
-        <!-- GENERATIVE LAB (NEW) -->
-        <section class="mb-12">
-            <div class="flex items-center gap-4 mb-6">
-                <h2 class="text-xl font-bold text-[#4af626] uppercase tracking-widest">Generative Lab</h2>
-                <div class="flex-1 h-px bg-[#1e5c12]"></div>
-            </div>
+        <main class="max-w-7xl mx-auto">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- RESEARCH ESSAYS SECTION -->
+                <section class="mb-12">
+                        <div class="flex items-center gap-4 mb-6">
+                                <h2 class="text-xl font-bold text-amber-400 uppercase tracking-widest">Research Essays
+                                </h2>
+                                <div class="flex-1 h-px bg-amber-900/50"></div>
+                        </div>
 
-                <!-- 1919: OPERATIVE -->
-                <a href="./1919-operative-sequencer.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">1919 // SEQUENCER
-                    </div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Operative Sequencer</h3>
-                    <p class="text-xs text-[#888] mb-4">Grid logic controlling radial propagation. <span
-                            class="text-[#1e5c12] font-bold">[SPACE] TO PLAY / DESKTOP OPTIMIZED</span></p>
-                </a>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Essay 1: Worldtext Specification -->
+                                <a href="./essay-1-worldtext-specification.html"
+                                        class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
+                                        <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay I</div>
+                                        <h3
+                                                class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
+                                                Worldtext Generator Specification
+                                        </h3>
+                                        <p class="text-sm text-[#888] mb-4 leading-relaxed">
+                                                Theoretical Framework, Technical Specification, and Operative
+                                                Methodologies for Latent
+                                                Ecological Interfaces
+                                        </p>
+                                        <div class="flex items-center gap-2 text-xs text-amber-600">
+                                                <span>→ VIEW REPORT</span>
+                                                <span class="opacity-50">// 9 Figures</span>
+                                        </div>
+                                </a>
 
-                <!-- 2020: AUTONOMIC -->
-                <a href="./2020-autonomic-system.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2020 // AUTONOMIC
-                    </div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Autonomic System</h3>
-                    <p class="text-xs text-[#888] mb-4">Self-playing cellular automata with periodic mutations.</p>
-                </a>
+                                <!-- Essay 2: Generative Nonhuman Ecologies -->
+                                <a href="./essay-2-generative-nonhuman-ecologies.html"
+                                        class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
+                                        <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay II
+                                        </div>
+                                        <h3
+                                                class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
+                                                Generative Nonhuman Ecologies
+                                        </h3>
+                                        <p class="text-sm text-[#888] mb-4 leading-relaxed">
+                                                Operative Ecologies, Generative Steering, and the Nonhuman Worldtext
+                                        </p>
+                                        <div class="flex items-center gap-2 text-xs text-amber-600">
+                                                <span>→ VIEW REPORT</span>
+                                                <span class="opacity-50">// 9 Figures</span>
+                                        </div>
+                                </a>
 
-                <!-- 2120: DEMIURGE -->
-                <a href="./2120-demiurge-engine.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2120 // NLP ENGINE
-                    </div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Demiurge Engine</h3>
-                    <p class="text-xs text-[#888] mb-4">Natural language control over simulation states.</p>
-                </a>
+                                <!-- Essay 3: Imaginary Ecologies Framework -->
+                                <a href="./essay-3-imaginary-ecologies-framework.html"
+                                        class="glass-panel rounded-lg p-6 border-amber-900/50 hover:border-amber-400 transition-all group">
+                                        <div class="text-xs text-amber-600 uppercase tracking-widest mb-2">Essay III
+                                        </div>
+                                        <h3
+                                                class="text-lg font-bold text-amber-400 group-hover:text-amber-300 mb-3 leading-tight">
+                                                Imaginary Ecologies Framework
+                                        </h3>
+                                        <p class="text-sm text-[#888] mb-4 leading-relaxed">
+                                                Relational Imagination of Perspective, Presence, and Latent Ecologies in
+                                                Simulacra
+                                        </p>
+                                        <div class="flex items-center gap-2 text-xs text-amber-600">
+                                                <span>→ VIEW REPORT</span>
+                                                <span class="opacity-50">// 9 Figures</span>
+                                        </div>
+                                </a>
+                        </div>
+                </section>
 
-                <!-- 2121: WORLDTEXT -->
-                <a href="./2121-worldtext-display.html"
-                    class="glass-panel rounded-lg p-6 border-[#4af626] hover:border-[#ccffcc] transition-all group relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[#4af626] opacity-5"></div>
-                    <div class="text-xs text-[#4af626] font-bold uppercase tracking-widest mb-2">★ 2121 // DISPLAY</div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">WorldText Display</h3>
-                    <p class="text-xs text-[#888] mb-4">"The Grid is the Prompt." Generative ASCII art injection.</p>
-                </a>
+                <!-- HIGH-FIDELITY WAVE (NEW) -->
+                <section class="mb-12">
+                        <div class="flex items-center gap-4 mb-6">
+                                <h2 class="text-xl font-bold text-emerald-400 uppercase tracking-widest">High-Fidelity
+                                        Wave (v8-v16)
+                                </h2>
+                                <div class="flex-grow h-px bg-emerald-900/50 mx-4"></div>
+                                <a href="./orca-core.html"
+                                        class="bg-emerald-500/10 border border-emerald-500/50 text-emerald-400 px-4 py-1 rounded text-[10px] font-bold tracking-[0.2em] hover:bg-emerald-500 hover:text-black transition-all">
+                                        ORCA_CORE_HUB // LAUNCH
+                                </a>
+                        </div>
 
-                <!-- 2222: LATTICE -->
-                <a href="./2222-living-lattice.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2222 // UMWELT</div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Living Lattice</h3>
-                    <p class="text-xs text-[#888] mb-4">Agent-focused monitor with Umwelt Scanner.</p>
-                </a>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <!-- ORCA-08 -->
+                                <div
+                                        class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
+                                        <a href="./orca-08.html" class="flex-1">
+                                                <div
+                                                        class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">
+                                                        v08 // HYBRID OS</div>
+                                                <h3
+                                                        class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">
+                                                        Orca Stable</h3>
+                                                <p class="text-[10px] text-[#666] mt-2">Gull/Pilot audio integration
+                                                        with stable terminal logic.
+                                                        <span class="text-emerald-900 font-bold ml-1">[DESKTOP
+                                                                OPTIMIZED]</span>
+                                                </p>
+                                        </a>
+                                        <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
+                                                <a href="https://gemini.google.com/share/8197f9e39f5e" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
+                                                <a href="https://gemini.google.com/share/f833f9221100" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
+                                        </div>
+                                </div>
+                                <!-- RIPPLE-12 -->
+                                <div
+                                        class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
+                                        <a href="./ripple-12.html" class="flex-1">
+                                                <div
+                                                        class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">
+                                                        v12 // OMNISCIENCE
+                                                </div>
+                                                <h3
+                                                        class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">
+                                                        Omni Deck</h3>
+                                                <p class="text-[10px] text-[#666] mt-2">Unified chat/sculpting interface
+                                                        with persistent AI
+                                                        links.
+                                                </p>
+                                        </a>
+                                        <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
+                                                <a href="https://gemini.google.com/share/0a825b92df82" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
+                                                <a href="https://gemini.google.com/share/cb55936595ae" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
+                                        </div>
+                                </div>
+                                <!-- RIPPLES-03 -->
+                                <div
+                                        class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
+                                        <a href="./ripples-03.html" class="flex-1">
+                                                <div
+                                                        class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">
+                                                        v03 // ECOSYSTEM</div>
+                                                <h3
+                                                        class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">
+                                                        Unified Eco</h3>
+                                                <p class="text-[10px] text-[#666] mt-2">ASCII feed integration with
+                                                        Intel Net visualization.</p>
+                                        </a>
+                                        <div class="flex gap-3 mt-3 pt-2 border-t border-emerald-900/30">
+                                                <a href="https://gemini.google.com/share/5e43c35a67a9" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
+                                                <a href="https://gemini.google.com/share/109bc03e18d6" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
+                                        </div>
+                                </div>
+                                <!-- ORCA-MOSS-16 -->
+                                <div
+                                        class="glass-panel rounded-lg p-4 border-emerald-900/50 hover:border-emerald-400 transition-all group flex flex-col">
+                                        <a href="./orca-moss-16.html" class="flex-1">
+                                                <div
+                                                        class="text-[10px] text-emerald-600 uppercase tracking-widest mb-1">
+                                                        v16 // MONITOR</div>
+                                                <h3
+                                                        class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">
+                                                        Moss Monitor</h3>
+                                                <p class="text-[10px] text-[#666] mt-2">Isometric TUI with Neural
+                                                        Interface context menus.</p>
+                                        </a>
+                                        <div class="flex gap-2 mt-3 pt-2 border-t border-emerald-900/30">
+                                                <a href="https://gemini.google.com/share/a5f59871878b" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">DEMO</a>
+                                                <a href="https://gemini.google.com/share/e79b402b3bed" target="_blank"
+                                                        class="text-[9px] text-emerald-700 hover:text-emerald-400">CHAT</a>
+                                        </div>
+                                </div>
+                        </div>
+                </section>
 
-                <!-- 2122: BILDER -->
-                <a href="./2122-operative-bilder.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2122 // ISOMETRIC
-                    </div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Operative Bilder</h3>
-                    <p class="text-xs text-[#888] mb-4">Isometric terrain grid with ripple displacement.</p>
-                </a>
+                <!-- GENERATIVE LAB (NEW) -->
+                <section class="mb-12">
+                        <div class="flex items-center gap-4 mb-6">
+                                <h2 class="text-xl font-bold text-[#4af626] uppercase tracking-widest">Generative Lab
+                                </h2>
+                                <div class="flex-1 h-px bg-[#1e5c12]"></div>
+                        </div>
 
-                <!-- 2123: UNIFIED -->
-                <a href="./2123-unified-engine.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2123 // AUDIO</div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Unified Engine</h3>
-                    <p class="text-xs text-[#888] mb-4">Core Tone.js integration with vector mapping.</p>
-                </a>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                <!-- 2124: ONTOLOGY -->
-                <a href="./2124-operative-ontology.html"
-                    class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
-                    <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">2124 // CRT</div>
-                    <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Operative Ontology</h3>
-                    <p class="text-xs text-[#888] mb-4">Phosphor decay CRT monitor for agent phenomenology.</p>
-                </a>
+                                <!-- 1919: OPERATIVE -->
+                                <a href="./1919-operative-sequencer.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                1919 // SEQUENCER
+                                        </div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                Operative Sequencer</h3>
+                                        <p class="text-xs text-[#888] mb-4">Grid logic controlling radial propagation.
+                                                <span class="text-[#1e5c12] font-bold">[SPACE] TO PLAY / DESKTOP
+                                                        OPTIMIZED</span></p>
+                                </a>
 
-            </div>
-        </section>
-        <div class="glass-panel rounded-lg overflow-hidden">
-            <div
-                class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] bg-[#0a140a] border-b border-[#1e5c12] text-xs uppercase tracking-wider text-[#1e5c12] font-bold">
-                <div class="p-4 text-center">ID</div>
-                <div class="p-4">Artifact (HTML)</div>
-                <div class="p-4">Data (JSON)</div>
-                <div class="p-4">Context (MD)</div>
-                <div class="p-4">Source (Chat)</div>
-            </div>
+                                <!-- 2020: AUTONOMIC -->
+                                <a href="./2020-autonomic-system.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2020 // AUTONOMIC
+                                        </div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                Autonomic System</h3>
+                                        <p class="text-xs text-[#888] mb-4">Self-playing cellular automata with periodic
+                                                mutations.</p>
+                                </a>
 
-            <div id="manifest-content">
-                <!-- Javascript will populate this, or we render static HTML below -->
+                                <!-- 2120: DEMIURGE -->
+                                <a href="./2120-demiurge-engine.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2120 // NLP ENGINE
+                                        </div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                Demiurge Engine</h3>
+                                        <p class="text-xs text-[#888] mb-4">Natural language control over simulation
+                                                states.</p>
+                                </a>
 
-                <!-- ROW 1 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">01</div>
-                    <div class="p-4"><a href="./1.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./1.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./1.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/6efaf995f66d" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- 2121: WORLDTEXT -->
+                                <a href="./2121-worldtext-display.html"
+                                        class="glass-panel rounded-lg p-6 border-[#4af626] hover:border-[#ccffcc] transition-all group relative overflow-hidden">
+                                        <div class="absolute inset-0 bg-[#4af626] opacity-5"></div>
+                                        <div class="text-xs text-[#4af626] font-bold uppercase tracking-widest mb-2">★
+                                                2121 // DISPLAY</div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                WorldText Display</h3>
+                                        <p class="text-xs text-[#888] mb-4">"The Grid is the Prompt." Generative ASCII
+                                                art injection.</p>
+                                </a>
 
-                <!-- ROW 2 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">02</div>
-                    <div class="p-4"><a href="./2.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./2.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./2.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/2cadef18c349" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- 2222: LATTICE -->
+                                <a href="./2222-living-lattice.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2222 // UMWELT</div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Living
+                                                Lattice</h3>
+                                        <p class="text-xs text-[#888] mb-4">Agent-focused monitor with Umwelt Scanner.
+                                        </p>
+                                </a>
 
-                <!-- ROW 3 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">03</div>
-                    <div class="p-4"><a href="./ripples-03.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./3.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./3.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/d5a866a03b20" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- 2122: BILDER -->
+                                <a href="./2122-operative-bilder.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2122 // ISOMETRIC
+                                        </div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                Operative Bilder</h3>
+                                        <p class="text-xs text-[#888] mb-4">Isometric terrain grid with ripple
+                                                displacement.</p>
+                                </a>
 
-                <!-- ROW 4 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">04</div>
-                    <div class="p-4"><a href="./4.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./4.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./4.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/ebe99f5a244d" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- 2123: UNIFIED -->
+                                <a href="./2123-unified-engine.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2123 // AUDIO</div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">Unified
+                                                Engine</h3>
+                                        <p class="text-xs text-[#888] mb-4">Core Tone.js integration with vector
+                                                mapping.</p>
+                                </a>
 
-                <!-- ROW 5 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">05</div>
-                    <div class="p-4"><a href="./5.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./5.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./5.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/35eaccf9d111" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- 2124: ONTOLOGY -->
+                                <a href="./2124-operative-ontology.html"
+                                        class="glass-panel rounded-lg p-6 border-[#1e5c12] hover:border-[#4af626] transition-all group">
+                                        <div class="text-xs text-[#4af626] opacity-70 uppercase tracking-widest mb-2">
+                                                2124 // CRT</div>
+                                        <h3 class="text-lg font-bold text-white group-hover:text-[#4af626] mb-2">
+                                                Operative Ontology</h3>
+                                        <p class="text-xs text-[#888] mb-4">Phosphor decay CRT monitor for agent
+                                                phenomenology.</p>
+                                </a>
 
-                <!-- ROW 6 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">06</div>
-                    <div class="p-4"><a href="./6.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./6.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./6.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/dee5079e0895" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                        </div>
+                </section>
+                <div class="glass-panel rounded-lg overflow-hidden">
+                        <div
+                                class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] bg-[#0a140a] border-b border-[#1e5c12] text-xs uppercase tracking-wider text-[#1e5c12] font-bold">
+                                <div class="p-4 text-center">ID</div>
+                                <div class="p-4">Artifact (HTML)</div>
+                                <div class="p-4">Data (JSON)</div>
+                                <div class="p-4">Context (MD)</div>
+                                <div class="p-4">Source (Chat)</div>
+                        </div>
 
-                <!-- ROW 7 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">07</div>
-                    <div class="p-4"><a href="./7.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./7.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./7.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/b4094fcf0767" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                        <div id="manifest-content">
+                                <!-- Javascript will populate this, or we render static HTML below -->
 
-                <!-- ROW 8 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">08</div>
-                    <div class="p-4"><a href="./orca-08.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./8.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/284f75fe1f0e" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 1 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                01</div>
+                                        <div class="p-4"><a href="./1.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./1.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./1.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/6efaf995f66d"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 9 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">09</div>
-                    <div class="p-4"><a href="./9.html" class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./9.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./9.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/b57237c2faa0" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 2 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                02</div>
+                                        <div class="p-4"><a href="./2.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./2.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./2.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/2cadef18c349"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 10 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">10</div>
-                    <div class="p-4"><a href="./10.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./10.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./10.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/cd9ca1971010" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 3 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                03</div>
+                                        <div class="p-4"><a href="./ripples-03.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./3.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./3.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/d5a866a03b20"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 11 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">11</div>
-                    <div class="p-4"><a href="./11.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./11.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./11.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/3ebe22ffc3c6" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 4 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                04</div>
+                                        <div class="p-4"><a href="./4.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./4.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./4.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/ebe99f5a244d"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 12 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">12</div>
-                    <div class="p-4"><a href="./ripple-12.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./12.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4"><a href="./12.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/7dcce995db7e" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 5 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                05</div>
+                                        <div class="p-4"><a href="./5.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./5.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./5.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/35eaccf9d111"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 13 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">13</div>
-                    <div class="p-4"><a href="./13.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./13.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/467cf0b52b95" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 6 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                06</div>
+                                        <div class="p-4"><a href="./6.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./6.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./6.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/dee5079e0895"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 14 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">14</div>
-                    <div class="p-4"><a href="./14.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./14.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/2411cdf1079f" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 7 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                07</div>
+                                        <div class="p-4"><a href="./7.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./7.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./7.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/b4094fcf0767"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 15 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">15</div>
-                    <div class="p-4"><a href="./15.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./15.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
-                    </div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/0afdb4dfa2ad" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 8 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                08</div>
+                                        <div class="p-4"><a href="./orca-08.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./8.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/284f75fe1f0e"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 16 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">16</div>
-                    <div class="p-4"><a href="./1616-worldjockey.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><a href="./16.json"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
-                            DATA</a></div>
-                    <div class="p-4 text-[10px] text-[#4af626] opacity-70">WORLD JOCKEY <span
-                            class="block text-emerald-900">[SPACE] TO PLAY / DESKTOP ONLY</span></div>
-                    <div class="p-4"><a href="https://gemini.google.com/share/ece29e9afdaf" target="_blank"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
-                            CHAT</a></div>
-                </div>
+                                <!-- ROW 9 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                09</div>
+                                        <div class="p-4"><a href="./9.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./9.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./9.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/b57237c2faa0"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 17 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">17</div>
-                    <div class="p-4"><a href="./1717-cellular.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4 text-center opacity-30">-- NULL --</div>
-                    <div class="p-4 text-[10px] text-[#4af626] opacity-70">CELLULAR WORLDTEXT <span
-                            class="block text-emerald-900">[SPACE] TO PLAY / DESKTOP ONLY</span></div>
-                    <div class="p-4 text-center opacity-30">-- NULL --</div>
-                </div>
+                                <!-- ROW 10 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                10</div>
+                                        <div class="p-4"><a href="./10.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./10.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./10.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/cd9ca1971010"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 18 -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">18</div>
-                    <div class="p-4"><a href="./booklet.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
-                            ARTIFACT</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            NULL --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            NULL --</span></div>
-                </div>
+                                <!-- ROW 11 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                11</div>
+                                        <div class="p-4"><a href="./11.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./11.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./11.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/3ebe22ffc3c6"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW KIMI: KIMI AGENT OUTPUT -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#ff6b35] hover:bg-[#1a0f0a] transition-colors items-center group bg-[#0f0805]">
-                    <div class="p-4 text-center text-xl font-bold text-[#ff6b35]">KIMI</div>
-                    <div class="p-4"><a
-                            href="./engine/Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary%20(1)%20copy/ripples/index.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#ff6b35] text-[#ff6b35]">KIMI
-                            SUMMARY</a></div>
-                    <div class="p-4"><a href="./Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary/app/dist/index.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#ff6b35] text-[#ff6b35]">KIMI
-                            APP</a></div>
-                    <div class="p-4"><a href="./Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary/app/README.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">README</a>
-                    </div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#ff6b35] opacity-70">AGENT</span></div>
-                </div>
+                                <!-- ROW 12 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                12</div>
+                                        <div class="p-4"><a href="./ripple-12.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./12.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4"><a href="./12.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/7dcce995db7e"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 19: THEORY -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">19</div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            THEORY --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./theory/theory.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW MD</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            NULL --</span></div>
-                </div>
+                                <!-- ROW 13 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                13</div>
+                                        <div class="p-4"><a href="./13.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./13.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/467cf0b52b95"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW 20: PATTERN LIBRARY -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">20</div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            PATTERNS --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            404 --</span></div>
-                    <div class="p-4"><a href="./theory/pattern-library.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center">VIEW MD</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            NULL --</span></div>
-                </div>
+                                <!-- ROW 14 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                14</div>
+                                        <div class="p-4"><a href="./14.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./14.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/2411cdf1079f"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW APP: REACT APPLICATION -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#0a150a]">
-                    <div class="p-4 text-center text-xl font-bold text-[#4af626]">APP</div>
-                    <div class="p-4"><a href="./app/dist/index.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#4af626]">LAUNCH
-                            APP</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            VITE --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            REACT --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            TS --</span></div>
-                </div>
+                                <!-- ROW 15 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                15</div>
+                                        <div class="p-4"><a href="./15.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./15.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">NOTES</a>
+                                        </div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/0afdb4dfa2ad"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW APP 2: SECOND APPLICATION BUILD -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#0a150a]">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">APP2</div>
-                    <div class="p-4"><a href="./app%202/dist/index.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12]">LAUNCH
-                            APP 2</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            VITE --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            REACT --</span></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
-                            TS --</span></div>
-                </div>
+                                <!-- ROW 16 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                16</div>
+                                        <div class="p-4"><a href="./1616-worldjockey.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><a href="./16.json"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] bg-[#050a05]">VIEW
+                                                        DATA</a></div>
+                                        <div class="p-4 text-[10px] text-[#4af626] opacity-70">WORLD JOCKEY <span
+                                                        class="block text-emerald-900">[SPACE] TO PLAY / DESKTOP
+                                                        ONLY</span></div>
+                                        <div class="p-4"><a href="https://gemini.google.com/share/ece29e9afdaf"
+                                                        target="_blank"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-yellow-500 border-yellow-900/30">GEMINI
+                                                        CHAT</a></div>
+                                </div>
 
-                <!-- ROW LATENT: THE TRUE INTERFACE -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#001000]">
-                    <div class="p-4 text-center text-xl font-bold text-[#4af626]">★</div>
-                    <div class="p-4"><a href="./latent-interface.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#4af626] font-bold text-[#4af626] hover:bg-[#4af626] hover:text-black transition-all">LATENT
-                            INTERFACE</a></div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#4af626] opacity-70 border border-transparent">PRIMARY</span>
-                    </div>
-                    <div class="p-4"><a href="./PROMPT.md"
-                            class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">PROMPT</a>
-                    </div>
-                    <div class="p-4"><span
-                            class="block w-full py-2 px-3 text-center text-[#4af626] opacity-70 border border-transparent">v1.0</span>
-                    </div>
-                </div>
+                                <!-- ROW 17 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                17</div>
+                                        <div class="p-4"><a href="./1717-cellular.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4 text-center opacity-30">-- NULL --</div>
+                                        <div class="p-4 text-[10px] text-[#4af626] opacity-70">CELLULAR WORLDTEXT <span
+                                                        class="block text-emerald-900">[SPACE] TO PLAY / DESKTOP
+                                                        ONLY</span></div>
+                                        <div class="p-4 text-center opacity-30">-- NULL --</div>
+                                </div>
 
-                <!-- ROW THREAD: ELO 2026 ARCHIVE -->
-                <div
-                    class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b-2 border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
-                    <div class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">ELO</div>
-                    <div class="p-4"><a href="./thread.html"
-                            class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] text-[#1e5c12] hover:bg-[#1e5c12] hover:text-black transition-all">ELO
-                            2026 ARCHIVE</a></div>
-                    <div class="p-4 text-center opacity-30">-- NARRATIVE --</div>
-                    <div class="p-4 text-[10px] text-[#4af626] opacity-70">PERFORMATIVE THREAD <span
-                            class="block text-emerald-900">ATLANTA GA // 2026</span></div>
-                    <div class="p-4 text-center opacity-30">-- PUBLIC --</div>
-                </div>
+                                <!-- ROW 18 -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                18</div>
+                                        <div class="p-4"><a href="./booklet.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        ARTIFACT</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        NULL --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        NULL --</span></div>
+                                </div>
 
-            </div>
+                                <!-- ROW KIMI: KIMI AGENT OUTPUT -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#ff6b35] hover:bg-[#1a0f0a] transition-colors items-center group bg-[#0f0805]">
+                                        <div class="p-4 text-center text-xl font-bold text-[#ff6b35]">KIMI</div>
+                                        <div class="p-4"><a
+                                                        href="./engine/Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary%20(1)%20copy/ripples/index.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#ff6b35] text-[#ff6b35]">KIMI
+                                                        SUMMARY</a></div>
+                                        <div class="p-4"><a
+                                                        href="./Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary/app/dist/index.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#ff6b35] text-[#ff6b35]">KIMI
+                                                        APP</a></div>
+                                        <div class="p-4"><a
+                                                        href="./Kimi_Agent_RIPPLES_%20Worldtext%20Theory%20Summary/app/README.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">README</a>
+                                        </div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#ff6b35] opacity-70">AGENT</span>
+                                        </div>
+                                </div>
 
-            <footer class="mt-12 text-center text-[#1e5c12] text-xs space-y-2">
-                <p>RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies</p>
-                <p class="text-[#888]">"All models are wrong. We aim to be usefully wrong."</p>
-                <p>GAIA Research Collective // 2026 // MIT License</p>
-            </footer>
-    </main>
+                                <!-- ROW 19: THEORY -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                19</div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        THEORY --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./theory/theory.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        MD</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        NULL --</span></div>
+                                </div>
+
+                                <!-- ROW 20: PATTERN LIBRARY -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                20</div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        PATTERNS --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        404 --</span></div>
+                                        <div class="p-4"><a href="./theory/pattern-library.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center">VIEW
+                                                        MD</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        NULL --</span></div>
+                                </div>
+
+                                <!-- ROW APP: REACT APPLICATION -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#0a150a]">
+                                        <div class="p-4 text-center text-xl font-bold text-[#4af626]">APP</div>
+                                        <div class="p-4"><a href="./app/dist/index.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#4af626]">LAUNCH
+                                                        APP</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        VITE --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        REACT --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        TS --</span></div>
+                                </div>
+
+                                <!-- ROW APP 2: SECOND APPLICATION BUILD -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#0a150a]">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                APP2</div>
+                                        <div class="p-4"><a href="./app%202/dist/index.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12]">LAUNCH
+                                                        APP 2</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        VITE --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        REACT --</span></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#1e5c12] opacity-30 border border-transparent border-dashed border-[#1e5c12]">--
+                                                        TS --</span></div>
+                                </div>
+
+                                <!-- ROW LATENT: THE TRUE INTERFACE -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b border-[#4af626] hover:bg-[#0f1f0f] transition-colors items-center group bg-[#001000]">
+                                        <div class="p-4 text-center text-xl font-bold text-[#4af626]">★</div>
+                                        <div class="p-4"><a href="./latent-interface.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#4af626] font-bold text-[#4af626] hover:bg-[#4af626] hover:text-black transition-all">LATENT
+                                                        INTERFACE</a></div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#4af626] opacity-70 border border-transparent">PRIMARY</span>
+                                        </div>
+                                        <div class="p-4"><a href="./PROMPT.md"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center text-sm opacity-70">PROMPT</a>
+                                        </div>
+                                        <div class="p-4"><span
+                                                        class="block w-full py-2 px-3 text-center text-[#4af626] opacity-70 border border-transparent">v1.0</span>
+                                        </div>
+                                </div>
+
+                                <!-- ROW THREAD: ELO 2026 ARCHIVE -->
+                                <div
+                                        class="grid grid-cols-[auto_1fr_1fr_1fr_1fr] border-b-2 border-[#1e5c12] hover:bg-[#0f1f0f] transition-colors items-center group">
+                                        <div
+                                                class="p-4 text-center text-xl font-bold text-[#1e5c12] group-hover:text-[#4af626]">
+                                                ELO</div>
+                                        <div class="p-4"><a href="./thread.html"
+                                                        class="block w-full py-2 px-3 link-btn rounded text-center border border-[#1e5c12] text-[#1e5c12] hover:bg-[#1e5c12] hover:text-black transition-all">ELO
+                                                        2026 ARCHIVE</a></div>
+                                        <div class="p-4 text-center opacity-30">-- NARRATIVE --</div>
+                                        <div class="p-4 text-[10px] text-[#4af626] opacity-70">PERFORMATIVE THREAD <span
+                                                        class="block text-emerald-900">ATLANTA GA // 2026</span></div>
+                                        <div class="p-4 text-center opacity-30">-- PUBLIC --</div>
+                                </div>
+
+                        </div>
+
+                        <footer class="mt-12 text-center text-[#1e5c12] text-xs space-y-2">
+                                <p>RIPPLES: Relational Imagination of Perspective, Presence, and Latent Ecologies</p>
+                                <p class="text-[#888]">"All models are wrong. We aim to be usefully wrong."</p>
+                                <p>GAIA Research Collective // 2026 // MIT License</p>
+                        </footer>
+        </main>
 </body>
 
 </html>
