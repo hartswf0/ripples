@@ -16,7 +16,7 @@ To enable AI features, open these files and insert your API key into the `const 
 ## Local LLM Support (Ollama / LM Studio)
 Files `6.html`, `9.html`, `12.html`, `13.html`, and `66.html` have been upgraded to support local OpenAI-compatible endpoints (like Ollama or LM Studio).
 
-To usage a local LLM:
+To use a local LLM:
 1. Open the file in a code editor.
 2. Search for the `AI_CONFIG` object.
 3. Set `useLocalLLM: true`.
@@ -33,7 +33,29 @@ To usage a local LLM:
 | [orca-08.html](orca-08.html) | ✅ Yes | `AI_CONFIG` |
 | [orca-moss-16.html](orca-moss-16.html) | ✅ Yes | `AI_CONFIG` |
 | [orca-moss-1616.html](orca-moss-1616.html) | ✅ Yes | `AI_CONFIG` |
+| [thousand-tetrad.html](thousand-tetrad.html) | ✅ Yes | `AI_CONFIG` |
+
+## RIPPLE AI Bridge (New AI Module)
+
+The following files use the centralized **[ripple-ai.js](ripple-ai.js)** module for local LLM integration. This module connects to Ollama (`localhost:11434`) by default.
+
+To configure:
+- Set host: `localStorage.setItem('ripple_ai_host', 'your-host:port')`
+- Default model: `llama3` (configurable via `RIPPLE_AI.config.model`)
+
+| File | AI Feature | System Persona |
+|------|-----------|----------------|
+| [orca-shield-18.html](orca-shield-18.html) | Deep Scan (LIDAR) | Forensic Ontologist |
+| [orca-shield-19.html](orca-shield-19.html) | Synesthesia Scan | Scout Navigator |
+| [orca-shield-20.html](orca-shield-20.html) | Deductive Analysis | Forensics AI / Quantum Terrains |
+| [orca-shield-21.html](orca-shield-21.html) | Spectral Analysis | Spectral Analyst |
+| [orca-shield-22.html](orca-shield-22.html) | Thermodynamic Scan | Paranormal Investigator |
+| [orca-shield-23.html](orca-shield-23.html) | Worldtext Analysis | Worldtext Analyst |
+| [orca-shield-24.html](orca-shield-24.html) | Rebus Synthesis | Symbolic Synthesist |
+| [orca-shield-25.html](orca-shield-25.html) | Pipeline Synthesis | Master Synthesist |
+| [latent-interface.html](latent-interface.html) | Operative Ecology | Nonhuman Perspective Expert |
 
 ## Notes
 - `ripple-12.html` contains references to an API key but currently relies on mock data.
 - Most files default to a "Mock/Simulation" mode if no API key is present or if the local LLM is unreachable.
+- All RIPPLE AI Bridge files gracefully handle connection failures with error messages in-UI.

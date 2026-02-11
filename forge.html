@@ -1,525 +1,598 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REBUS | Launchpad</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <title>RIPPLES // COMPLETE INDEX</title>
+    <meta name="description" content="Complete file index for the RIPPLES: Operative Ecologies project.">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap"
+        rel="stylesheet">
     <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         :root {
-            --deco-gold: #c5a059;
-            --deco-black: #0a0a0b;
-            --deco-zinc: #18181b;
-            --deco-accent: #e5e7eb;
+            --bg: #06080a;
+            --bg-card: #0c1014;
+            --bg-card-hover: #131a20;
+            --border: #1a2530;
+            --border-hover: #2a4050;
+            --text: #c8d6e5;
+            --text-dim: #5a6a7a;
+            --text-bright: #e8f0f8;
+            --accent-green: #00e676;
+            --accent-cyan: #00bcd4;
+            --accent-gold: #ffc107;
+            --accent-amber: #ff9800;
+            --accent-rose: #ff5252;
+            --accent-violet: #b388ff;
+            --accent-blue: #448aff;
+            --font: 'JetBrains Mono', monospace;
+            --radius: 6px;
         }
 
         body {
-            background-color: var(--deco-black);
-            color: var(--deco-accent);
-            font-family: 'Inter', sans-serif;
-            height: 100vh;
-            overflow: hidden;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .serif { font-family: 'Playfair Display', serif; }
+        /* ─── HEADER ───────────────────────────── */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(6, 8, 10, 0.85);
+            backdrop-filter: blur(16px) saturate(1.4);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+        }
 
-        /* Art Deco Geometric Cues */
-        .deco-border {
-            border: 1px solid var(--deco-gold);
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .logo span {
+            color: var(--text-dim);
+            font-weight: 400;
+            font-size: 11px;
+            margin-left: 8px;
+            letter-spacing: 3px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
             position: relative;
         }
 
-        .deco-border::after {
-            content: '';
+        .search-box input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 12px;
+            padding: 8px 12px 8px 32px;
+            border-radius: var(--radius);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .search-box::before {
+            content: '⌕';
             position: absolute;
-            inset: 2px;
-            border: 1px solid rgba(197, 160, 89, 0.3);
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--text-dim);
             pointer-events: none;
         }
 
-        .stepped-corners {
-            clip-path: polygon(
-                0 10px, 10px 10px, 10px 0, 
-                calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px,
-                100% calc(100% - 10px), calc(100% - 10px) calc(100% - 10px), calc(100% - 10px) 100%,
-                10px 100%, 10px calc(100% - 10px), 0 calc(100% - 10px)
-            );
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
-        /* Iframe & UI Containers */
-        .viewer-bg {
-            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        .filter-btn {
+            font-family: var(--font);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-dim);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
         }
 
-        .channel-row {
-            border-left: 2px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .channel-row.active {
-            border-left-color: var(--deco-gold);
-            background: rgba(197, 160, 89, 0.05);
+        .filter-btn:hover {
+            border-color: var(--text-dim);
+            color: var(--text);
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: var(--deco-black); }
-        ::-webkit-scrollbar-thumb { background: var(--deco-gold); }
+        .filter-btn.active {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: #000;
+        }
 
-        /* Interactive Elements */
-        .knob-ui {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--deco-zinc);
-            border: 1px solid var(--deco-gold);
+        .stats {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        /* ─── MAIN ─────────────────────────────── */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ─── SECTION ──────────────────────────── */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.2s;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
         }
-        .knob-ui:active { transform: scale(0.9) rotate(15deg); }
 
-        .status-badge {
-            font-size: 9px;
-            padding: 2px 6px;
-            letter-spacing: 0.1em;
+        .section-icon {
+            font-size: 16px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 3px;
         }
 
-        @media (max-width: 1024px) {
-            .mobile-drawer {
-                transform: translateY(100%);
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .section-count {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-left: auto;
+            letter-spacing: 1px;
+        }
+
+        /* ─── CARD GRID ────────────────────────── */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--card-accent, var(--accent-cyan));
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-filename {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            letter-spacing: 0.5px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-bright);
+            line-height: 1.3;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 5px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+        }
+
+        .badge-ai {
+            background: rgba(0, 230, 118, 0.12);
+            color: var(--accent-green);
+        }
+
+        .badge-ripple-ai {
+            background: rgba(0, 188, 212, 0.12);
+            color: var(--accent-cyan);
+        }
+
+        .badge-gemini {
+            background: rgba(255, 193, 7, 0.12);
+            color: var(--accent-gold);
+        }
+
+        .badge-essay {
+            background: rgba(255, 152, 0, 0.12);
+            color: var(--accent-amber);
+        }
+
+        .badge-orca {
+            background: rgba(179, 136, 255, 0.12);
+            color: var(--accent-violet);
+        }
+
+        .badge-tool {
+            background: rgba(68, 138, 255, 0.12);
+            color: var(--accent-blue);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ─── RESPONSIVE ───────────────────────── */
+        @media (max-width: 768px) {
+            .header-inner {
+                flex-direction: column;
+                align-items: stretch;
             }
-            .mobile-drawer.open { transform: translateY(0); }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .stats {
+                margin-left: 0;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main {
+                padding: 16px;
+            }
         }
     </style>
 </head>
-<body class="flex flex-col lg:flex-row h-screen">
 
-    <!-- Desktop Sidebar / Mobile Drawer -->
-    <aside id="sidebar" class="mobile-drawer fixed inset-0 z-50 lg:relative lg:translate-y-0 lg:flex lg:flex-col lg:w-80 bg-zinc-950 border-r border-zinc-800 lg:z-auto">
-        <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
-            <div>
-                <h1 class="serif text-xl text-amber-500/90 leading-tight">RIPPLES / SHIELD</h1>
-                <p class="mono text-[9px] uppercase tracking-widest text-zinc-500">Launchpad v1.0</p>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo">RIPPLES <span>COMPLETE INDEX</span></div>
+            <div class="search-box">
+                <input type="text" id="search" placeholder="Filter files..." oninput="filterCards()">
             </div>
-            <button onclick="toggleDrawer()" class="lg:hidden text-zinc-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+                <button class="filter-btn" data-filter="ai" onclick="setFilter('ai', this)">AI-Enabled</button>
+                <button class="filter-btn" data-filter="orca" onclick="setFilter('orca', this)">ORCA</button>
+                <button class="filter-btn" data-filter="engine" onclick="setFilter('engine', this)">Engine</button>
+                <button class="filter-btn" data-filter="essay" onclick="setFilter('essay', this)">Essays</button>
+                <button class="filter-btn" data-filter="tool" onclick="setFilter('tool', this)">Tools</button>
+            </div>
+            <div class="stats" id="stats">75 FILES</div>
         </div>
+    </header>
 
-        <div class="flex-grow overflow-y-auto p-4 space-y-8" id="channel-container">
-            <!-- Channels injected here -->
-        </div>
-
-        <div class="p-4 bg-zinc-900/50 border-t border-zinc-800">
-            <div class="flex flex-col gap-2">
-                <button onclick="showCompare()" class="text-[10px] mono uppercase border border-zinc-700 py-2 hover:bg-zinc-800 transition-colors">Compare Ratings</button>
-                <div class="text-[9px] mono text-center text-zinc-600 uppercase">Non verbis sed rebus</div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="flex-grow flex flex-col h-full relative">
-        
-        <!-- Header: Now Playing -->
-        <header class="h-16 border-b border-zinc-900 bg-black flex items-center justify-between px-4 lg:px-8">
-            <div class="flex items-center gap-4 truncate">
-                <div class="hidden lg:block">
-                    <div id="status-badge" class="status-badge bg-zinc-800 text-zinc-400">Idle</div>
-                </div>
-                <div class="flex flex-col truncate">
-                    <span id="now-playing-title" class="serif text-sm lg:text-base text-white truncate">Select Signal</span>
-                    <span id="now-playing-group" class="mono text-[9px] uppercase text-zinc-500 tracking-wider">Awaiting Input</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <button id="reload-btn" class="p-2 hover:bg-zinc-800 text-zinc-400 rounded transition-colors" title="Reload (Space)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                </button>
-                <button id="external-btn" class="p-2 hover:bg-zinc-800 text-amber-500/80 rounded transition-colors" title="Open in New Tab">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </button>
-            </div>
-        </header>
-
-        <!-- Viewer -->
-        <div class="flex-grow viewer-bg relative">
-            <div id="loading-overlay" class="absolute inset-0 z-10 flex items-center justify-center bg-black transition-opacity pointer-events-none opacity-0">
-                <div class="w-8 h-8 border border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
-            </div>
-            
-            <div id="blocked-overlay" class="absolute inset-0 z-20 hidden flex-col items-center justify-center bg-zinc-950 p-8 text-center">
-                <div class="deco-border p-8 max-w-sm">
-                    <h3 class="serif text-lg mb-2">Signal Blocked</h3>
-                    <p class="text-xs text-zinc-500 mb-6">This prototype restricts embedding via CSP or X-Frame-Options.</p>
-                    <button onclick="openCurrentTab()" class="bg-amber-600 text-black px-6 py-2 mono text-xs uppercase font-bold hover:bg-amber-500 transition-all">Open Frequency ↗</button>
-                </div>
-            </div>
-
-            <div id="iframe-mount" class="w-full h-full"></div>
-        </div>
-
-        <!-- Mobile Controls Strip (Fixed) -->
-        <div class="lg:hidden h-20 border-t border-zinc-800 bg-zinc-950 flex items-center justify-around px-4">
-            <button onclick="toggleDrawer()" class="flex flex-col items-center gap-1">
-                <span class="mono text-[8px] text-zinc-500 uppercase">Stations</span>
-                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></div>
-            </button>
-            <button onclick="navigateChannel(-1)" class="flex flex-col items-center gap-1">
-                <span class="mono text-[8px] text-zinc-500 uppercase">Prev</span>
-                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></div>
-            </button>
-            <button onclick="navigateChannel(1)" class="flex flex-col items-center gap-1 text-amber-500/80">
-                <span class="mono text-[8px] uppercase">Next</span>
-                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
-            </button>
-            <button onclick="toggleRateModal()" class="flex flex-col items-center gap-1">
-                <span class="mono text-[8px] text-zinc-500 uppercase">Rate</span>
-                <div class="knob-ui"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></div>
-            </button>
-        </div>
-
-        <!-- Desktop Rating Overlay (Persistent hint) -->
-        <div class="hidden lg:flex absolute bottom-4 right-4 items-center gap-4 pointer-events-none">
-            <div class="bg-black/80 border border-zinc-800 p-2 mono text-[9px] uppercase text-zinc-500 backdrop-blur-sm">
-                SPACE: REFRESH / NUDGE
-            </div>
-            <button onclick="toggleRateModal()" class="pointer-events-auto bg-amber-600/10 hover:bg-amber-600/20 border border-amber-600/30 px-4 py-2 mono text-[10px] uppercase text-amber-500 transition-all">
-                Evaluate Frequency
-            </button>
-        </div>
+    <main class="main" id="main">
+        <!-- Injected by JS -->
     </main>
 
-    <!-- Modal: Rating -->
-    <div id="rate-modal" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-700 w-full max-w-md p-6 stepped-corners relative">
-            <button onclick="toggleRateModal()" class="absolute top-4 right-4 text-zinc-500">&times;</button>
-            <h2 id="rate-target-title" class="serif text-xl mb-1">Orca Shield 18</h2>
-            <p class="mono text-[10px] uppercase text-zinc-500 mb-6">Perceptual Strength Evaluation</p>
-            
-            <div class="space-y-6">
-                <div>
-                    <label class="mono text-[10px] uppercase text-zinc-400 block mb-3 tracking-widest">Strength (1–5)</label>
-                    <div id="star-rating" class="flex gap-4">
-                        <!-- Rating stars injected -->
-                    </div>
-                </div>
-                <div>
-                    <label class="mono text-[10px] uppercase text-zinc-400 block mb-3 tracking-widest">Operator Notes</label>
-                    <textarea id="rate-notes" class="w-full h-32 bg-black border border-zinc-800 p-3 text-sm text-zinc-300 focus:border-amber-500 outline-none resize-none" placeholder="Arrangement, relation, interaction..."></textarea>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="saveCurrentRating()" class="flex-grow bg-amber-600 text-black py-3 mono text-xs uppercase font-bold tracking-widest">Commit Data</button>
-                    <button onclick="clearCurrentRating()" class="px-4 border border-zinc-700 text-zinc-500 hover:text-red-400 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Compare -->
-    <div id="compare-modal" class="fixed inset-0 z-[100] hidden bg-black/95 flex items-center justify-center p-4">
-        <div class="bg-zinc-950 border border-zinc-800 w-full max-w-2xl h-[85vh] flex flex-col stepped-corners p-8">
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex flex-col">
-                    <h2 class="serif text-2xl leading-none">Ecology Map</h2>
-                    <span id="sus-score-display" class="mono text-[10px] uppercase text-amber-500 mt-2 tracking-widest">SUS SCORE: 0.0</span>
-                </div>
-                <button onclick="showCompare()" class="text-zinc-500 text-2xl">&times;</button>
-            </div>
-            <div id="compare-list" class="flex-grow overflow-y-auto space-y-4 pr-2">
-                <!-- Sorted ratings list -->
-            </div>
-            <div class="mt-8 pt-4 border-t border-zinc-800 grid grid-cols-2 gap-3">
-                <button onclick="exportReport()" class="bg-amber-600 text-black py-3 mono text-[10px] uppercase font-bold tracking-widest hover:bg-amber-500 transition-all">Copy Ecology Report</button>
-                <button onclick="exportData()" class="bg-zinc-800 hover:bg-zinc-700 text-white py-3 mono text-[10px] uppercase tracking-widest transition-all">Export JSON Blob</button>
-                <button onclick="clearAllData()" class="col-span-2 mt-2 text-zinc-600 hover:text-red-400 mono text-[9px] uppercase tracking-tighter text-center">Wipe Persistent Storage</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        const STORAGE_KEY = 'ripples_launchpad_v1';
-        const channels = [
-            { id: 'best_orca_shield_18', group: 'Best (current)', title: 'Orca Shield 18', url: 'https://hartswf0.github.io/ripples/orca-shield-18.html', note: 'Strong balance of spatial clarity and symbol density.' },
-            { id: 'shield_compiler', group: 'Main Project', title: 'Shield Compiler', url: 'https://hartswf0.github.io/ripples/shield-compiler.html', note: 'Primary testbed for structural writing.' },
-            { id: 'golden_lens', group: 'Golden Lens', title: 'Golden Lens', url: 'https://hartswf0.github.io/ripples/golden-lens.html', note: 'Vibe-coding frames; interaction sketches.' },
-            { id: 'orca_edgar_vision', group: 'Interaction Note', title: 'Orca Edgar Vision', url: 'https://hartswf0.github.io/ripples/orca-edgar-vision.html', note: 'Refresh / Spacebar reference station.' },
-            { id: 'orca_shield_24', group: 'Good References', title: 'Orca Shield 24', url: 'https://hartswf0.github.io/ripples/orca-shield-24.html', note: 'Strong rebus + code intro.' },
-            { id: 'orca_shield_17', group: 'Good References', title: 'Orca Shield 17', url: 'https://hartswf0.github.io/ripples/orca-shield-17.html', note: 'High-density worldtext.' },
-            { id: 'auden_shield_calligram', group: 'Good References', title: 'Auden Shield Calligram', url: 'https://hartswf0.github.io/text-ure/auden-shield/1-calligram.html', note: 'Art Deco semantic architecture.' }
+        const FILES = [
+            // ─── RESEARCH ESSAYS ─────────────────────
+            {
+                section: "Research Essays", icon: "📄", tags: ["essay"],
+                files: [
+                    { f: "essay-1-worldtext-specification.html", t: "Worldtext Specification", badges: ["essay"] },
+                    { f: "essay-2-generative-nonhuman-ecologies.html", t: "Generative Nonhuman Ecologies", badges: ["essay"] },
+                    { f: "essay-3-imaginary-ecologies-framework.html", t: "Imaginary Ecologies Framework", badges: ["essay"] },
+                    { f: "booklet.html", t: "Operative Ecologies — Booklet", badges: ["essay"] },
+                ]
+            },
+            // ─── ORCA SHIELD SERIES (NEW AI) ─────────
+            {
+                section: "ORCA Shield Series", icon: "🛡️", tags: ["orca", "ai"],
+                files: [
+                    { f: "orca-shield-17.html", t: "SHIELD COMPILER v17", badges: ["orca", "gemini"] },
+                    { f: "orca-shield-18.html", t: "BLUE HOUR LIDAR v18", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-19.html", t: "SCOUT OPTICS v19", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-20.html", t: "TWILIGHT PROTOCOL v20", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-21.html", t: "CASE FILE v21", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-22.html", t: "EDGAR VISION v22", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-23.html", t: "HOLLER WORLDTEXT v23", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-24.html", t: "REBUS ENGINE v24", badges: ["orca", "ripple-ai"] },
+                    { f: "orca-shield-25.html", t: "REBUS PIPELINE v25", badges: ["orca", "ripple-ai"] },
+                ]
+            },
+            // ─── ORCA CORE ───────────────────────────
+            {
+                section: "ORCA Core", icon: "🐋", tags: ["orca", "ai"],
+                files: [
+                    { f: "orca-08.html", t: "RIPPLES OS v8.1 — Hybrid Stable", badges: ["orca", "ai"] },
+                    { f: "orca-moss-16.html", t: "MOSS MONITOR v16", badges: ["orca", "ai"] },
+                    { f: "orca-moss-1616.html", t: "SHIELD DOSSIER 1616", badges: ["orca", "ai"] },
+                    { f: "orca-edgar-vision.html", t: "EDGAR VISION", badges: ["orca"] },
+                    { f: "orca-core.html", t: "ORCA Directory", badges: ["orca"] },
+                    { f: "orca-docs.html", t: "ORCA Documentation Hub", badges: ["orca"] },
+                ]
+            },
+            // ─── RIPPLES CORE ENGINES (1-9) ──────────
+            {
+                section: "RIPPLES Core (v1–v9)", icon: "🌊", tags: ["engine"],
+                files: [
+                    { f: "1.html", t: "Imaginary Ecologies v1", badges: [] },
+                    { f: "2.html", t: "Imaginary Ecologies v2", badges: [] },
+                    { f: "3.html", t: "Imaginary Ecologies [3D]", badges: [] },
+                    { f: "4.html", t: "Latent Prompt: Pure Canvas", badges: [] },
+                    { f: "5.html", t: "Professional Engine Studio v2.1", badges: [] },
+                    { f: "6.html", t: "RIPPLES ENGINE v4.2", badges: ["ai", "gemini"] },
+                    { f: "7.html", t: "The Cupboard", badges: [] },
+                    { f: "8.html", t: "RIPPLES ENGINE v4.2", badges: [] },
+                    { f: "9.html", t: "WORLD SIMULATOR", badges: ["ai", "gemini"] },
+                ]
+            },
+            // ─── RIPPLES MID-RANGE (10-17) ──────────
+            {
+                section: "RIPPLES Extended (v10–v17)", icon: "⚡", tags: ["engine"],
+                files: [
+                    { f: "10.html", t: "Imaginary Ecologies v10", badges: [] },
+                    { f: "11.html", t: "RIPPLES OS v2.4.1", badges: [] },
+                    { f: "12.html", t: "Imaginary Ecologies v12", badges: ["ai", "gemini"] },
+                    { f: "13.html", t: "RIPPLES ENGINE v4.2 (v13)", badges: ["ai", "gemini"] },
+                    { f: "14.html", t: "LATENT IDE v3.0 — ECO-ARCHITECT", badges: [] },
+                    { f: "15.html", t: "INDEX ECONYX", badges: [] },
+                    { f: "16.html", t: "Operative Ecologies v16", badges: [] },
+                    { f: "16b.html", t: "The Cupboard (v16b)", badges: [] },
+                    { f: "17.html", t: "Formicidae Scout — ELO 2026", badges: [] },
+                    { f: "22.html", t: "PARTICLE SIMULATION", badges: [] },
+                ]
+            },
+            // ─── DOUBLEDOT SERIES (xxxx) ─────────────
+            {
+                section: "Double-Dot Series", icon: "🔮", tags: ["engine"],
+                files: [
+                    { f: "66.html", t: "ENGINE-DRIVEN v66", badges: ["ai", "gemini"] },
+                    { f: "1010.html", t: "BIGTIME INTERFACE", badges: [] },
+                    { f: "1111.html", t: "HEAVENLY", badges: [] },
+                    { f: "1212.html", t: "CARTOON", badges: [] },
+                    { f: "1313.html", t: "CRT TERMINAL v13.13", badges: [] },
+                    { f: "1414.html", t: "INFINITE GRID", badges: [] },
+                    { f: "1414-alive.html", t: "LIVING INFINITE SCALE", badges: [] },
+                    { f: "1515.html", t: "SOUND ECOLOGY", badges: [] },
+                    { f: "1515-grid.html", t: "TEXT GRID SIMULATION", badges: [] },
+                    { f: "1616-worldjockey.html", t: "WORLD JOCKEY CONSOLE", badges: [] },
+                    { f: "1717-cellular.html", t: "CELLULAR AUTOMATA WORLDTEXT", badges: [] },
+                    { f: "1776.html", t: "1776 GALLERY", badges: [] },
+                    { f: "1818-sonic-ecology.html", t: "SONIC ECOLOGY DEMO", badges: [] },
+                    { f: "1919-operative-sequencer.html", t: "OPERATIVE SEQUENCER", badges: [] },
+                    { f: "2020-autonomic-system.html", t: "AUTONOMIC SYSTEM", badges: [] },
+                    { f: "2120-demiurge-engine.html", t: "DEMIURGE v3.0", badges: [] },
+                    { f: "2121-worldtext-display.html", t: "OMNISCIENT v3.5", badges: [] },
+                    { f: "2122-operative-bilder.html", t: "OPERATIVE ECOLOGY", badges: [] },
+                    { f: "2123-unified-engine.html", t: "UNIFIED ENGINE", badges: [] },
+                    { f: "2124-operative-ontology.html", t: "OPERATIVE ONTOLOGY", badges: [] },
+                    { f: "2222-living-lattice.html", t: "LIVING LATTICE", badges: [] },
+                    { f: "44.html", t: "PURE CANVAS", badges: [] },
+                    { f: "55.html", t: "LAYERED RENDERING", badges: [] },
+                ]
+            },
+            // ─── AI & TOOLS ─────────────────────────
+            {
+                section: "AI & Tools", icon: "🤖", tags: ["ai", "tool"],
+                files: [
+                    { f: "thousand-tetrad.html", t: "LEGOS Tetrad Analyzer — McLuhan", badges: ["ai", "tool"] },
+                    { f: "latent-interface.html", t: "Latent Interface", badges: ["ripple-ai", "tool"] },
+                    { f: "skipper.html", t: "SKIPPER / AI HUB", badges: ["ai", "tool"] },
+                    { f: "shield-compiler.html", t: "Shield Compiler: Operative Ekphrasis", badges: ["tool"] },
+                    { f: "forge.html", t: "COMPLETE INDEX (This Page)", badges: ["tool"] },
+                    { f: "golden-lens.html", t: "GOLDEN LENS — Shield Archive", badges: ["tool"] },
+                    { f: "engine-demo.html", t: "Modular Engine Demo", badges: ["tool"] },
+                    { f: "ripple-12.html", t: "OMNISCIENCE v12.0", badges: [] },
+                    { f: "ripples-03.html", t: "Unified Ecosystem v03", badges: [] },
+                ]
+            },
+            // ─── DOCUMENTATION & ARCHIVES ────────────
+            {
+                section: "Documentation & Archives", icon: "📚", tags: ["essay"],
+                files: [
+                    { f: "index.html", t: "RIPPLES — Main Hub", badges: ["tool"] },
+                    { f: "manifest-index.html", t: "Manifest Index", badges: ["tool"] },
+                    { f: "claude.html", t: "ELO 2026 Archive (Claude)", badges: ["essay"] },
+                    { f: "gpt.html", t: "Operative Ecologies (GPT)", badges: ["essay"] },
+                    { f: "thread.html", t: "ELO 2026 Archive Thread", badges: ["essay"] },
+                ]
+            },
         ];
 
-        let state = {
-            activeId: null,
-            ratings: JSON.parse(localStorage.getItem(STORAGE_KEY + ':ratings') || '{}'),
-            lastId: localStorage.getItem(STORAGE_KEY + ':last_channel'),
-            tempRating: 0
-        };
+        let currentFilter = 'all';
 
-        function init() {
-            renderSidebar();
-            const startId = state.lastId || channels[0].id;
-            switchChannel(startId);
-            
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA') {
-                    e.preventDefault();
-                    reloadActive();
-                }
-            });
-        }
+        function render() {
+            const main = document.getElementById('main');
+            main.innerHTML = '';
 
-        function renderSidebar() {
-            const container = document.getElementById('channel-container');
-            container.innerHTML = '';
-            
-            const groups = [...new Set(channels.map(c => c.group))];
-            groups.forEach(groupName => {
-                const section = document.createElement('div');
-                section.innerHTML = `<h3 class="mono text-[10px] uppercase text-zinc-600 tracking-[0.2em] mb-3 mt-4">${groupName}</h3>`;
-                const groupItems = channels.filter(c => c.group === groupName);
-                
-                groupItems.forEach(ch => {
-                    const row = document.createElement('div');
-                    const rated = state.ratings[ch.id];
-                    row.id = `nav-${ch.id}`;
-                    row.className = `channel-row p-3 cursor-pointer group ${state.activeId === ch.id ? 'active' : ''}`;
-                    row.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <span class="text-xs uppercase tracking-wide group-hover:text-amber-500 transition-colors">${ch.title}</span>
-                            ${rated ? `<span class="mono text-[9px] text-amber-600">${'●'.repeat(rated.strength)}</span>` : ''}
-                        </div>
-                    `;
-                    row.onclick = () => {
-                        switchChannel(ch.id);
-                        if(window.innerWidth < 1024) toggleDrawer();
-                    };
-                    section.appendChild(row);
-                });
-                container.appendChild(section);
-            });
-        }
-
-        function switchChannel(id) {
-            const ch = channels.find(c => c.id === id);
-            if (!ch) return;
-
-            state.activeId = id;
-            localStorage.setItem(STORAGE_KEY + ':last_channel', id);
-            
-            // Update UI
-            document.getElementById('now-playing-title').innerText = ch.title;
-            document.getElementById('now-playing-group').innerText = ch.group;
-            document.querySelectorAll('.channel-row').forEach(r => r.classList.remove('active'));
-            const activeNav = document.getElementById(`nav-${id}`);
-            if(activeNav) activeNav.classList.add('active');
-
-            // Iframe Lifecycle
-            const mount = document.getElementById('iframe-mount');
-            mount.innerHTML = '';
-            const loader = document.getElementById('loading-overlay');
-            const blocked = document.getElementById('blocked-overlay');
-            
-            loader.style.opacity = '1';
-            blocked.classList.add('hidden');
-            setStatus('Loading...', 'bg-zinc-800');
-
-            const iframe = document.createElement('iframe');
-            iframe.src = ch.url;
-            iframe.className = "w-full h-full border-none";
-            
-            let loadTimer = setTimeout(() => {
-                blocked.classList.remove('hidden');
-                setStatus('Blocked?', 'bg-red-900/40 text-red-400');
-            }, 3500);
-
-            iframe.onload = () => {
-                clearTimeout(loadTimer);
-                loader.style.opacity = '0';
-                setStatus('Embedded', 'bg-green-900/40 text-green-400');
+            const accentMap = {
+                "Research Essays": "var(--accent-amber)",
+                "ORCA Shield Series": "var(--accent-violet)",
+                "ORCA Core": "var(--accent-violet)",
+                "RIPPLES Core (v1–v9)": "var(--accent-cyan)",
+                "RIPPLES Extended (v10–v17)": "var(--accent-cyan)",
+                "Double-Dot Series": "var(--accent-gold)",
+                "AI & Tools": "var(--accent-green)",
+                "Documentation & Archives": "var(--accent-blue)",
             };
 
-            mount.appendChild(iframe);
-        }
+            FILES.forEach(section => {
+                const sectionEl = document.createElement('div');
+                sectionEl.className = 'section';
+                sectionEl.dataset.tags = section.tags.join(',');
 
-        function setStatus(text, classes) {
-            const badge = document.getElementById('status-badge');
-            badge.innerText = text;
-            badge.className = `status-badge ${classes}`;
-        }
-
-        function navigateChannel(dir) {
-            const idx = channels.findIndex(c => c.id === state.activeId);
-            let next = (idx + dir) % channels.length;
-            if (next < 0) next = channels.length - 1;
-            switchChannel(channels[next].id);
-        }
-
-        function reloadActive() {
-            const mount = document.getElementById('iframe-mount');
-            const iframe = mount.querySelector('iframe');
-            if(iframe) iframe.src = iframe.src;
-        }
-
-        function openCurrentTab() {
-            const ch = channels.find(c => c.id === state.activeId);
-            if(ch) window.open(ch.url, '_blank', 'noopener,noreferrer');
-        }
-
-        function toggleRateModal() {
-            const modal = document.getElementById('rate-modal');
-            modal.classList.toggle('hidden');
-            if(!modal.classList.contains('hidden')) {
-                const ch = channels.find(c => c.id === state.activeId);
-                document.getElementById('rate-target-title').innerText = ch.title;
-                const rated = state.ratings[state.activeId] || { strength: 0, notes: '' };
-                updateStarUI(rated.strength);
-                document.getElementById('rate-notes').value = rated.notes;
-            }
-        }
-
-        function updateStarUI(val) {
-            state.tempRating = val;
-            const container = document.getElementById('star-rating');
-            container.innerHTML = '';
-            for(let i=1; i<=5; i++) {
-                const star = document.createElement('button');
-                star.className = `w-8 h-8 deco-border flex items-center justify-center transition-all ${i <= val ? 'bg-amber-600 text-black border-amber-600' : 'text-zinc-600 hover:border-amber-500'}`;
-                star.innerText = i;
-                star.onclick = () => updateStarUI(i);
-                container.appendChild(star);
-            }
-        }
-
-        function saveCurrentRating() {
-            state.ratings[state.activeId] = {
-                strength: state.tempRating,
-                notes: document.getElementById('rate-notes').value,
-                updated_at: new Date().toISOString()
-            };
-            localStorage.setItem(STORAGE_KEY + ':ratings', JSON.stringify(state.ratings));
-            toggleRateModal();
-            renderSidebar();
-            showToast('Frequency Data Committed');
-        }
-
-        function clearCurrentRating() {
-            delete state.ratings[state.activeId];
-            localStorage.setItem(STORAGE_KEY + ':ratings', JSON.stringify(state.ratings));
-            toggleRateModal();
-            renderSidebar();
-        }
-
-        function showCompare() {
-            const modal = document.getElementById('compare-modal');
-            modal.classList.toggle('hidden');
-            if(!modal.classList.contains('hidden')) {
-                const list = document.getElementById('compare-list');
-                const ratedIds = Object.keys(state.ratings);
-                
-                if(ratedIds.length === 0) {
-                    list.innerHTML = `<div class="text-center py-20 text-zinc-600 mono text-xs uppercase tracking-widest">No signals evaluated yet.</div>`;
-                    document.getElementById('sus-score-display').innerText = "SUS SCORE: 0.0";
-                    return;
-                }
-
-                const sorted = ratedIds
-                    .map(id => ({ ...state.ratings[id], ...channels.find(c => c.id === id) }))
-                    .sort((a,b) => b.strength - a.strength);
-
-                const totalScore = sorted.reduce((acc, curr) => acc + curr.strength, 0);
-                const avgScore = totalScore / sorted.length;
-                const susPercentage = (avgScore / 5 * 100).toFixed(1);
-                document.getElementById('sus-score-display').innerText = `SUS SCORE (SIGNAL-UTILITY-STRENGTH): ${susPercentage}%`;
-
-                list.innerHTML = sorted.map(ch => `
-                    <div class="border border-zinc-800 p-4 flex flex-col gap-2 bg-zinc-900/30">
-                        <div class="flex justify-between items-center">
-                            <span class="serif text-lg text-white">${ch.title}</span>
-                            <span class="mono text-amber-500 text-xs">${'●'.repeat(ch.strength)} <span class="text-zinc-600 ml-1">${ch.strength}/5</span></span>
-                        </div>
-                        <div class="mono text-[9px] uppercase text-zinc-500">${ch.group}</div>
-                        ${ch.notes ? `<p class="text-[11px] text-zinc-400 italic mt-1 border-l border-amber-600/30 pl-3 leading-relaxed">${ch.notes}</p>` : ''}
+                sectionEl.innerHTML = `
+                    <div class="section-header">
+                        <span class="section-icon">${section.icon}</span>
+                        <span class="section-title" style="color: ${accentMap[section.section] || 'var(--text)'}">${section.section}</span>
+                        <span class="section-count">${section.files.length} files</span>
                     </div>
-                `).join('');
-            }
-        }
+                `;
 
-        function exportReport() {
-            const ratedIds = Object.keys(state.ratings);
-            if(ratedIds.length === 0) {
-                showToast('Nothing to report.');
-                return;
-            }
+                const grid = document.createElement('div');
+                grid.className = 'card-grid';
 
-            const sorted = ratedIds
-                .map(id => ({ ...state.ratings[id], ...channels.find(c => c.id === id) }))
-                .sort((a,b) => b.strength - a.strength);
+                section.files.forEach(file => {
+                    const a = document.createElement('a');
+                    a.href = file.f;
+                    a.className = 'card';
+                    a.dataset.filename = file.f.toLowerCase();
+                    a.dataset.title = file.t.toLowerCase();
+                    a.dataset.badges = file.badges.join(',');
+                    a.style.setProperty('--card-accent', accentMap[section.section] || 'var(--accent-cyan)');
 
-            const totalScore = sorted.reduce((acc, curr) => acc + curr.strength, 0);
-            const avgScore = totalScore / sorted.length;
-            const susScore = (avgScore / 5 * 100).toFixed(1);
+                    const badgesHtml = file.badges.map(b => {
+                        const labels = {
+                            'ai': 'AI',
+                            'ripple-ai': 'RIPPLE AI',
+                            'gemini': 'GEMINI',
+                            'essay': 'ESSAY',
+                            'orca': 'ORCA',
+                            'tool': 'TOOL'
+                        };
+                        return `<span class="badge badge-${b}">${labels[b] || b}</span>`;
+                    }).join('');
 
-            let report = `# RIPPLES / SHIELD / REBUS — ECOLOGY REPORT\n`;
-            report += `Generated: ${new Date().toLocaleString()}\n`;
-            report += `AGGREGATE SUS SCORE (Signal-Utility-Strength): ${susScore}%\n\n`;
-            report += `## RANKED CHANNELS\n\n`;
+                    a.innerHTML = `
+                        <span class="card-filename">${file.f}</span>
+                        <span class="card-title">${file.t}</span>
+                        ${badgesHtml ? `<div class="card-badges">${badgesHtml}</div>` : ''}
+                    `;
+                    grid.appendChild(a);
+                });
 
-            sorted.forEach((ch, i) => {
-                report += `${i+1}. ${ch.title} [${ch.strength}/5]\n`;
-                report += `   Group: ${ch.group}\n`;
-                if(ch.notes) report += `   Notes: ${ch.notes}\n`;
-                report += `   URL: ${ch.url}\n\n`;
+                sectionEl.appendChild(grid);
+                main.appendChild(sectionEl);
             });
 
-            report += `---\nNon verbis sed rebus.`;
-
-            navigator.clipboard.writeText(report);
-            showToast('Markdown Report Copied');
+            updateStats();
         }
 
-        function exportData() {
-            const blob = {
-                exported_at: new Date().toISOString(),
-                ecology: state.ratings,
-                channels: channels
-            };
-            const text = JSON.stringify(blob, null, 2);
-            navigator.clipboard.writeText(text);
-            showToast('JSON Blob Copied');
+        function filterCards() {
+            const q = document.getElementById('search').value.toLowerCase().trim();
+            let visible = 0;
+
+            document.querySelectorAll('.card').forEach(card => {
+                const matchesSearch = !q ||
+                    card.dataset.filename.includes(q) ||
+                    card.dataset.title.includes(q);
+                const matchesFilter = currentFilter === 'all' ||
+                    card.dataset.badges.includes(currentFilter) ||
+                    card.closest('.section').dataset.tags.includes(currentFilter);
+
+                const show = matchesSearch && matchesFilter;
+                card.classList.toggle('hidden', !show);
+                if (show) visible++;
+            });
+
+            // Hide empty sections
+            document.querySelectorAll('.section').forEach(section => {
+                const hasVisible = section.querySelectorAll('.card:not(.hidden)').length > 0;
+                section.classList.toggle('hidden', !hasVisible);
+            });
+
+            document.getElementById('stats').textContent = `${visible} FILES`;
         }
 
-        function clearAllData() {
-            if(confirm('Wipe all local ecology ratings?')) {
-                localStorage.clear();
-                location.reload();
-            }
+        function setFilter(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterCards();
         }
 
-        function toggleDrawer() {
-            document.getElementById('sidebar').classList.toggle('open');
+        function updateStats() {
+            const total = document.querySelectorAll('.card').length;
+            document.getElementById('stats').textContent = `${total} FILES`;
         }
 
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-24 lg:bottom-12 left-1/2 -translate-x-1/2 z-[200] bg-amber-600 text-black px-6 py-2 mono text-[10px] uppercase font-bold tracking-[0.2em] stepped-corners';
-            toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
-        }
-
-        document.getElementById('reload-btn').onclick = reloadActive;
-        document.getElementById('external-btn').onclick = openCurrentTab;
-
-        init();
+        render();
     </script>
 </body>
-</html>
 
+</html>
