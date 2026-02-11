@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // CASE_FILE_21</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* ARCHIVIST PALETTE */
@@ -349,6 +350,34 @@
         .active-view {
             display: flex !important;
         }
+
+        .spectral-btn {
+            background: transparent;
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 5px 15px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .spectral-btn:hover {
+            background: var(--accent-gold);
+            color: #000;
+        }
+
+        #spectral-output {
+            margin-top: 20px;
+            padding: 15px;
+            border-left: 2px solid var(--accent-gold);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            background: rgba(255, 183, 77, 0.05);
+            max-width: 600px;
+            display: none;
+        }
     </style>
 </head>
 
@@ -408,6 +437,8 @@
                     <button class="btn-ctrl btn-play" id="play-btn" onclick="PodcastPlayer.toggle()">▶</button>
                     <button class="btn-ctrl" onclick="PodcastPlayer.forward()">⏩</button>
                 </div>
+                <button class="spectral-btn" onclick="App.runSpectralAnalysis()">✨ SPECTRAL ANALYSIS</button>
+                <div id="spectral-output"></div>
             </div>
 
             <!-- VIEW: EVIDENCE -->
@@ -587,6 +618,22 @@
                     // In a full app, this would unlock Exhibit B
                 } else {
                     alert("INCORRECT.\n\nPhysics Data Mismatch.\nObject density/elasticity insufficient for 95dB impact.");
+                }
+            },
+
+            async runSpectralAnalysis() {
+                const output = document.getElementById('spectral-output');
+                output.style.display = 'block';
+                output.innerHTML = "> ANALYZING FREQUENCY ANOMALIES...<br>> EXTRACTING SUB-VOCAL RHIZOMES...";
+
+                try {
+                    const currentScript = document.getElementById('script-display').innerText;
+                    const prompt = `SCRIPT SEGMENT: "${currentScript}"\nLOCATION: Foothills of the Smoky Mountains\nSUBJECT: Edgar's Disappearance\n\nProvide a "Spectral Analysis" of the voice recording. What hidden frequencies or overlapping realities are hinted at in this segment? 1-2 sentences.`;
+
+                    const analysis = await RIPPLE_AI.call(prompt, "You are a Spectral Analyst for the Global Archivist Network.");
+                    output.innerHTML = `> SPECTRAL ANALYSIS COMPLETED:<br>${analysis}`;
+                } catch (error) {
+                    output.innerHTML = `> ERROR: SPECTRAL LINK FAILED. CHECK AI HOST.`;
                 }
             }
         };

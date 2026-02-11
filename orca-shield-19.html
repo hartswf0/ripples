@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // SCOUT_OPTICS_V19</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* SCOUT PALETTE */
@@ -245,6 +246,25 @@
             line-height: 1.6;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
             font-family: 'Courier New', monospace;
+            position: relative;
+        }
+
+        .scan-action-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: transparent;
+            border: 1px solid var(--color-north);
+            color: var(--color-north);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .scan-action-btn:hover {
+            background: var(--color-north);
+            color: #000;
         }
 
         .crosshair {
@@ -329,6 +349,8 @@
 
             <div class="scanner">
                 <div class="scanner-text" id="scanner-output">
+                    <button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA
+                        SCAN</button>
                     > ROOM: THE TWILIGHT INTERIOR<br>
                     > LIGHT: BLUE HOUR (SCARCE PHOTONS)
                 </div>
@@ -684,12 +706,30 @@
 
                     // Check Logic
                     if (x === w / 2) {
-                        if (hit === 2) document.getElementById('scanner-output').innerHTML = "> OBJECT: QUILT<br>PATTERN: MONKEY WRENCH (Gather Tools)";
-                        else if (hit === 3) document.getElementById('scanner-output').innerHTML = "> OBJECT: ANTLER<br>Evidence: Broken Bone Texture.";
-                        else if (hit === 4) document.getElementById('scanner-output').innerHTML = "> OBJECT: GLOW BALL<br>Physics: Phosphorescence (Stored Light).";
-                        else if (hit === 5) document.getElementById('scanner-output').innerHTML = "> TARGET: EDGAR FOUND!<br>Status: Safe.";
-                        else document.getElementById('scanner-output').innerHTML = "> SCANNING ROOM...";
+                        this.currentHit = hit;
+                        if (hit === 2) document.getElementById('scanner-output').innerHTML = '<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> OBJECT: QUILT<br>PATTERN: MONKEY WRENCH (Gather Tools)';
+                        else if (hit === 3) document.getElementById('scanner-output').innerHTML = '<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> OBJECT: ANTLER<br>Evidence: Broken Bone Texture.';
+                        else if (hit === 4) document.getElementById('scanner-output').innerHTML = '<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> OBJECT: GLOW BALL<br>Physics: Phosphorescence (Stored Light).';
+                        else if (hit === 5) document.getElementById('scanner-output').innerHTML = '<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> TARGET: EDGAR FOUND!<br>Status: Safe.';
+                        else document.getElementById('scanner-output').innerHTML = '<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> SCANNING ROOM...';
                     }
+                }
+            },
+
+            async synesthesiaScan() {
+                const hit = this.currentHit || 0;
+                const output = document.getElementById('scanner-output');
+                const items = ["EMPTY", "WALL", "QUILT", "ANTLER", "GLOW", "EDGAR"];
+                const itemName = items[hit] || "UNKNOWN";
+
+                output.innerHTML = `> INITIATING SYNESTHESIA SCAN: ${itemName}...<br>> CONVERTING PHOTONS TO NARRATIVE...`;
+
+                try {
+                    const prompt = `OBJECT: ${itemName}\nLOCATION: The Twilight Interior\nATMOSPHERE: Scarce photons, Blue Hour, Starlight Navigation.\n\nDescribe the synesthetic experience of encountering this object in the dark. How does it feel, sound, or "smell" to the Scout? Use celestial and topographic metaphors. 2 sentences max.`;
+                    const lore = await RIPPLE_AI.call(prompt, "You are a Scout Navigator specialized in synesthetic topographic interpretation.");
+                    output.innerHTML = `<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> SYNESTHETIC LOG:<br>${lore}`;
+                } catch (error) {
+                    output.innerHTML = `<button class="scan-action-btn" onclick="RaycasterEngine.synesthesiaScan()">SYNESTHESIA SCAN</button>> ERROR: NEURAL LINK SEVERED.<br>CHECK OLLAMA HOST.`;
                 }
             }
         };

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SKIPPER / AI HUB</title>
+    <style>
+        :root {
+            --bg: #030711;
+            --panel: rgba(15, 23, 42, 0.8);
+            --border: rgba(94, 234, 212, 0.2);
+            --accent: #5eead4;
+            --accent-glow: rgba(94, 234, 212, 0.4);
+            --accent-soft: rgba(94, 234, 212, 0.1);
+            --gold: #fde047;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --font: 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes scan {
+            0% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+
+            100% {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Radar Background */
+        .radar-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 150vmax;
+            height: 150vmax;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .radar-bg::before,
+        .radar-bg::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            transform: translate(-50%, -50%);
+        }
+
+        .radar-bg::before {
+            width: 66%;
+            height: 66%;
+        }
+
+        .radar-bg::after {
+            width: 33%;
+            height: 33%;
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(from 0deg, transparent 0deg, var(--accent-glow) 45deg, transparent 90deg);
+            animation: rotate 10s linear infinite;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1200px;
+            padding: 4rem 2rem;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 4rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+
+        .category-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            display: block;
+            border-bottom: 1px solid rgba(253, 224, 71, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .card {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background: linear-gradient(to bottom, transparent, var(--accent-glow), transparent);
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .card:hover::after {
+            animation: scan 2s linear infinite;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .card-meta {
+            margin-top: auto;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-ai {
+            background: rgba(94, 234, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .badge-local {
+            background: rgba(253, 224, 71, 0.1);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+
+        /* Config Modal */
+        .config-btn {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            backdrop-filter: blur(8px);
+            transition: var(--transition);
+        }
+
+        .config-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .modal h3 {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .field label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .field input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            width: 100%;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: var(--transition);
+        }
+
+        .btn-save {
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .status-pill {
+            display: inline-block;
+            margin-top: 0.5rem;
+            font-size: 0.65rem;
+            color: var(--gold);
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        @media (max-width: 768px) {
+            .app-shell {
+                padding: 2rem 1rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="radar-bg">
+        <div class="radar-sweep"></div>
+    </div>
+
+    <div style="position: fixed; top: 2rem; left: 2rem; z-index: 100; display: flex; gap: 1rem;">
+        <a href="SKY_PAGER.md" class="config-btn" style="position: static; text-decoration: none;">Manual</a>
+        <div class="config-btn" id="link-status"
+            style="position: static; cursor: default; border-color: var(--text-muted); color: var(--text-muted);">Neural
+            Link: Disconnected</div>
+    </div>
+
+    <button class="config-btn" id="open-config">Config</button>
+
+    <div class="modal-overlay" id="config-overlay">
+        <div class="modal">
+            <h3>Terminal Config</h3>
+            <div class="field">
+                <label>AI Host Endpoint (Ollama/LLM)</label>
+                <input type="text" id="ai-host" placeholder="localhost:11434">
+                <span class="status-pill">Currently linked to: <span id="current-host-display">localhost</span></span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                Set the IP or hostname of your AI server. This propagates to all simulations in the RIPPLE project.
+            </p>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="close-config">Close</button>
+                <button class="btn-save" id="save-config">Save & Link</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <header>
+            <h1>Skipper</h1>
+            <div class="tagline">Neural Navigation Hub</div>
+        </header>
+
+        <section>
+            <span class="category-label">Ontological Engines</span>
+            <div class="grid">
+                <a href="thousand-tetrad.html" class="card">
+                    <h2>Thousand Tetrad</h2>
+                    <p>McLuhan's Four Laws applied to narrative grid ontologies. Recursive scene assembly and analysis.
+                    </p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Tetrad Core</span>
+                        <span class="badge badge-local">Ollama Ready</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <span class="category-label">Cybernetic Weavers</span>
+            <div class="grid">
+                <a href="orca-08.html" class="card">
+                    <h2>Orca 08</h2>
+                    <p>Rigorous theoretical alignment with the Cybernetic Weaver persona. Signal vs Noise dynamics.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Recursive AI</span>
+                        <span class="badge badge-local">Local Mode</span>
+                    </div>
+                </a>
+                <a href="orca-moss-1616.html" class="card">
+                    <h2>Orca Moss 1616</h2>
+                    <p>Rhizomatic intelligence processing across a massive textual grid. Context branching enabled.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">N-Dimensional</span>
+                        <span class="badge badge-local">Ollama</span>
+                    </div>
+                </a>
+                <a href="orca-moss-16.html" class="card">
+                    <h2>Orca Moss 16</h2>
+                    <p>The textual wall reality. Visualizing the collapse of information into architectural forms.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Textualist</span>
+                        <span class="badge badge-local">Local LLM</span>
+                    </div>
+                </a>
+                <a href="orca-shield-17.html" class="card">
+                    <h2>Orca Shield 17</h2>
+                    <p>Topographic view of textual rings. Contour-line based visualization of ripple physics.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Topographic</span>
+                        <span class="badge badge-local">Ollama</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <span class="category-label">Imaginary Ecologies</span>
+            <div class="grid">
+                <a href="13.html" class="card">
+                    <h2>Ecology XIII</h2>
+                    <p>The latest iteration of autonomous ecological growth and narrative branching.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Autopoietic</span>
+                        <span class="badge badge-local">Local Mode</span>
+                    </div>
+                </a>
+                <a href="12.html" class="card">
+                    <h2>Ecology XII</h2>
+                    <p>Visual/Textual synthesis in a decaying digital environment. Local model supported.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Synthetic</span>
+                        <span class="badge badge-local">Local Mode</span>
+                    </div>
+                </a>
+                <a href="9.html" class="card">
+                    <h2>Ecology IX</h2>
+                    <p>Minimalist rhizomatic growth patterns. Early AI alignment experiments.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Rhizome</span>
+                        <span class="badge badge-local">Ollama</span>
+                    </div>
+                </a>
+                <a href="6.html" class="card">
+                    <h2>Ecology VI</h2>
+                    <p>Classic cellular automata grounded in AI-generated narrative fragments.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">CA Grid</span>
+                        <span class="badge badge-local">Ollama</span>
+                    </div>
+                </a>
+                <a href="66.html" class="card">
+                    <h2>Ecology 66</h2>
+                    <p>High-tension grid dynamics focusing on societal collapse and emergence.</p>
+                    <div class="card-meta">
+                        <span class="badge badge-ai">Social Grid</span>
+                        <span class="badge badge-local">Local LLM</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+        Terminal / System / Stability / 2026.02
+        </footer>
+    </div>
+
+    <script>
+        const AI_HOST_KEY = 'ripple_ai_host';
+        const hostInput = document.getElementById('ai-host');
+        const overlay = document.getElementById('config-overlay');
+        const display = document.getElementById('current-host-display');
+
+        // Load current setting
+        function loadConfig() {
+            const saved = localStorage.getItem(AI_HOST_KEY) || 'localhost:11434';
+            hostInput.value = saved;
+            display.textContent = saved;
+            checkConnection(saved);
+        }
+
+        async function checkConnection(host) {
+            const statusIndicator = document.getElementById('link-status');
+            statusIndicator.textContent = "Neural Link: Scanning...";
+            statusIndicator.style.color = "var(--gold)";
+            statusIndicator.style.borderColor = "var(--gold)";
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+                const response = await fetch(`http://${host}/api/tags`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                if (response.ok) {
+                    statusIndicator.textContent = "Neural Link: Online";
+                    statusIndicator.style.color = "var(--accent)";
+                    statusIndicator.style.borderColor = "var(--accent)";
+                } else {
+                    throw new Error("Offline");
+                }
+            } catch (e) {
+                statusIndicator.textContent = "Neural Link: Offline";
+                statusIndicator.style.color = "#ef4444";
+                statusIndicator.style.borderColor = "#ef4444";
+            }
+        }
+
+        document.getElementById('open-config').addEventListener('click', () => {
+            loadConfig();
+            overlay.classList.add('active');
+        });
+
+        document.getElementById('close-config').addEventListener('click', () => {
+            overlay.classList.remove('active');
+        });
+
+        document.getElementById('save-config').addEventListener('click', () => {
+            let value = hostInput.value.trim();
+            if (!value) value = 'localhost:11434';
+
+            // Basic cleanup (remove protocol if user included it, as most scripts add it)
+            value = value.replace(/^https?:\/\//, '');
+
+            localStorage.setItem(AI_HOST_KEY, value);
+            display.textContent = value;
+            overlay.classList.remove('active');
+
+            // Visual feedback
+            console.log('SKIPPER: Network AI Link updated to', value);
+        });
+
+        // Close on backdrop click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+
+        loadConfig();
+    </script>
+</body>
+
+</html>

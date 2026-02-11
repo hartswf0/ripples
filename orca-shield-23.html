@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // HOLLER_WORLDTEXT_V23</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* DEEP HOLLER */
@@ -103,6 +104,22 @@
             padding-bottom: 5px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+
+        .analysis-btn {
+            background: transparent;
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .analysis-btn:hover {
+            background: var(--color-accent);
+            color: #000;
         }
 
         .ex-title {
@@ -212,7 +229,12 @@
         <div class="text-column">
 
             <div class="exhibit-block active" id="ex-C" onclick="App.setExhibit('C')">
-                <div class="ex-header"><span>EXHIBIT C</span><span>OPTICS: REFRACTION</span></div>
+                <div class="ex-header">
+                    <span>EXHIBIT C</span>
+                    <button class="analysis-btn" onclick="event.stopPropagation(); App.exhibitAnalysis('C')">EXHIBIT
+                        ANALYSIS</button>
+                    <span>OPTICS: REFRACTION</span>
+                </div>
                 <div class="ex-title">The Shifting Shadows</div>
                 <div class="ex-body">
                     Edgar notices shadows aren't behaving. He understands light travels in straight lines, but something
@@ -225,10 +247,18 @@
                     "The straight path is broken. Something is making the light swerve. Is there a blank spot in the air
                     itself?"
                 </div>
+                <div id="ai-analysis-C" class="ex-body"
+                    style="margin-top:15px; border-top:1px dashed #444; padding-top:10px; color:var(--color-accent); font-style:italic; display:none;">
+                </div>
             </div>
 
             <div class="exhibit-block" id="ex-D" onclick="App.setExhibit('D')">
-                <div class="ex-header"><span>EXHIBIT D</span><span>OPTICS: INVISIBILITY</span></div>
+                <div class="ex-header">
+                    <span>EXHIBIT D</span>
+                    <button class="analysis-btn" onclick="event.stopPropagation(); App.exhibitAnalysis('D')">EXHIBIT
+                        ANALYSIS</button>
+                    <span>OPTICS: INVISIBILITY</span>
+                </div>
                 <div class="ex-title">The Disappearing Object</div>
                 <div class="ex-body">
                     Edgar's red rubber bone vanishes when placed in the oily tackle box compartment.
@@ -239,10 +269,18 @@
                 <div class="ex-quote">
                     "My bone is there, I can smell it! But my eyes tell me it's not. Is the box eating the light?"
                 </div>
+                <div id="ai-analysis-D" class="ex-body"
+                    style="margin-top:15px; border-top:1px dashed #444; padding-top:10px; color:var(--color-accent); font-style:italic; display:none;">
+                </div>
             </div>
 
             <div class="exhibit-block" id="ex-E" onclick="App.setExhibit('E')">
-                <div class="ex-header"><span>EXHIBIT E</span><span>PHYSICS: ABSORPTION</span></div>
+                <div class="ex-header">
+                    <span>EXHIBIT E</span>
+                    <button class="analysis-btn" onclick="event.stopPropagation(); App.exhibitAnalysis('E')">EXHIBIT
+                        ANALYSIS</button>
+                    <span>PHYSICS: ABSORPTION</span>
+                </div>
                 <div class="ex-title">The Muted Glow-Ball</div>
                 <div class="ex-body">
                     The phosphorescent ball shines dimly only near the 'Mysterious Blank' in the Den.
@@ -252,6 +290,9 @@
                 </div>
                 <div class="ex-quote">
                     "Is it stealing the light, or is the air itself absorbing the glow?"
+                </div>
+                <div id="ai-analysis-E" class="ex-body"
+                    style="margin-top:15px; border-top:1px dashed #444; padding-top:10px; color:var(--color-accent); font-style:italic; display:none;">
                 </div>
             </div>
 
@@ -591,6 +632,25 @@
                 if (id === 'D') inf = "Anomaly: Refractive Index Match (Invisibility)";
                 if (id === 'E') inf = "Anomaly: Photon Absorption (Energy Drain)";
                 document.getElementById('hud-inference').innerText = inf;
+            },
+
+            async exhibitAnalysis(id) {
+                const block = document.getElementById('ex-' + id);
+                const output = document.getElementById('ai-analysis-' + id);
+                const title = block.querySelector('.ex-title').innerText;
+                const body = block.querySelector('.ex-body').innerText;
+
+                output.style.display = 'block';
+                output.innerHTML = "> ACCESSING ARCHIVE INTELLIGENCE... CROSS-REFERENCING WORLDTEXT...";
+
+                try {
+                    const prompt = `EXHIBIT: ${title}\nCONTEXT: ${body}\nLOCATION: The Holler Archives\nSUBJECT: Edgar-Vision optics.\n\nProvide a "Worldtext Interpretation" of this anomaly. How does it link the physical environment to the narrative of the Golden Hound? 1-2 sentences max.`;
+
+                    const analysis = await RIPPLE_AI.call(prompt, "You are a Worldtext Analyst specializing in the Holler Archives.");
+                    output.innerHTML = `> WORLDTEXT INTERPRETATION:<br>${analysis}`;
+                } catch (error) {
+                    output.innerHTML = `> ERROR: ARCHIVE LINK FAILED. CHECK OLLAMA HUB.`;
+                }
             }
         };
 

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // REBUS_PIPELINE_V25</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             --bg: #111;
@@ -296,6 +297,12 @@
         <div class="tab-content" id="tab-legend"></div>
         <div class="tab-content" id="tab-decode">
             <div class="trans-output" id="trans-text">Tap tokens to decode.</div>
+            <button class="expand-btn" onclick="App.promptSynthesis()"
+                style="position:static; margin-bottom:10px; width:100%; height:auto; padding:5px; font-size:11px; background:rgba(0,188,212,0.1);">✨
+                PROMPT SYNTHESIS</button>
+            <div id="ai-synthesis"
+                style="font-size:11px; color:var(--gold); border:1px solid var(--gold); padding:10px; margin-bottom:15px; display:none; background:rgba(255,215,0,0.05);">
+            </div>
             <div style="font-size:10px; color:#666; margin-bottom:10px;">HISTORY:</div>
             <div class="trans-history" id="trans-history"></div>
         </div>
@@ -489,6 +496,29 @@
                 else if (txt === "4") AudioEngine.play("G4");
                 else if (txt === "8") AudioEngine.play("A4");
                 else AudioEngine.play("click");
+            },
+
+            async promptSynthesis() {
+                const output = document.getElementById('ai-synthesis');
+                const historyStr = this.history.join('\n');
+
+                if (this.history.length === 0) {
+                    output.style.display = 'block';
+                    output.innerText = "ERROR: DECODE HISTORY EMPTY. ADD TOKENS FIRST.";
+                    return;
+                }
+
+                output.style.display = 'block';
+                output.innerText = "> AGGREGATING REBUS VECTORS... SYNTHESIZING NARRATIVE...";
+
+                try {
+                    const prompt = `DECODED VECTORS:\n${historyStr}\n\nProvide a "Unified Narrative Vector" (2 sentences) that synthesizes these symbols into a final conclusion about Edgar, the Golden Hound, and the Appalachian Void.`;
+
+                    const synthesis = await RIPPLE_AI.call(prompt, "You are the Master Synthesist of the Rebus Pipeline.");
+                    output.innerText = synthesis;
+                } catch (error) {
+                    output.innerText = "ERROR: NEURAL BRIDGE FAIL. CHECK OLLAMA.";
+                }
             }
         };
 

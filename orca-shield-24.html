@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // REBUS_ENGINE_V24</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* REBUS PALETTE */
@@ -163,6 +164,31 @@
             display: block;
         }
 
+        .synthesis-btn {
+            background: transparent;
+            border: 1px solid var(--ink-red);
+            color: var(--ink-red);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-top: 10px;
+            font-family: inherit;
+        }
+
+        .synthesis-btn:hover {
+            background: var(--ink-red);
+            color: #fff;
+        }
+
+        #synthesis-output {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--ink-blue);
+            font-style: italic;
+            max-width: 400px;
+            display: none;
+        }
+
         .decoder strong {
             color: var(--ink-red);
         }
@@ -209,7 +235,9 @@
             <canvas id="rebus-canvas"></canvas>
             <div class="decoder" id="decoder-box">
                 RAW: <span id="raw-text">...</span><br>
-                <strong>MEANING: <span id="translated-text">...</span></strong>
+                <strong>MEANING: <span id="translated-text">...</span></strong><br>
+                <button class="synthesis-btn" onclick="Engine.symbolicSynthesis()">SYMBOLIC埋SYNTHESIS埋</button>
+                <div id="synthesis-output"></div>
             </div>
         </div>
     </div>
@@ -329,6 +357,9 @@
                     list.appendChild(el);
                 });
 
+                // Reset Synthesis output
+                document.getElementById('synthesis-output').style.display = 'none';
+
                 // Decoder
                 document.getElementById('raw-text').innerText = this.activePacket.raw;
                 document.getElementById('translated-text').innerText = this.activePacket.rebus.meaning;
@@ -343,6 +374,23 @@
             toggleDecoder() {
                 this.showDecode = !this.showDecode;
                 document.getElementById('decoder-box').classList.toggle('visible', this.showDecode);
+            },
+
+            async symbolicSynthesis() {
+                const packet = this.activePacket;
+                const output = document.getElementById('synthesis-output');
+
+                output.style.display = 'block';
+                output.innerHTML = "...SYNTHESIZING SYMBOLS...";
+
+                try {
+                    const prompt = `REBUS PACKET: ${packet.label}\nRAW: ${packet.raw}\nMEANING: ${packet.rebus.meaning}\nTYPE: ${packet.rebus.type}\n\nProvide a "Symbolic Synthesis" of this rebus. How does this visual arrangement deepen our understanding of the Holler's hidden physics and Edgar's fate? 1-2 sentences.`;
+
+                    const synthesis = await RIPPLE_AI.call(prompt, "You are a Symbolic Synthesist for the Rebus Engine.");
+                    output.innerHTML = synthesis;
+                } catch (error) {
+                    output.innerHTML = "ERROR: SYNC FAILED. OLLAMA OFFLINE.";
+                }
             },
 
             loop() {

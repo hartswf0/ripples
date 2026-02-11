@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // TWILIGHT_PROTOCOL_V20</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* TWILIGHT PALETTE */
@@ -227,6 +228,24 @@
             color: var(--color-edgar);
             margin-bottom: 20px;
             border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .deduction-btn {
+            background: transparent;
+            border: 1px solid var(--color-edgar);
+            color: var(--color-edgar);
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: var(--font-main);
+        }
+
+        .deduction-btn:hover {
+            background: var(--color-edgar);
+            color: #000;
         }
 
         .detail-row {
@@ -522,9 +541,32 @@
             showFile(id) {
                 this.currentFile = id;
                 const data = EVIDENCE[id];
-                const html = `<div class="file-title">${data.title}</div>` +
-                    data.content.map(r => `<div class="detail-row"><span class="detail-label">${r.l}</span><span class="detail-val">${r.v}</span></div>`).join('');
+                const html = `<div class="file-title">
+                        <span>${data.title}</span>
+                        <button class="deduction-btn" onclick="GameLogic.deductiveAnalysis()">⚡ DEDUCTIVE ANALYSIS</button>
+                    </div>` +
+                    data.content.map(r => `<div class="detail-row"><span class="detail-label">${r.l}</span><span class="detail-val">${r.v}</span></div>`).join('') +
+                    `<div id="ai-deduction" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px; font-style: italic; color: var(--color-duck); font-size: 0.85rem; display: none;"></div>`;
                 document.getElementById('file-viewer').innerHTML = html;
+            },
+
+            async deductiveAnalysis() {
+                const id = this.currentFile;
+                const data = EVIDENCE[id];
+                const output = document.getElementById('ai-deduction');
+
+                output.style.display = 'block';
+                output.innerHTML = "> INITIATING QUANTUM DEDUCTION... CROSS-REFERENCING THE HOLLER...";
+
+                try {
+                    const evidenceStr = data.content.map(r => `${r.l}: ${r.v}`).join('\n');
+                    const prompt = `EXHIBIT: ${data.title}\nDATA:\n${evidenceStr}\n\nProvide a short, 1-2 sentence "Deductive Leap" about this evidence. How does it link Edgar, the vacuum-cat, and the Appalachian landscape? Be forensic and slightly eerie.`;
+
+                    const lore = await RIPPLE_AI.call(prompt, "You are a Forensics AI specialized in Quantum Terrains.");
+                    output.innerHTML = `> ANALYSIS COMPLETED:\n${lore}`;
+                } catch (error) {
+                    output.innerHTML = `> ERROR: NEURAL BRIDGE FAILED. OLLAMA OFFLINE.`;
+                }
             },
 
             checkCode() {

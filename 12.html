@@ -56,8 +56,19 @@
         const Eye = (props) => <IconWrapper {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
         const X = (props) => <IconWrapper {...props}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></IconWrapper>;
 
-        // --- GEMINI API UTILITIES ---
-        const apiKey = ""; // Runtime environment provides this
+        // --- AI API UTILITIES (Gemini + Local LLM) ---
+        const AI_CONFIG = {
+            useLocalLLM: false,         // Toggle this to TRUE for local LLM
+            startWithSimulated: true,   // If true, use mock data if API fails
+            gemini: {
+                apiKey: "",             // Google API Key
+                model: "gemini-2.5-flash-preview-09-2025"
+            },
+            local: {
+                endpoint: "http://localhost:11434/v1/chat/completions", // Example: Ollama
+                model: "llama3"         // Model name to request
+            }
+        };
 
         // Define Schemas for different LLM tasks
         const SIMULATION_SCHEMA = {
@@ -106,32 +117,75 @@
             }
         };
 
+        const callLLM = async (prompt, systemInstruction, responseSchema) => {
+            if (AI_CONFIG.useLocalLLM) {
+                return callLocalLLM(prompt, systemInstruction, responseSchema);
+            } else {
+                return callGemini(prompt, systemInstruction, responseSchema);
+            }
+        };
+
+        const callLocalLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            const host = localStorage.getItem('ripple_ai_host') || 'localhost:11434';
+            const url = `http://${host}/v1/chat/completions`;
+            // 1. ADD SCHEMA
+            const schemaInstruction = isNarrative
+                ? `\n\nOUTPUT JSON ONLY. Structure: { "script": "string", "tone": "string" }`
+                : `\n\nOUTPUT JSON ONLY. Structure: {
+                    "narrative": "string",
+                    "entityUpdates": [{ "id": number, "status": "string", "x": number, "y": number }],
+                    "nextVectors": ["string"],
+                    "ecologicalDrift": number
+                  }`;
+
+            const payload = {
+                model: AI_CONFIG.local.model,
+                messages: [
+                    { role: "system", content: systemInstruction + schemaInstruction },
+                    { role: "user", content: prompt }
+                ],
+                stream: false,
+                format: "json"
+            };
+
+            console.log(">> CALLING LOCAL LLM:", url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log(">> RESPONSE STATUS:", response.status);
+                if (!response.ok) throw new Error(`Local LLM Error: ${response.status}`);
+
+                const data = await response.json();
+                let content = data.choices[0].message.content;
+                console.log(">> RAW CONTENT:", content);
+
+                // 2. CLEAN UP JSON
+                content = content.replace(/\/\/.*$/gm, '');
+                content = content.replace(/\n/g, ' ');
+
+                return JSON.parse(content);
+            } catch (error) {
+                console.warn(">> LOCAL LLM FAILED:", error);
+                return {
+                    error: true,
+                    message: error.message || "Connection Failed",
+                    details: "Check console logs."
+                };
+            }
+        };
+
         // Text Generation (Logic & Narrative)
         const callGemini = async (prompt, systemInstruction, responseSchema) => {
+            const apiKey = AI_CONFIG.gemini.apiKey;
             if (!apiKey) {
-                // Determine which schema to mock based on responseSchema or analyze intent
-                // Mock response logic since apiKey is empty
-                if (responseSchema === WORLD_INIT_SCHEMA) {
-                    return new Promise(resolve => setTimeout(() => resolve({
-                        entities: Array.from({ length: 20 }, (_, i) => ({
-                            name: `Mock Entity ${i}`,
-                            icon: "🟣",
-                            status: "Mocked",
-                            x: Math.random() * 80 + 10,
-                            y: Math.random() * 80 + 10
-                        })),
-                        initialVectors: ["Mock V1", "Mock V2", "Mock V3"]
-                    }), 1000));
-                } else if (responseSchema === SIMULATION_SCHEMA) {
-                    return new Promise(resolve => setTimeout(() => resolve({
-                        narrative: "Simulation mode (No API Key). Entities drift in the void.",
-                        entityUpdates: [],
-                        nextVectors: ["Drift", "Wait", "Echo"]
-                    }), 1000));
-                }
-                return {};
+                return mockResponse(responseSchema);
             }
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.gemini.model}:generateContent?key=${apiKey}`;
 
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
@@ -149,23 +203,52 @@
             while (attempt < maxRetries) {
                 try {
                     const response = await fetch(url, {
-                        method: 'POST', headers: {
-                            'Content-Type'
-                                : 'application/json'
-                        }, body: JSON.stringify(payload)
-                    }); if (!response.ok) throw new Error(`HTTP Error:
-                ${response.status}`); const data = await response.json(); const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                     return JSON.parse(text);
                 } catch (error) {
-                    console.error(`Attempt ${attempt + 1} failed:`, error); if
-                        (attempt === maxRetries - 1) throw error; await new Promise(r => setTimeout(r, delays[attempt]));
+                    console.error(`Attempt ${attempt + 1} failed:`, error);
+                    if (attempt === maxRetries - 1) {
+                        if (AI_CONFIG.startWithSimulated) return mockResponse(responseSchema);
+                        throw error;
+                    }
+                    await new Promise(r => setTimeout(r, delays[attempt]));
                     attempt++;
                 }
             }
         };
 
+        const mockResponse = (responseSchema) => {
+            // Determine which schema to mock based on responseSchema or analyze intent
+            if (responseSchema === WORLD_INIT_SCHEMA) {
+                return new Promise(resolve => setTimeout(() => resolve({
+                    entities: Array.from({ length: 20 }, (_, i) => ({
+                        name: `Mock Entity ${i}`,
+                        icon: "🟣",
+                        status: "Mocked",
+                        x: Math.random() * 80 + 10,
+                        y: Math.random() * 80 + 10
+                    })),
+                    initialVectors: ["Mock V1", "Mock V2", "Mock V3"]
+                }), 1000));
+            } else if (responseSchema === SIMULATION_SCHEMA) {
+                return new Promise(resolve => setTimeout(() => resolve({
+                    narrative: "Simulation mode (No API Key). Entities drift in the void.",
+                    entityUpdates: [],
+                    nextVectors: ["Drift", "Wait", "Echo"]
+                }), 1000));
+            }
+            return {};
+        };
+
         // Image Generation (Backgrounds/Atmosphere)
         const callImagen = async (prompt, mode = 'texture') => {
+            const apiKey = AI_CONFIG.gemini.apiKey;
             if (!apiKey) return null; // Skip if no key
             const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
 
@@ -384,7 +467,7 @@
             Spread entities out with x,y coordinates between 10 and 90.
             `;
                 const userPrompt = `Description: ${description}`;
-                return await callGemini(userPrompt, systemPrompt, WORLD_INIT_SCHEMA);
+                const worldData = await callLLM(userPrompt, systemPrompt, WORLD_INIT_SCHEMA);
             };
 
             // Initialize Simulation
@@ -535,7 +618,7 @@
             `;
 
                 try {
-                    const result = await callGemini(userPrompt, systemPrompt, SIMULATION_SCHEMA);
+                    const result = await callLLM(userPrompt, systemPrompt, SIMULATION_SCHEMA);
 
                     // Apply updates
                     if (result.entityUpdates) {

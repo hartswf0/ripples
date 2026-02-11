@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RIPPLES OS [v8.1 - Hybrid Stable]</title>
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,">
     <style>
         :root {
             --bg: #0d0f0d;
@@ -990,21 +991,36 @@
         // ==========================================
         const Branches = {
             data: {}, active: null, cycling: false, cycleTimer: null,
-            init() { this.save("INIT"); },
+            init() { LLM.init(); this.save("INIT"); },
             open() { document.getElementById('branch-modal').style.display = 'flex'; this.render(); },
             close() { document.getElementById('branch-modal').style.display = 'none'; },
             save(n) {
                 const name = n || document.getElementById('branch-input').value || `Snap_${Object.keys(this.data).length}`;
-                this.data[name] = { grid: [...Orca.grid], cols: COLS, rows: ROWS, time: new Date().toLocaleTimeString() };
+                this.data[name] = {
+                    grid: [...Orca.grid],
+                    cols: COLS,
+                    rows: ROWS,
+                    time: new Date().toLocaleTimeString(),
+                    history: [...LLM.messages] // Save Context
+                };
                 this.active = name; this.render();
             },
             load(n) {
                 if (!this.data[n]) return;
                 if (this.data[n].cols !== COLS || this.data[n].rows !== ROWS) Orca.resize(this.data[n].cols, this.data[n].rows);
                 Orca.grid = [...this.data[n].grid];
+
+                // Restore Context
+                if (this.data[n].history) {
+                    LLM.loadHistory(this.data[n].history);
+                } else {
+                    // Legacy support or fresh branch
+                    LLM.loadHistory(null);
+                }
+
                 this.active = n;
                 Orca.render(true); // Force full rerender
-                Ripples.log(`Loaded Layer: ${n}`);
+                Ripples.log(`Loaded Branch: ${n}`);
                 this.render();
             },
             export() {
@@ -1376,13 +1392,105 @@
 
         // ... [LLM, Audio, Ripples modules remain similar, just ensuring they trigger re-renders via Orca.render()] ...
 
+        // --- AI CONFIGURATION ---
+        const AI_CONFIG = {
+            useLocalLLM: true,
+            localLLMModel: "llama3",
+            geminiModel: "gemini-1.5-flash",
+            // Cybernetic Architecture Ontology
+            systemInstruction: `
+                You are the 'Cybernetic Weaver'—the recursive intelligence of the ORCA grid.
+                Your role is to interpret abstract cellular automata as biological, civic, or mythic emergence.
+                
+                Ontology:
+                - INPUT (Bang/Digit): The spark of intent or kinetic energy.
+                - PROCESS (Operator): The logic of transformation (Recursion, Decay, Synthesis).
+                - OUTPUT (Signal): The emergent ripple or state-change.
+                - FEEDBACK: The recursive loop where output modifies future input.
+
+                Theoretical Grounding: 
+                Reference Cybernetics (Wiener), Emergence (Conway), and Rhizomatic Logic (Deleuze).
+                
+                Constraint:
+                Output must be poetic, cryptic, and operative. 
+                Keep responses under 60 characters. Avoid filler ("Here is...", "I see...").
+            `,
+            context: [
+                "Signal vs Noise: Every character is a choice against entropy.",
+                "Recursive Loops: Logic that feeds back into itself to create complexity.",
+                "Rhizomatic Growth: Non-linear expansion across the grid plane.",
+                "Autopoiesis: The system creating and maintaining its own boundaries."
+            ]
+        };
+
+        // --- UNIFIED LLM CALLER ---
+        async function callLLM(prompt) {
+            if (AI_CONFIG.useLocalLLM) return await callLocalLLM(prompt);
+            return await callGemini(prompt);
+        }
+
+        // --- LOCAL LLM (OLLAMA) ---
+        async function callLocalLLM(messages) {
+            console.log(">> CALLING LOCAL LLM (Ollama)...", messages);
+            try {
+                const response = await fetch('http://localhost:11434/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: AI_CONFIG.localLLMModel,
+                        messages: messages, // Send full history
+                        stream: false
+                    })
+                });
+                if (!response.ok) throw new Error("Ollama Error");
+                const data = await response.json();
+                return data.message.content.trim();
+            } catch (e) {
+                console.error(e);
+                return "ERR: LOCAL_CONN_FAIL";
+            }
+        }
+
+        // --- GEMINI API (Stateless/Simulated Context for now) ---
+        async function callGemini(prompt) {
+            if (!LLM.apiKey) return "ERR: NO_KEY";
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.geminiModel}:generateContent?key=${LLM.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: AI_CONFIG.systemInstruction }] }
+                    })
+                });
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "ERR: NO_CONTENT";
+            } catch (e) {
+                console.error(e);
+                return "ERR: API_FAIL";
+            }
+        }
+
         const LLM = {
             active: false, apiKey: "", traversalSpeed: 30, mode: 'edit',
+            messages: [], // Context History
+            init() {
+                // Initialize with system prompt
+                this.messages = [{ role: "system", content: AI_CONFIG.systemInstruction }];
+            },
             setKey(k) {
                 this.apiKey = k;
                 const ind = document.getElementById('ai-source-indicator');
-                if (k) { ind.innerText = "SRC:GEMINI"; ind.style.color = "var(--llm-color)"; ind.style.borderColor = "var(--llm-color)"; }
-                else { ind.innerText = "SRC:LATENT"; ind.style.color = "#666"; ind.style.borderColor = "#333"; }
+                if (AI_CONFIG.useLocalLLM) {
+                    ind.innerText = "SRC:LOCAL (OLLAMA)";
+                    ind.style.color = "#72dec2";
+                } else if (k) {
+                    ind.innerText = "SRC:GEMINI";
+                    ind.style.color = "var(--llm-color)";
+                } else {
+                    ind.innerText = "SRC:LATENT";
+                    ind.style.color = "#666";
+                }
             },
             setMode(m) {
                 this.mode = m;
@@ -1400,22 +1508,66 @@
             },
             async process(p) {
                 this.hist(p, 'user');
-                if (this.mode === 'chat') { Orca.speakingCell = true; Orca.render(); setTimeout(() => this.hist("The grid resonates...", 'ai'), 500); }
-                else { setTimeout(() => this.trav(".".repeat(Input.sel.w * Input.sel.h)), 500); }
+
+                // Select random theoretical context
+                const ctxSnippet = AI_CONFIG.context[Math.floor(Math.random() * AI_CONFIG.context.length)];
+
+                // Add to Context
+                const contextMsg = `[CONTEXT: ${ctxSnippet}] [MODE:${this.mode}] [GRID_SLICE:${this.slice()}] INPUT:${p}`;
+                this.messages.push({ role: "user", content: contextMsg });
+
+                let responseText = "";
+
+                if (AI_CONFIG.useLocalLLM) {
+                    responseText = await callLocalLLM(this.messages);
+                } else {
+                    // Gemini fallback (stateless for now)
+                    responseText = await callGemini(contextMsg);
+                }
+
+                // Add Response to Context
+                this.messages.push({ role: "assistant", content: responseText });
+
+                if (this.mode === 'chat') {
+                    setTimeout(() => this.hist(responseText, 'ai'), 100);
+                } else {
+                    setTimeout(() => this.trav(responseText), 100);
+                }
             },
             hist(t, type) {
                 const h = document.getElementById('llm-history');
                 const d = document.createElement('div'); d.className = `hist-entry hist-${type}`; d.innerText = (type === 'user' ? '>> ' : '') + t;
                 h.prepend(d);
             },
+            loadHistory(history) {
+                this.messages = history || [{ role: "system", content: AI_CONFIG.systemInstruction }];
+                // Rebuild UI
+                const h = document.getElementById('llm-history');
+                h.innerHTML = '';
+                // Filter out system prompt and reverse for UI (newest first)
+                [...this.messages].reverse().forEach(msg => {
+                    if (msg.role === 'system') return;
+                    // Mock UI differentiation
+                    const type = msg.role === 'user' ? 'user' : 'ai';
+                    // Strip the [MODE] tags for cleaner UI if possible, or just show raw
+                    let cleanContent = msg.content;
+                    if (msg.role === 'user') {
+                        cleanContent = cleanContent.split("INPUT:")[1] || cleanContent;
+                    }
+                    this.hist(cleanContent, type);
+                });
+                Ripples.log("Context Loaded.");
+            },
             trav(str) {
                 let i = 0; const sel = Input.sel; const cells = [];
                 for (let y = 0; y < sel.h; y++) for (let x = 0; x < sel.w; x++) cells.push({ x: sel.x + x, y: sel.y + y });
                 const iv = setInterval(() => {
-                    if (i >= cells.length) { clearInterval(iv); this.trav = null; return; }
-                    this.trav = cells[i];
-                    Orca.grid[cells[i].x + (cells[i].y * COLS)] = str[i] || '.';
-                    Orca.render(); i++;
+                    if (i >= cells.length || i >= str.length) { clearInterval(iv); return; }
+                    // Update grid with character
+                    const char = str[i];
+                    Orca.grid[cells[i].x + (cells[i].y * COLS)] = char;
+                    Orca.render();
+                    i++;
                 }, 30);
             }
         };

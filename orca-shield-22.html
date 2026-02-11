@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // EDGAR_VISION_V22</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* HOLLER NOIR */
@@ -244,7 +245,23 @@
             padding: 15px;
             width: 250px;
             font-size: 0.8rem;
-            pointer-events: none;
+            pointer-events: auto;
+        }
+
+        .entropy-btn {
+            background: transparent;
+            border: 1px solid var(--text-cyan);
+            color: var(--text-cyan);
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .entropy-btn:hover {
+            background: var(--text-cyan);
+            color: #000;
         }
     </style>
 </head>
@@ -357,6 +374,7 @@
                 <div style="color: #888; border-bottom: 1px solid #555; margin-bottom: 5px;">SCANNER DATA</div>
                 <div id="scan-target">-</div>
                 <div id="scan-physics" style="color: var(--text-cyan); margin-top: 5px;"></div>
+                <button class="entropy-btn" onclick="Vision.entropyScan()">⚡ ENTROPY SCAN</button>
             </div>
         </div>
     </div>
@@ -504,6 +522,29 @@
                 } else {
                     targetEl.innerText = "SCANNING...";
                     physEl.innerText = "Flux: Stable";
+                }
+                this.currentHit = hit;
+            },
+
+            async entropyScan() {
+                const hit = this.currentHit;
+                const physEl = document.getElementById('scan-physics');
+                const targetEl = document.getElementById('scan-target');
+
+                if (!hit || (this.mode === 'HUMAN' && hit.human === 'transparent')) {
+                    physEl.innerText = "ERROR: NO LOCAL ANOMALY DETECTED.";
+                    return;
+                }
+
+                physEl.innerText = "> INITIATING ENTROPY SCAN... MEASURING DELTA-S...";
+
+                try {
+                    const prompt = `ANOMALY: ${hit.name}\nOBSERVATION: ${hit.note}\nLOCATION: The Holler (Smoky Mountains)\nTHERMALS: -20°F Delta detected.\n\nAnalyze the entropic state of this anomaly. How does it represent the "Heat Death" or "Cold Bloom" of Edgar's disappearance? 1-2 sentences.`;
+
+                    const lore = await RIPPLE_AI.call(prompt, "You are a Thermodynamic Paranormal Investigator.");
+                    physEl.innerText = `> ENTROPIC ANALYSIS:\n${lore}`;
+                } catch (error) {
+                    physEl.innerText = `> ERROR: AI LINK SEVERED. CHECK OLLAMA.`;
                 }
             },
 

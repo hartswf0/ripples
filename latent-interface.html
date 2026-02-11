@@ -7,6 +7,7 @@
     <title>RIPPLES: Latent Interface</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         * {
             margin: 0;
@@ -858,12 +859,25 @@
             btnShift.disabled = disabled;
         }
 
-        function triggerRipple(vector) {
+        async function triggerRipple(vector) {
             if (!selectedEntity) return;
 
             const scenario = scenarios[currentScenario];
             const latent = scenario.latent[selectedEntity.id];
-            const result = latent ? latent[vector] : `${selectedEntity.name} experiences ${vector}.`;
+
+            statusText.textContent = `GENERATING RIPPLE: ${selectedEntity.name.toUpperCase()}...`;
+            statusText.classList.add('glow-gold');
+
+            let result;
+            try {
+                const prompt = `SCENARIO: ${scenario.name}\nBASELINE: ${scenario.baseline}\nENTITY: ${selectedEntity.name}\nVECTOR: ${vector}\n\nContinue the narrative. Describe the "Ripple" that occurs when this vector is applied to the entity. Keep the response to 2-3 sentences max.`;
+                result = await RIPPLE_AI.call(prompt, "You are an expert in nonhuman perspective and operative ecologies.");
+            } catch (error) {
+                console.warn("[LATENT] AI Generation failed, falling back to latent library.", error);
+                result = latent ? latent[vector] : `${selectedEntity.name} experiences ${vector}.`;
+            }
+
+            statusText.classList.remove('glow-gold');
 
             tick++;
             tickCount.textContent = tick;
@@ -885,7 +899,7 @@
                 worldtextContent.style.opacity = '1';
             }, 100);
 
-            statusText.textContent = `RIPPLE: ${selectedEntity.name.toUpperCase()} → ${vector}`;
+            statusText.textContent = `RIPPLE COMPLETED: ${selectedEntity.name.toUpperCase()} → ${vector}`;
         }
 
         function toggleAutoplay() {

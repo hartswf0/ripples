@@ -440,43 +440,135 @@
         }
 
         // =========================================
-        // GEMINI API INTEGRATION
+        // AI API INTEGRATION (Gemini + Local LLM)
         // =========================================
-        const API_KEY = ""; // Add your key here
+        const API_KEY = ""; // Google API Key
 
-        const callGemini = async (prompt, systemInstruction) => {
-            if (!API_KEY) {
-                // Mock response when no API key
-                return new Promise(resolve => setTimeout(() => resolve({
-                    narrative: `[SIMULATED] The entity responds to the vector with calculated precision. The ecology shifts subtly, ripples propagating through interconnected systems...`
-                }), 500));
+        const AI_CONFIG = {
+            useLocalLLM: true,          // Default to local for now
+            startWithSimulated: true,
+            local: {
+                endpoint: "http://localhost:11434/v1/chat/completions",
+                model: "llama3"
+            },
+            gemini: {
+                model: "gemini-2.5-flash-preview-09-2025"
             }
+        };
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+        const callLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            if (AI_CONFIG.useLocalLLM) {
+                return callLocalLLM(prompt, systemInstruction, isNarrative);
+            } else {
+                return callGemini(prompt, systemInstruction, isNarrative);
+            }
+        };
+
+        const callLocalLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            const host = localStorage.getItem('ripple_ai_host') || 'localhost:11434';
+            const url = `http://${host}/v1/chat/completions`;
+
+            // 1. ADD SCHEMA (Adapted for 66.html's complex schema)
+            const schemaInstruction = isNarrative
+                ? `\n\nOUTPUT JSON ONLY. Structure: { "script": "string", "tone": "string" }`
+                : `\n\nOUTPUT JSON ONLY. Structure: { 
+                   "narrative": "string",
+                   "entityUpdates": [{"id": "string", "status": "string", "x": "number", "y": "number", "symbol": "string"}],
+                   "newVectors": [{"text": "string", "category": "GOAL|OBSTACLE|SHIFT"}],
+                   "ecologicalDrift": "number",
+                   "worldPhase": "string"
+                 }`;
+
+            const payload = {
+                model: AI_CONFIG.local.model,
+                messages: [
+                    { role: "system", content: systemInstruction + schemaInstruction },
+                    { role: "user", content: prompt }
+                ],
+                stream: false,
+                format: "json"
+            };
+
+            console.log(">> CALLING LOCAL LLM:", url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log(">> RESPONSE STATUS:", response.status);
+                if (!response.ok) throw new Error(`Local LLM Error: ${response.status}`);
+
+                const data = await response.json();
+                let content = data.choices[0].message.content;
+                console.log(">> RAW CONTENT:", content);
+
+                // 2. CLEAN UP JSON
+                content = content.replace(/\/\/.*$/gm, '');
+                content = content.replace(/\n/g, ' ');
+
+                return JSON.parse(content);
+            } catch (error) {
+                console.warn(">> LOCAL LLM FAILED:", error);
+                // Mock if fallback is enabled or return error
+                if (AI_CONFIG.startWithSimulated) return mockFallback(isNarrative);
+                return {
+                    error: true,
+                    message: error.message || "Connection Failed",
+                    details: "Check console logs."
+                };
+            }
+        };
+
+        const callGemini = async (prompt, systemInstruction, isNarrative = false) => {
+            if (!API_KEY) return mockFallback(isNarrative);
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.gemini.model}:generateContent?key=${API_KEY}`;
+
+            // Simplified schema setup for Gemini (it handles schemas better)
+            const responseSchema = isNarrative ? {
+                type: "OBJECT", properties: { narrative: { type: "STRING" } }
+            } : {
+                type: "OBJECT",
+                properties: {
+                    narrative: { type: "STRING" }
+                    // Note: 66.html original Gemini call was very simple/mock-heavy. 
+                    // We keep it simple here to match original logic or rely on mock.
+                }
+            };
 
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            narrative: { type: "STRING" }
-                        }
-                    }
-                }
+                generationConfig: { responseMimeType: "application/json", responseSchema }
             };
 
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+            } catch (e) {
+                if (AI_CONFIG.startWithSimulated) return mockFallback(isNarrative);
+                throw e;
+            }
+        };
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+        const mockFallback = (isNarrative) => {
+            return new Promise(resolve => setTimeout(() => resolve({
+                narrative: `[SIMULATED] The entity responds to the vector with calculated precision. The ecology shifts subtly...`,
+                // Mock data structure required by app
+                entityUpdates: [],
+                newVectors: [],
+                ecologicalDrift: 0.01,
+                worldPhase: "STABLE"
+            }), 500));
         };
 
         const SYSTEM_INSTRUCTION = `
@@ -679,7 +771,8 @@ HISTORY: ${state?.auditLog?.slice(0, 3).map(a => a.result).join(' | ') || 'None'
 
 Generate the narrative for this interaction.
                     `;
-                    const result = await callGemini(prompt, SYSTEM_INSTRUCTION);
+                    const systemPrompt = SYSTEM_INSTRUCTION;
+                    const result = await callLLM(prompt, systemPrompt, true);
                     return result.narrative;
                 });
             }, [engine]);
@@ -732,7 +825,7 @@ Environment: ${scenario?.description}.
 Narrate as Sir David Attenborough in a nature documentary about imaginary ecologies.
                 `;
                 try {
-                    const result = await callGemini(prompt, "You are Sir David Attenborough narrating a documentary about nonhuman imaginary ecologies. Style: Hushed, breathless, poetic.");
+                    const result = await callLLM(prompt, "You are Sir David Attenborough narrating a documentary about nonhuman imaginary ecologies. Style: Hushed, breathless, poetic.");
                     setNatureShowScript(result.narrative);
                 } catch (e) {
                     setNatureShowScript("The signal is lost in the static of the wild...");

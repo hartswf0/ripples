@@ -105,21 +105,24 @@
 
         /* --- API UTILS --- */
 
-        const generateRipple = async (location, entities, history, selectedEntity, selectedVector, apiKey) => {
-            // If no API key, simulate a response for demo purposes
-            if (!apiKey) {
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve({
-                            narrative: `Simulation Mode (No API Key): The ${selectedEntity} responds to the force of ${selectedVector}. It vibrates with potential energy, altering the local arrangement of the ${location.slice(0, 10)}...`,
-                            newVectors: ['Vibrate', 'Collapse', 'Expand'],
-                            affectedEntities: [selectedEntity]
-                        });
-                    }, 1500);
-                });
-            }
+        /* --- AI API UTILITIES (Unified) --- */
 
-            const prompt = `
+        const AI_CONFIG = {
+            useLocalLLM: false,         // Toggle this to TRUE for local LLM
+            startWithSimulated: true,   // If true, use mock data if API fails
+            gemini: {
+                // apiKey is passed in via function argument in this file, so we fallback to that
+                model: "gemini-2.5-flash-preview-09-2025"
+            },
+            local: {
+                endpoint: "http://localhost:11434/v1/chat/completions", // Example: Ollama
+                model: "llama3"         // Model name to request
+            }
+        };
+
+        const generateRipple = async (location, entities, history, selectedEntity, selectedVector, apiKey) => {
+
+            const systemPrompt = `
             System: You are the engine of an "Imaginary Ecology". You simulate the life worlds of non-human entities.
             Tone: Operative, poetic, detached, sensory. NOT story-bookish. Focus on physics, sensation, and relation.
 
@@ -144,28 +147,110 @@
             }
             `;
 
+            const prompt = `Generate ripple for ${selectedEntity} acting with ${selectedVector}.`;
+
+            // Decide which path to take
+            if (AI_CONFIG.useLocalLLM) {
+                return callLocalLLM(prompt, systemPrompt);
+            } else {
+                return callGemini(prompt, systemPrompt, apiKey, selectedEntity, selectedVector, location);
+            }
+        };
+
+        const callLocalLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            const host = localStorage.getItem('ripple_ai_host') || 'localhost:11434';
+            const url = `http://${host}/v1/chat/completions`;
+
+            // 1. ADD SCHEMA INSTRUCTION
+            const schemaInstruction = `\n\nOUTPUT JSON ONLY. Structure: { 
+                 "narrative": "string", 
+                 "newVectors": ["string"], 
+                 "affectedEntities": ["string"] 
+             }`;
+
+            const payload = {
+                model: AI_CONFIG.local.model,
+                messages: [
+                    { role: "system", content: systemInstruction + schemaInstruction },
+                    { role: "user", content: prompt }
+                ],
+                stream: false,
+                format: "json"
+            };
+
+            console.log(">> CALLING LOCAL LLM:", url);
+
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log(">> RESPONSE STATUS:", response.status);
+                if (!response.ok) throw new Error(`Local LLM Error: ${response.status}`);
+
+                const data = await response.json();
+                let content = data.choices[0].message.content;
+                console.log(">> RAW CONTENT:", content);
+
+                // 2. CLEAN UP JSON
+                content = content.replace(/\/\/.*$/gm, '');
+                content = content.replace(/\n/g, ' ');
+
+                return JSON.parse(content);
+            } catch (error) {
+                console.warn(">> LOCAL LLM FAILED:", error);
+                // Fallback to mock if desired, or return error
+                // For 9.html we often use the mock fallback logic in the caller, but returning an error obj is safer:
+                return {
+                    error: true,
+                    message: error.message || "Connection Failed",
+                    details: "Check console logs."
+                };
+            }
+        };
+
+        const callGemini = async (prompt, systemInstruction, apiKey, selectedEntity, selectedVector, location) => {
+            if (!apiKey) return mockRippleResponse(selectedEntity, selectedVector, location);
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.gemini.model}:generateContent?key=${apiKey}`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] }, // 9.html didn't use systemInstruction properly before, adding it now
                             generationConfig: { responseMimeType: "application/json" }
                         })
                     });
 
+                if (!response.ok) throw new Error(`Gemini Error: ${response.status}`);
                 const data = await response.json();
                 const result = JSON.parse(data.candidates[0].content.parts[0].text);
                 return result;
             } catch (error) {
                 console.error("Simulation Glitch:", error);
+                if (AI_CONFIG.startWithSimulated) return mockRippleResponse(selectedEntity, selectedVector, location);
                 return {
                     narrative: "The simulation encountered a void. The signal was lost.",
                     newVectors: ['Retry', 'Reboot', 'Silence'],
                     affectedEntities: []
                 };
             }
+        };
+
+        const mockRippleResponse = (selectedEntity, selectedVector, location) => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        narrative: `Simulation Mode: The ${selectedEntity} responds to the force of ${selectedVector}. It vibrates with potential energy, altering the local arrangement of the ${location.slice(0, 10)}...`,
+                        newVectors: ['Vibrate', 'Collapse', 'Expand'],
+                        affectedEntities: [selectedEntity]
+                    });
+                }, 1500);
+            });
         };
 
         /* --- COMPONENTS --- */
@@ -472,8 +557,8 @@
                                 <button
                                     onClick={onToggleAutoPlay}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all ${autoPlay
-                                            ? 'border-emerald-500/50 bg-emerald-900/20 text-emerald-400'
-                                            : 'border-neutral-800 bg-black/50 text-neutral-400 hover:text-white'
+                                        ? 'border-emerald-500/50 bg-emerald-900/20 text-emerald-400'
+                                        : 'border-neutral-800 bg-black/50 text-neutral-400 hover:text-white'
                                         }`}
                                 >
                                     {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}

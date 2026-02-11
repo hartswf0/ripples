@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ORCA // BLUE_HOUR_LIDAR_v18</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="ripple-ai.js"></script>
     <style>
         :root {
             /* HOLLER PALETTE */
@@ -482,6 +483,7 @@
                 <div class="scanner-text" id="scanner-output">LIDAR STANDBY...</div>
                 <div class="scanner-header">
                     <div class="scanner-label">COON DOG LIDAR v4</div>
+                    <button class="scanner-btn" onclick="RaycasterEngine.deepScan()">⚡ DEEP SCAN</button>
                     <button class="scanner-btn" onclick="RaycasterEngine.speakBuffer()">🔊 VOCALIZE</button>
                 </div>
             </div>
@@ -1534,15 +1536,40 @@
                 }
 
                 document.getElementById('scanner-output').innerText = `LIDAR SCAN: ${room} [PULSE SENT]`;
+                this.currentRoom = room;
 
                 // Detect Evidence subtlety
                 const nearEv = roomEvidence[room];
+                this.currentEvidence = nearEv;
+
                 if (nearEv) {
                     const wasNew = collectEvidence(nearEv);
                     if (wasNew) {
                         document.getElementById('scanner-output').innerText = `> ANOMALY DETECTED: ${nearEv}`;
                         AudioEngine.ping();
                     }
+                }
+            },
+
+            async deepScan() {
+                const room = this.currentRoom || "OUTDOORS";
+                const evidence = this.currentEvidence || "NONE";
+                const output = document.getElementById('scanner-output');
+
+                output.innerText = `> INITIATING DEEP SCAN: ${room}...`;
+                AudioEngine.ping();
+
+                try {
+                    const roomData = ZONES[room] || { flavor: "UNKNOWN" };
+                    const evData = EVIDENCE_ONTOLOGY[evidence] || { attributes: "N/A", relationship: "N/A" };
+
+                    const prompt = `ZONE: ${room} (${roomData.flavor})\nEVIDENCE: ${evidence}\nATTRIBUTES: ${evData.attributes}\nCONTEXT: ${evData.relationship}\n\nProvide a forensic, poetic analysis of this anomaly within the Appalachian Quantum context. Keep it to 2-3 sentences.`;
+
+                    const lore = await RIPPLE_AI.call(prompt, "You are a Forensic Ontologist specializing in Appalachian Quantum physics and the search for Edgar.");
+                    output.innerText = `> DEEP SCAN RESULT:\n${lore}`;
+                } catch (error) {
+                    console.error("[SHIELD] Deep scan failed:", error);
+                    output.innerText = `> ERROR: AI BRIDGE DISCONNECTED.\nCHECK OLLAMA HOST.`;
                 }
             },
 

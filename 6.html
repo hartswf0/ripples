@@ -49,12 +49,97 @@
         const Eye = (props) => <IconWrapper {...props}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
 
 
-        // --- GEMINI API UTILITIES ---
-        const apiKey = "";
+        // --- AI API UTILITIES (Gemini + Local LLM) ---
+        const AI_CONFIG = {
+            useLocalLLM: true,          // Toggle this to TRUE for local LLM
+            startWithSimulated: true,   // If true, use mock data if API fails
+            gemini: {
+                apiKey: "",             // Google API Key
+                model: "gemini-2.5-flash-preview-09-2025"
+            },
+            local: {
+                endpoint: "http://localhost:11434/v1/chat/completions", // Example: Ollama
+                model: "llama3"         // Model name to request
+            }
+        };
+
+        const callLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            if (AI_CONFIG.useLocalLLM) {
+                return callLocalLLM(prompt, systemInstruction, isNarrative);
+            } else {
+                return callGemini(prompt, systemInstruction, isNarrative);
+            }
+        };
+
+        const callLocalLLM = async (prompt, systemInstruction, isNarrative = false) => {
+            const host = localStorage.getItem('ripple_ai_host') || 'localhost:11434';
+            const url = `http://${host}/v1/chat/completions`;
+
+            // 1. ADD SCHEMA INSTRUCTION (Explicitly for Local LLM)
+            const schemaInstruction = isNarrative
+                ? `\n\nOUTPUT JSON ONLY. Structure: { "script": "string", "tone": "string" }`
+                : `\n\nOUTPUT JSON ONLY. Structure: {
+                    "narrative": "string",
+                    "entityUpdates": [{ "id": number, "status": "string", "x": number, "y": number }],
+                    "nextVectors": ["string"],
+                    "ecologicalDrift": number
+                  }`;
+
+            const fullSystemPrompt = systemInstruction + schemaInstruction;
+
+            const payload = {
+                model: AI_CONFIG.local.model,
+                messages: [
+                    { role: "system", content: fullSystemPrompt },
+                    { role: "user", content: prompt }
+                ],
+                stream: false,
+                format: "json" // Helpful for Ollama
+            };
+
+            console.log(">> CALLING LOCAL LLM:", url);
+            // console.log(">> PAYLOAD:", JSON.stringify(payload, null, 2));
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log(">> RESPONSE STATUS:", response.status);
+
+                if (!response.ok) throw new Error(`Local LLM Error: ${response.status}`);
+
+                const data = await response.json();
+                // console.log(">> RAW OLLAMA DATA:", data);
+
+                let content = data.choices[0].message.content;
+                console.log(">> RAW CONTENT:", content);
+
+                // 2. CLEAN UP JSON
+                // Remove comments first (looking for // at end of lines)
+                content = content.replace(/\/\/.*$/gm, '');
+                // Replace remaining newlines with spaces to prevent "Bad control character" errors in string literals
+                content = content.replace(/\n/g, ' ');
+
+                return JSON.parse(content);
+            } catch (error) {
+                console.warn(">> LOCAL LLM FAILED:", error);
+
+                return {
+                    error: true,
+                    message: error.message || "Connection Failed",
+                    details: "Check console logs for parsing errors."
+                };
+            }
+        };
 
         const callGemini = async (prompt, systemInstruction, isNarrative = false) => {
-            const url =
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const apiKey = AI_CONFIG.gemini.apiKey;
+            if (!apiKey) return mockResponse(isNarrative);
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.gemini.model}:generateContent?key=${apiKey}`;
 
             const responseSchema = isNarrative ? {
                 type: "OBJECT",
@@ -82,7 +167,7 @@
                         type: "ARRAY",
                         items: { type: "STRING" }
                     },
-                    ecologicalDrift: { type: "NUMBER" } // Track global environmental shift
+                    ecologicalDrift: { type: "NUMBER" }
                 }
             };
 
@@ -111,11 +196,32 @@
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                     return JSON.parse(text);
                 } catch (error) {
-                    if (attempt === maxRetries - 1) throw error;
+                    if (attempt === maxRetries - 1) {
+                        if (AI_CONFIG.startWithSimulated) return mockResponse(isNarrative);
+                        throw error;
+                    }
                     await new Promise(r => setTimeout(r, delays[attempt]));
                     attempt++;
                 }
             }
+        };
+
+        const mockResponse = (isNarrative) => {
+            return new Promise(resolve => setTimeout(() => {
+                if (isNarrative) {
+                    resolve({
+                        script: "[SIMULATED] The entity drifts in the static, awaiting a signal...",
+                        tone: "neutral"
+                    });
+                } else {
+                    resolve({
+                        narrative: "[SIMULATED] System observes no external input. Continuing drift.",
+                        entityUpdates: [],
+                        nextVectors: ['DRIFT', 'IDLE', 'DECAY'],
+                        ecologicalDrift: 0.01
+                    });
+                }
+            }, 600));
         };
 
         // --- DATA PRESETS ---
@@ -262,7 +368,18 @@
                 `;
 
                 try {
-                    const result = await callGemini(userPrompt, systemPrompt);
+                    const result = await callLLM(userPrompt, systemPrompt);
+
+                    if (result.error) {
+                        setHistory(prev => [
+                            { id: Date.now(), type: 'error', text: `LLM ERROR: ${result.message}` },
+                            { id: Date.now() + 1, type: 'error', text: `>> ${result.details}` },
+                            ...prev
+                        ]);
+                        setPhase('SELECT_ENTITY');
+                        return; // Stop processing
+                    }
+
                     if (result.entityUpdates) {
                         setEntities(prev => prev.map(e => {
                             const update = result.entityUpdates.find(u => u.id === e.id || u.name === e.name);
@@ -300,7 +417,7 @@
                 `;
 
                 try {
-                    const result = await callGemini(userPrompt, systemPrompt, true);
+                    const result = await callLLM(userPrompt, systemPrompt, true);
                     setNatureShowScript(result.script);
                 } catch (error) {
                     setNatureShowScript("The signal is lost in the static of the wild...");

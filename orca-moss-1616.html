@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORCA // MOSS_MONITOR_V16</title>
+    <title>ORCA // SHIELD_DOSSIER_1616</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
@@ -329,12 +329,6 @@
             transform: scale(0.95);
         }
 
-        .vector-btn.active {
-            background: rgba(192, 132, 252, 0.2);
-            border-color: #c084fc;
-            box-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
-        }
-
         .btn-goal i {
             color: var(--color-gold);
         }
@@ -345,10 +339,6 @@
 
         .btn-shift i {
             color: var(--color-shift);
-        }
-
-        .btn-inspect i {
-            color: #c084fc;
         }
 
         /* HUD / MINIMAP */
@@ -557,7 +547,8 @@
     <div id="boot-screen">
         <div
             style="font-size: 1.5rem; letter-spacing: 4px; margin-bottom: 20px; animation: flicker 0.2s infinite alternate;">
-            ORCA // MOSS_V16</div>
+            ORCA // SHIELD_DOSSIER</div>
+        <div style="font-size: 0.7rem; color: #888; margin-bottom: 30px;">CASE #HOM-990-26 | Det. W.F. Hartsoe III</div>
         <button onclick="initializeSystem()"
             style="background: transparent; color: #fff; border: 1px solid #72dec2; padding: 15px 30px; font-family: inherit; font-size: 1rem; cursor: pointer;">INITIALIZE
             SYSTEM</button>
@@ -573,16 +564,19 @@
             <div id="help-modal">
                 <div
                     style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
-                    <span style="color:#72dec2; font-weight:bold;">MANUAL</span>
+                    <span style="color:#daa520; font-weight:bold;">CASE FILE: HOM-990-26</span>
                     <span onclick="toggleHelp()" style="cursor:pointer;">✕</span>
                 </div>
                 <div style="font-size:0.8rem; line-height:1.6; color:#ccc;">
-                    <div style="margin-bottom:10px;"><strong style="color:#ffcc00">1 FINGER:</strong> Pan View</div>
-                    <div style="margin-bottom:10px;"><strong style="color:#ffcc00">2 FINGERS:</strong> Zoom In/Out</div>
-                    <div style="margin-bottom:10px;"><strong style="color:#72dec2">TAP:</strong> Select Entity</div>
-                    <div style="margin-bottom:10px;"><strong style="color:#72dec2">LONG PRESS:</strong> Neural Interface
-                    </div>
-                    <div><strong style="color:#72a5ff">DOUBLE TAP:</strong> Recenter</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#ffcc00">☉ SCAN:</strong> View Zone
+                        Description & Forensic Note</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#ff7272">⚑ FLAG:</strong> Show Evidence
+                        Collection Status</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#72a5ff">☰ LOG:</strong> Generate CSPR
+                        Evidence Report</div>
+                    <div style="margin-bottom:10px;"><strong style="color:#72dec2">TAP ZONE:</strong> Navigate &
+                        Auto-Collect Evidence</div>
+                    <div><strong style="color:#4682b4">LONG PRESS:</strong> Neural Patch Interface</div>
                 </div>
             </div>
 
@@ -628,7 +622,7 @@
                     <span class="value" style="color: var(--color-primary)">ONLINE</span>
                 </div>
                 <div class="status-block">
-                    <span class="label">TARGET</span>
+                    <span class="label">ZONE</span>
                     <span class="value" id="ui-entity" style="color: #fff">--</span>
                 </div>
                 <div class="entity-list" id="entity-list-container"></div>
@@ -638,8 +632,6 @@
             <div class="hud-overlay">
                 <button class="toggle-mode-btn" onclick="renderer.resetView()">RECENTER</button>
                 <button id="mode-btn" class="toggle-mode-btn" onclick="renderer.toggleMode()">NAVIGATE</button>
-                <button id="inspect-btn" class="toggle-mode-btn" onclick="renderer.toggleInspect()">INSPECT:
-                    OFF</button>
                 <div class="hud-panel" id="ui-coords">0,0</div>
                 <div class="hud-minimap-container">
                     <canvas id="minimap-canvas"></canvas>
@@ -649,20 +641,16 @@
             <!-- CONTROLS (Floating Runes) -->
             <div class="controls-bar">
                 <div class="vector-group" onclick="engine.triggerVector('GOAL')">
-                    <div class="vector-btn btn-goal"><i>*</i></div>
-                    <span class="vector-label">BANG</span>
+                    <div class="vector-btn btn-goal"><i>☉</i></div>
+                    <span class="vector-label">SCAN</span>
                 </div>
                 <div class="vector-group" onclick="engine.triggerVector('OBSTACLE')">
-                    <div class="vector-btn btn-obstacle"><i>#</i></div>
-                    <span class="vector-label">HALT</span>
+                    <div class="vector-btn btn-obstacle"><i>⚑</i></div>
+                    <span class="vector-label">FLAG</span>
                 </div>
                 <div class="vector-group" onclick="engine.triggerVector('SHIFT')">
-                    <div class="vector-btn btn-shift"><i>~</i></div>
-                    <span class="vector-label">MOD</span>
-                </div>
-                <div class="vector-group" onclick="renderer.toggleInspect()">
-                    <div id="inspect-vector-btn" class="vector-btn btn-inspect"><i>👁</i></div>
-                    <span class="vector-label">READ</span>
+                    <div class="vector-btn btn-shift"><i>☰</i></div>
+                    <span class="vector-label">LOG</span>
                 </div>
             </div>
         </div>
@@ -701,7 +689,6 @@
                 if (!this.initialized) return;
 
                 const now = Tone.now();
-                // Rate limit to prevent stacking errors and audio glitches (limit to ~15ms)
                 if (now - this.lastThudTime < 0.05) return;
 
                 this.lastThudTime = now;
@@ -746,18 +733,177 @@
             applyPatch('TRANSFORM');
         }
 
-        // --- DATA ---
+        // --- SHIELD OF ACHILLES FORENSIC DATA ---
+
+        // Zone detection based on distance from center (concentric rings)
+        function getZoneFromDistance(dist, maxDist) {
+            const norm = dist / maxDist;
+            if (norm < 0.12) return "COSMOS";      // Inner 12%
+            if (norm < 0.30) return "LITIGATION";  // 12-30%
+            if (norm < 0.50) return "LABOR";       // 30-50%
+            if (norm < 0.75) return "LIONS";       // 50-75%
+            return "OCEAN";                         // 75-100%
+        }
+
+        function getZoneColor(zoneName) {
+            const z = SHIELD_ZONES[zoneName];
+            return z ? z.color : "#333";
+        }
+
+        const SHIELD_ZONES = {
+            COSMOS: {
+                id: "cosmos", name: "ZONE 0: COSMOS", ring: 0, color: "#daa520", icon: "◉",
+                classification: "Environmental Background / Datum Point",
+                environment: { poe: "None - sealed center", ambient: "Eternal stillness", transient: "Celestial patterns" },
+                patterns: { observation: "High-relief gold: Earth, Sea, Sky, constellations", orientation: "Central 15cm boss", condition: "Pristine", collection: "Reference only" },
+                forensicNote: "The 'witness' - sees all, touched by none. FROZEN TIMESTAMP."
+            },
+            LITIGATION: {
+                id: "litigation", name: "ZONE 1A: CITY OF PEACE", ring: 1, color: "#8b0000", icon: "⚖",
+                classification: "Comparative Behavioral / Motive",
+                environment: { poe: "Public agora", ambient: "High systemic tension", transient: "Vocal testimony in metal grain" },
+                patterns: { observation: "Two litigants in adversarial posture", orientation: "Symmetric around gold talents", condition: "Defense posture", collection: "3D gesture scan" },
+                forensicNote: "MOTIVE ESTABLISHED. Two talents of gold. Cycle perpetuates."
+            },
+            AMBUSH: {
+                id: "ambush", name: "ZONE 1B: CITY AT WAR", ring: 1, color: "#a52a2a", icon: "⚔",
+                classification: "Primary Crime Scene",
+                environment: { poe: "Watering hole choke point", ambient: "Siege conditions", transient: "Scout approach vectors" },
+                patterns: { observation: "Red copper = splatter pattern", orientation: "Radial from riverbank", condition: "Preserved in grain", collection: "Isotope analysis" },
+                forensicNote: "PRIMARY MO of suspect (WAR). Area of Origin confirmed."
+            },
+            LABOR: {
+                id: "labor", name: "ZONE 2: TEMENOS (Sacred Fields)", ring: 2, color: "#2e8b57", icon: "🌾",
+                classification: "Timeline Correlation",
+                environment: { poe: "Open field", ambient: "Harvest season", transient: "Grain at 23° angle" },
+                patterns: { observation: "Tin sickles, king with scepter", orientation: "GRAIN ANGLE = BODY ANGLE Zone 1-B", condition: "Active harvest", collection: "Fiber trace" },
+                forensicNote: "TEMPORAL BASELINE - simultaneity of crime and life."
+            },
+            LIONS: {
+                id: "lions", name: "ZONE 3: NEPOS (Pastureland)", ring: 3, color: "#cd853f", icon: "🦁",
+                classification: "Biological / Predatory Profiling",
+                environment: { poe: "Valley with stream", ambient: "Pastoral → predatory", transient: "Dog bark terror frequency" },
+                patterns: { observation: "Two lions dragging bull", orientation: "Drag toward perimeter", condition: "Hide rent open, gouging", collection: "Wound morphology scan" },
+                bioForensics: { victim: "Gold bull - entrails visible", attackerProfile: "LION A=Achilles, LION B=Hector" },
+                forensicNote: "Bull = PATROCLUS. ENTROPY documented. Most visceral zone."
+            },
+            OCEAN: {
+                id: "ocean", name: "ZONE 4: OKEANOS (Rim)", ring: 4, color: "#4682b4", icon: "〰",
+                classification: "Boundary / Jurisdictional / Chain of Custody",
+                environment: { poe: "NONE - complete encirclement", ambient: "Recursive currents", transient: "Nothing escapes" },
+                patterns: { observation: "Mighty River Ocean", orientation: "360° sealed perimeter", condition: "No egress", collection: "Full photogrammetry" },
+                forensicNote: "'LOCKED ROOM.' Case CLOSED by geography. All evidence contained."
+            }
+        };
+
+        const EVIDENCE_CATALOG = {
+            "001": {
+                itemNo: "#001", name: "Central Boss (Omphalos)", zone: "COSMOS",
+                entityClass: "Environmental Baseline",
+                observation: "High-relief gold inlay depicting celestial bodies",
+                orientation: "Central 15cm radius boss, datum point",
+                condition: "Pristine - un-struck during confrontation",
+                collection: "N/A - reference only",
+                relationship: "The 'witness' that sees everything but remains untouched"
+            },
+            "002": {
+                itemNo: "#002", name: "Two Talents of Gold", zone: "LITIGATION",
+                entityClass: "Currency / Motive Object",
+                observation: "99.8% purity, circular cast, no scuffing",
+                orientation: "Exact geometric center between litigants",
+                condition: "Untouched - the contested prize",
+                collection: "Photograph in situ",
+                relationship: "MOTIVE. Positioned at exact geometric center."
+            },
+            "003": {
+                itemNo: "#003", name: "Herald's Staves", zone: "LITIGATION",
+                entityClass: "Instrument of Jurisdiction",
+                observation: "1.5m polished wood, gold leaf texture",
+                orientation: "Transferred between elders for speech rights",
+                condition: "Grip-wear indicates frequent transfer",
+                collection: "3D scan for handprint-wear patterns",
+                relationship: "JURISDICTION. Systemic cycle of violence."
+            },
+            "004": {
+                itemNo: "#004", name: "Red Copper Swab", zone: "AMBUSH",
+                entityClass: "Bio-Trace Simulation",
+                observation: "Red-tinted copper inlay concentrated at riverbank",
+                orientation: "Radial splatter pattern from impact zone",
+                condition: "Splatter preserved in metal grain",
+                collection: "Micro-shavings for isotope analysis",
+                relationship: "Primary MO of suspect (WAR)"
+            },
+            "005": {
+                itemNo: "#005", name: "Tin Sickle Fragment", zone: "LABOR",
+                entityClass: "Agricultural Tool",
+                observation: "Curved blade, sharpened tin edge",
+                orientation: "Grain falling angle matches body angle in Zone 1",
+                condition: "Use-wear consistent with harvest",
+                collection: "Trace fiber analysis",
+                relationship: "TEMPORAL BASELINE - simultaneity proof"
+            },
+            "006": {
+                itemNo: "#006", name: "Gold Bull Fragments", zone: "LIONS",
+                entityClass: "Biological Specimen (simulated)",
+                observation: "Hide 'rent open', dark blood and entrails visible",
+                orientation: "Drag vector toward perimeter",
+                condition: "Significant gouging - dental/claw pattern",
+                collection: "High-res 3D surface scan",
+                relationship: "ENTROPY documentation. Most visceral zone."
+            },
+            "007": {
+                itemNo: "#007", name: "Tide Pattern Sample", zone: "OCEAN",
+                entityClass: "Boundary Marker",
+                observation: "Recursive current patterns in bronze",
+                orientation: "Outermost rim, complete encirclement",
+                condition: "No break in the loop detected",
+                collection: "Photogrammetry scan",
+                relationship: "LOCKED ROOM. Proves closed-system investigation."
+            }
+        };
+
+        let COLLECTED_EVIDENCE = [];
+        let CURRENT_ZONE = "COSMOS";
+
+        function collectEvidence(id) {
+            if (!COLLECTED_EVIDENCE.includes(id)) {
+                COLLECTED_EVIDENCE.push(id);
+                AudioEngine.thud(0.9, "G2");
+                return true;
+            }
+            return false;
+        }
+
+        function getCSPRReport(id) {
+            const ev = EVIDENCE_CATALOG[id];
+            if (!ev) return "NO DATA";
+            return `╔═══════════════════════════════════╗
+║ CSPR EVIDENCE LOG  [CASE: HOM-990]║
+╠═══════════════════════════════════╣
+ Item ${ev.itemNo}: ${ev.name}
+ Class: ${ev.entityClass}
+╠═══════════════════════════════════╣
+ OBSERVATION:
+ ${ev.observation}
+ ORIENTATION:
+ ${ev.orientation}
+ CONDITION:
+ ${ev.condition}
+ COLLECTION:
+ ${ev.collection}
+╠═══════════════════════════════════╣
+ RELATIONSHIP TO CASE:
+ ${ev.relationship}
+╚═══════════════════════════════════╝`;
+        }
+
+        //Legacy compatibility
         const LATENT_LIBRARY = {
-            "deep_forest": {
-                "id": "deep_forest", "name": "DEEP FOREST",
-                "entities": [
-                    { "id": "mycelium", "name": "Mycelium", "icon": "m", "palette": "mkw&8" },
-                    { "id": "deer", "name": "Deer", "icon": "d", "palette": "dYv|" },
-                    { "id": "owl", "name": "Owl", "icon": "o", "palette": "oO0@" },
-                    { "id": "seedling", "name": "Seedling", "icon": "s", "palette": "sS;,." },
-                    { "id": "fallen-oak", "name": "Fallen Oak", "icon": "f", "palette": "fF_=#" },
-                    { "id": "moonlight", "name": "Moonlight", "icon": "L", "palette": "L/ \\." }
-                ]
+            "shield_of_achilles": {
+                "id": "shield_of_achilles", "name": "SHIELD OF ACHILLES",
+                "entities": Object.values(SHIELD_ZONES).map(z => ({
+                    id: z.id, name: z.name, icon: z.icon, palette: z.icon + "○●◎", color: z.color
+                }))
             }
         };
 
@@ -766,30 +912,15 @@
             useLocalLLM: true,
             localLLMModel: "llama3",
             geminiModel: "gemini-1.5-flash",
-            // Semantic Gardener Ontology: OPERATORS, GOAL, SHIFT, OBSTACLE
+            // System instructions for Forensic/Evidence generation
             systemInstruction: `
-                You are the Semantic Gardener of a digital ecosystem.
-                Interpret the grid using ONLY this ontology:
-                - OPERATORS: Active agents or functions (e.g. *, digits).
-                - GOAL: Objectives or targets (e.g. G, output ports).
-                - SHIFT: Transformations or state changes (e.g. ~, adjacent interaction).
-                - OBSTACLE: Barriers or challenges (e.g. #, collisions).
-
-                Output JSON ONLY:
-                {
-                    "chars": "2-5 chars identifying the patch (e.g. '>>', '*#')",
-                    "color": "Hex code matching the ontology (Goal=Gold, Obs=Red, etc)",
-                    "meaning": "Short poetic meaning (max 6 words)",
-                    "context": "One of: OPERATOR, GOAL, SHIFT, OBSTACLE",
-                    "narrative": "A single brief sentence expanding the meaning."
-                }
-            `,
-            tetradLenses: [
-                { key: 'enhance', label: 'ENHANCE', prompt: 'What does this AMPLIFY or INTENSIFY?' },
-                { key: 'reverse', label: 'REVERSE', prompt: 'What does this FLIP or TURN INTO when pushed to limits?' },
-                { key: 'retrieve', label: 'RETRIEVE', prompt: 'What lost element or ancient function does this RECOVER?' },
-                { key: 'obsolesce', label: 'OBSOLESCE', prompt: 'What old function does this replace or make UNNECESSARY?' }
-            ]
+                You are a Forensic Investigator analyzing a digital crime scene (The Shield of Achilles).
+                User input describes a trace or phenomenon.
+                You must output a JSON object with:
+                1. "chars": A string of 2-5 characters representing this (e.g. "BLOOD", "??!!").
+                2. "color": A hex code suitable for this evidence.
+                Output JSON ONLY. No markdown.
+            `
         };
 
         // --- UNIFIED LLM CALLER ---
@@ -822,9 +953,6 @@
         }
 
         async function callGemini(prompt) {
-            // NOTE: This requires an external mechanism to set apiKey if not present, 
-            // or we can prompt for it. For now, we assume if useLocalLLM is false, we try.
-            // If no key, we fail to the fallback.
             const apiKey = localStorage.getItem('GEMINI_API_KEY') || "";
             if (!apiKey) throw new Error("No Gemini API Key");
 
@@ -845,8 +973,8 @@
         class RipplesEngine {
             constructor() {
                 this.state = {
-                    scenarioId: 'deep_forest',
-                    entityId: null,
+                    scenarioId: 'shield_of_achilles',
+                    zoneId: 'cosmos',
                     ripples: [],
                     activeAgents: []
                 };
@@ -854,69 +982,65 @@
 
             init() {
                 this.renderUI();
-                this.spawnRipple("SYSTEM.READY", "#72dec2", 0, 0, 150, 30, "01.");
+                this.spawnRipple("CASE.OPEN", "#daa520", 0, 0, 150, 30, "◉○●");
             }
 
-            getEntityPalette(id) {
-                const scenario = LATENT_LIBRARY['deep_forest'];
-                const ent = scenario.entities.find(e => e.id === id);
-                return ent ? ent.palette : ".....";
+            getZone(id) {
+                return Object.values(SHIELD_ZONES).find(z => z.id === id);
             }
 
-            selectEntity(id) {
-                this.state.entityId = id;
+            getZonePalette(id) {
+                const zone = this.getZone(id);
+                return zone ? zone.icon + "○●◎" : ".....";
+            }
+
+            selectZone(id) {
+                this.state.zoneId = id;
+                CURRENT_ZONE = id.toUpperCase();
                 this.renderUI();
-                const ent = LATENT_LIBRARY['deep_forest'].entities.find(e => e.id === id);
-                if (ent) {
+                const zone = this.getZone(id);
+                if (zone) {
                     AudioEngine.thud(0.7, "C2");
-                    this.spawnRipple(`[${ent.name.toUpperCase()}]`, "#fff", renderer.panX * -0.05, renderer.panY * -0.05, 100, 20, ent.palette);
+                    this.spawnRipple(`[${zone.name}]`, zone.color, renderer.panX * -0.05, renderer.panY * -0.05, 100, 20, zone.icon + "◎");
+
+                    // Auto-collect evidence for this zone
+                    const zoneEvidence = Object.entries(EVIDENCE_CATALOG).find(([k, v]) => v.zone === CURRENT_ZONE);
+                    if (zoneEvidence) {
+                        const wasNew = collectEvidence(zoneEvidence[0]);
+                        if (wasNew) {
+                            this.spawnRipple(`EVIDENCE ${zoneEvidence[1].itemNo}`, "#00ff00", 0, 0, 200, 25, "☆★");
+                        }
+                    }
                 }
             }
 
             triggerVector(type) {
                 let color = "#fff";
                 let chars = "";
-                const entityPalette = this.state.entityId ? this.getEntityPalette(this.state.entityId) : "..";
+                const zonePalette = this.state.zoneId ? this.getZonePalette(this.state.zoneId) : "..";
 
-                if (type === 'GOAL') { color = "#ffcc00"; chars = entityPalette + ">>"; AudioEngine.thud(0.9, "G1"); }
-                if (type === 'OBSTACLE') { color = "#ff7272"; chars = entityPalette + "##"; AudioEngine.thud(0.6, "D1"); }
-                if (type === 'SHIFT') { color = "#72a5ff"; chars = entityPalette + "~"; AudioEngine.thud(0.5, "E2"); }
+                if (type === 'GOAL') {
+                    color = "#ffcc00"; chars = zonePalette + ">>";
+                    AudioEngine.thud(0.9, "G1");
+                    // Show zone description
+                    const zone = this.getZone(this.state.zoneId);
+                    if (zone) alert(`ZONE DESCRIPTION:\n\n${zone.description}\n\nFORENSIC NOTE:\n${zone.forensicNote}`);
+                }
+                if (type === 'OBSTACLE') {
+                    color = "#ff7272"; chars = zonePalette + "##";
+                    AudioEngine.thud(0.6, "D1");
+                    // Show collected evidence count
+                    alert(`EVIDENCE COLLECTED: ${COLLECTED_EVIDENCE.length}/7\n\nItems: ${COLLECTED_EVIDENCE.map(id => EVIDENCE_CATALOG[id]?.name).join(', ') || 'None'}`);
+                }
+                if (type === 'SHIFT') {
+                    color = "#72a5ff"; chars = zonePalette + "~";
+                    AudioEngine.thud(0.5, "E2");
+                    // Show CSPR report for current zone
+                    const zoneEvidence = Object.entries(EVIDENCE_CATALOG).find(([k, v]) => v.zone === CURRENT_ZONE);
+                    if (zoneEvidence) alert(getCSPRReport(zoneEvidence[0]));
+                }
 
                 this.spawnRipple(type, color, 0, 0, 800, 45, chars);
-            }
-
-            async inspect(x, y) {
-                const cell = renderer.gridState[y]?.[x];
-                if (!cell || !cell.char) {
-                    renderer.drawFloatingText("VOID", x * 16 + renderer.panX, y * 8 + renderer.panY, "#555");
-                    return;
-                }
-
-                // Visual feedback
-                AudioEngine.thud(0.8, "E3");
-                renderer.drawFloatingText("INSPECTING...", x * 16 + renderer.panX, y * 8 + renderer.panY, "#72dec2");
-
-                // Select a random Tetrad lens
-                const lens = AI_CONFIG.tetradLenses[Math.floor(Math.random() * AI_CONFIG.tetradLenses.length)];
-
-                const prompt = `
-                    Analyze this moss patch:
-                    Char: "${cell.char}"
-                    Context: "${cell.semantic?.context || 'Unknown'}"
-                    Meaning: "${cell.semantic?.meaning || 'Unknown'}"
-                    
-                    Apply the **${lens.label}** lens: ${lens.prompt}
-                    Return JSON: { "analysis": "Your insight here (max 15 words)" }
-                `;
-
-                const result = await callLLM(prompt);
-                if (result && result.analysis) {
-                    AudioEngine.thud(0.9, "G3");
-                    console.log(`[INSPECT] ${lens.label}:`, result.analysis);
-                    renderer.drawFloatingText(`${lens.label}: ${result.analysis}`, x * 16 + renderer.panX, y * 8 + renderer.panY, "#ffcc00", 20);
-                    // Also spawn a ripple with the insight
-                    this.spawnRipple(lens.label, "#ffcc00", (x - renderer.gridSize / 2) * 16, (y - renderer.gridSize / 2) * 8, 200, 30, result.analysis.substring(0, 10));
-                }
             }
 
             async processPatch(type, prompt) {
@@ -925,53 +1049,41 @@
 
                 let chars = ".";
                 let color = "#fff";
-                let meaning = "";
-                let context = "";
+                const zone = this.getZone(this.state.zoneId);
 
                 if (type === 'BRANCH') {
-                    chars = "Yy/\\"; color = "#ffcc00";
-                    meaning = "Branching Path"; context = "OPERATOR"; // Classified as Operator
+                    chars = zone ? zone.icon : "Yy"; color = zone ? zone.color : "#ffcc00";
                 } else if (type === 'SEED') {
-                    chars = "oO0"; color = "#72a5ff";
-                    meaning = "New Seed"; context = "GOAL"; // Classified as Goal
+                    chars = "⚖⚔🌾🦁〰"; color = "#72a5ff";
                     const start = targets[Math.floor(Math.random() * targets.length)];
                     const [sx, sy] = start.split(',').map(Number);
                     this.state.activeAgents.push({
-                        x: sx, y: sy, type: 'GARDENER', color: '#72a5ff', life: 1000
+                        x: sx, y: sy, type: 'INVESTIGATOR', color: '#72a5ff', life: 1000
                     });
                 } else {
-                    AudioEngine.thud(0.8, "A1");
-
                     // LLM Call
-                    renderer.drawFloatingText("AI: GARDENING...", 100, 100, "#72dec2", 10);
                     const p = (prompt || "").toLowerCase();
-                    const aiResult = await callLLM(p);
+                    renderer.drawFloatingText("AI: ANALYZING...", 100, 100, "#72dec2", 10);
 
+                    const aiResult = await callLLM(p);
                     if (aiResult) {
                         chars = aiResult.chars || "??";
                         color = aiResult.color || "#fff";
-                        meaning = aiResult.meaning || "Unknown Anomaly";
-                        context = aiResult.context || "SHIFT"; // Default to SHIFT if undefined
-                        console.log("AI Result:", aiResult);
                     } else {
-                        // Fallback Heuristics
-                        if (p.includes("water")) { chars = "~≈"; color = "#72a5ff"; meaning = "Flow"; context = "SHIFT"; }
-                        else if (p.includes("fire")) { chars = "^*"; color = "#ff7272"; meaning = "Burn"; context = "OBSTACLE"; }
-                        else if (p.includes("forest")) { chars = "TY"; color = "#228b22"; meaning = "Growth"; context = "OPERATOR"; }
-                        else { chars = "###"; color = "#72dec2"; meaning = "Glitch"; context = "OBSTACLE"; }
+                        // Fallback
+                        if (p.includes("blood")) { chars = "●◉"; color = "#8b0000"; }
+                        else if (p.includes("gold")) { chars = "◉○"; color = "#daa520"; }
+                        else if (p.includes("ocean")) { chars = "〰~"; color = "#4682b4"; }
+                        else { chars = "###"; color = "#72dec2"; }
                     }
                 }
 
                 targets.forEach(key => {
                     const [x, y] = key.split(',').map(Number);
-                    this.spawnRipple("PATCH", color, (x - renderer.gridSize / 2), (y - renderer.gridSize / 2), 5, 20, chars);
-
-                    // Store Semantic Metadata in Grid
                     if (renderer.gridState[y] && renderer.gridState[y][x]) {
                         renderer.gridState[y][x] = {
                             char: chars.charAt(Math.floor(Math.random() * chars.length)),
-                            color: color,
-                            semantic: { meaning, context }
+                            color: color
                         };
                     }
                 });
@@ -989,26 +1101,34 @@
             }
 
             renderUI() {
-                const scenario = LATENT_LIBRARY['deep_forest'];
+                const scenario = LATENT_LIBRARY['shield_of_achilles'];
                 const listContainer = document.getElementById('entity-list-container');
                 const uiEntity = document.getElementById('ui-entity');
 
-                const entity = scenario.entities.find(e => e.id === this.state.entityId);
-                uiEntity.innerText = entity ? entity.name.toUpperCase() : "--";
-                uiEntity.style.color = entity ? "#72dec2" : "#fff";
+                const zone = this.getZone(this.state.zoneId);
+                uiEntity.innerText = zone ? zone.name : "--";
+                uiEntity.style.color = zone ? zone.color : "#fff";
 
                 listContainer.innerHTML = '';
-                scenario.entities.forEach(ent => {
+
+                // Add zone buttons
+                Object.values(SHIELD_ZONES).forEach(z => {
                     const btn = document.createElement('button');
-                    btn.className = `entity-btn ${ent.id === this.state.entityId ? 'active' : ''}`;
-                    btn.innerHTML = `<span class="entity-icon">${ent.icon}</span> ${ent.name}`;
+                    btn.className = `entity-btn ${z.id === this.state.zoneId ? 'active' : ''}`;
+                    btn.style.borderLeftColor = z.color;
+                    btn.innerHTML = `<span class="entity-icon" style="color:${z.color}">${z.icon}</span> ${z.name}`;
                     btn.onclick = () => {
-                        this.selectEntity(ent.id);
-                        // On mobile, close sidebar automatically
+                        this.selectZone(z.id);
                         if (window.innerWidth <= 768) toggleSidebar();
                     };
                     listContainer.appendChild(btn);
                 });
+
+                // Add evidence counter
+                const counter = document.createElement('div');
+                counter.style.cssText = 'margin-top:10px; padding:8px; background:rgba(0,255,0,0.1); border:1px solid #0f0; font-size:0.7rem; color:#0f0;';
+                counter.innerHTML = `EVIDENCE: ${COLLECTED_EVIDENCE.length}/7`;
+                listContainer.appendChild(counter);
             }
         }
 
@@ -1064,36 +1184,12 @@
             }
 
             toggleMode() {
-                if (this.mode === 'INSPECT') this.mode = 'NAVIGATE';
-                else this.mode = this.mode === 'NAVIGATE' ? 'PAINT' : 'NAVIGATE';
-                this.updateModeUI();
-            }
-
-            toggleInspect() {
-                this.mode = this.mode === 'INSPECT' ? 'NAVIGATE' : 'INSPECT';
-                this.updateModeUI();
-            }
-
-            updateModeUI() {
+                this.mode = this.mode === 'NAVIGATE' ? 'PAINT' : 'NAVIGATE';
                 const btn = document.getElementById('mode-btn');
-                const inspectBtn = document.getElementById('inspect-btn');
-
                 if (btn) {
-                    btn.innerText = (this.mode === 'INSPECT') ? 'NAVIGATE' : this.mode;
+                    btn.innerText = this.mode;
                     if (this.mode === 'PAINT') btn.classList.add('active');
                     else btn.classList.remove('active');
-                }
-
-                if (inspectBtn) {
-                    inspectBtn.innerText = this.mode === 'INSPECT' ? "INSPECT: ON" : "INSPECT: OFF";
-                    if (this.mode === 'INSPECT') inspectBtn.classList.add('active');
-                    else inspectBtn.classList.remove('active');
-                }
-
-                const inspectVec = document.getElementById('inspect-vector-btn');
-                if (inspectVec) {
-                    if (this.mode === 'INSPECT') inspectVec.classList.add('active');
-                    else inspectVec.classList.remove('active');
                 }
             }
 
@@ -1154,13 +1250,6 @@
             bindEvents() {
                 this.canvas.addEventListener('mousedown', e => {
                     if (e.button === 2) return;
-
-                    // INSPECT MODE TRIGGER
-                    if (this.mode === 'INSPECT' && this.hoverCell) {
-                        engine.inspect(this.hoverCell.gridX, this.hoverCell.gridY);
-                        return;
-                    }
-
                     const now = Date.now();
                     if (now - this.lastTap < 300) { this.resetView(); return; }
                     this.lastTap = now;
@@ -1269,9 +1358,9 @@
                     const headerY = 40 + Math.sin(this.time * 2) * 2; // Breathing
                     this.ctx.shadowColor = "rgba(114, 222, 194, 0.5)";
                     this.ctx.shadowBlur = 10;
-                    this.drawFloatingText("ORCA / MOSS_V16", 120, headerY, "#72dec2", 18);
+                    this.drawFloatingText("SHIELD / DOSSIER", 120, headerY, "#daa520", 18);
                     this.ctx.shadowBlur = 0;
-                    this.drawFloatingText("TACTILE.ENV", 120, headerY + 15, "#666", 10);
+                    this.drawFloatingText("CASE: HOM-990-26", 120, headerY + 15, "#888", 10);
 
                     // HUD Status (Bottom Right)
                     const hudX = this.canvas.width - 20;
@@ -1377,6 +1466,21 @@
                                 activeChar = densityChars[index];
                             }
 
+                            // CONCENTRIC ZONE COLORING based on distance from center
+                            const distFromCenter = Math.sqrt(rx * rx + ry * ry);
+                            const maxDist = offset;
+                            const zoneName = getZoneFromDistance(distFromCenter, maxDist);
+                            const zoneColor = getZoneColor(zoneName);
+
+                            // Zone boundary detection (draw brighter at ring edges)
+                            const norm = distFromCenter / maxDist;
+                            const isZoneBoundary = (
+                                (norm > 0.11 && norm < 0.13) ||  // COSMOS edge
+                                (norm > 0.29 && norm < 0.31) ||  // LITIGATION edge
+                                (norm > 0.49 && norm < 0.51) ||  // LABOR edge
+                                (norm > 0.74 && norm < 0.76)     // LIONS edge
+                            );
+
                             if (activeColor) {
                                 this.ctx.fillStyle = activeColor;
                                 this.ctx.globalAlpha = 1.0;
@@ -1384,13 +1488,23 @@
                                 this.ctx.font = `bold ${fontSize}px monospace`;
                                 this.ctx.shadowBlur = isBang ? 10 * this.zoom : 0;
                                 if (isBang) this.ctx.shadowColor = activeColor;
+                            } else if (isZoneBoundary) {
+                                // Draw zone boundaries with white/bright lines
+                                this.ctx.fillStyle = '#ffffff';
+                                this.ctx.globalAlpha = 0.6;
+                                const fontSize = Math.floor(Math.max(6, 12 * this.zoom));
+                                this.ctx.font = `bold ${fontSize}px monospace`;
+                                this.ctx.shadowBlur = 0;
+                                activeChar = '·';
                             } else {
-                                let color = '#222'; if (z > 5) color = '#444'; if (z > 15) color = '#777';
-                                this.ctx.fillStyle = color;
+                                // Use zone color with height-based brightness
+                                let brightness = 0.3 + (z / 20) * 0.4;
+                                brightness = Math.max(0.15, Math.min(0.8, brightness));
+                                this.ctx.fillStyle = zoneColor;
+                                this.ctx.globalAlpha = brightness;
                                 this.ctx.shadowBlur = 0;
                                 const fontSize = Math.floor(Math.max(4, 11 * this.zoom));
                                 this.ctx.font = `${fontSize}px monospace`;
-                                this.ctx.globalAlpha = 1.0;
                             }
 
                             this.ctx.fillText(activeChar, sx, sy);
@@ -1403,7 +1517,7 @@
                         this.ctx.strokeStyle = '#fff'; this.ctx.lineWidth = 1;
                         this.ctx.strokeRect(this.hoverCell.screenX - 8 * this.zoom, this.hoverCell.screenY - 8 * this.zoom, 16 * this.zoom, 16 * this.zoom);
 
-                        // Tooltip & INSPECTOR Logic
+                        // Tooltip logic
                         const tooltip = document.getElementById('tooltip');
                         if (this.hoverCell) {
                             tooltip.style.display = 'block';
@@ -1411,29 +1525,8 @@
                             let ty = this.mousePos ? this.mousePos.y : this.hoverCell.screenY;
                             tooltip.style.left = tx + 'px';
                             tooltip.style.top = ty + 'px';
-
-                            // Base Tooltip
-                            let content = `${this.hoverCell.gridX},${this.hoverCell.gridY} [${this.hoverCell.char}]`;
-
-                            // INSPECTOR MODE ENHANCEMENT
-                            const cellState = this.gridState[this.hoverCell.gridY][this.hoverCell.gridX];
-                            if (this.mode === 'INSPECT' && cellState && cellState.semantic) {
-                                content += `<br><span style="color:#72dec2">MEANING: ${cellState.semantic.meaning}</span>`;
-                                content += `<br><span style="color:#888; font-size:0.7em">CTX: ${cellState.semantic.context}</span>`;
-
-                                // Optional audio feedback on hover change
-                                if (this.lastHover !== `${this.hoverCell.gridX},${this.hoverCell.gridY}`) {
-                                    // AudioEngine.thud(0.1, "C6"); // Subtle click
-                                    this.lastHover = `${this.hoverCell.gridX},${this.hoverCell.gridY}`;
-                                }
-                            }
-
-                            tooltip.innerHTML = content;
-                        } else {
-                            tooltip.style.display = 'none';
-                            this.lastHover = null;
+                            tooltip.innerText = `${this.hoverCell.gridX},${this.hoverCell.gridY} [${this.hoverCell.char}]`;
                         }
-
                     } else {
                         document.getElementById('tooltip').style.display = 'none';
                     }
