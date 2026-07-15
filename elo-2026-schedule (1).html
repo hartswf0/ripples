@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELO (un)supervised 2026 — Schedule Console</title>
+<meta name="description" content="Operational schedule for ELO (un)supervised 2026. Fully online, July 15–18, hosted by UCF. Times convert to your zone; save sessions, export to calendar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#050507; --carbon:#0D0D13; --carbon2:#12121b;
+  --cyan:#48DDF3; --pink:#FF50B5; --green:#55D68A;
+  --orange:#FF8B61; --violet:#8176FF;
+  --white:#F7F5F2; --silver:#AAA9B3; --line:#22222e;
+  --mono:'IBM Plex Mono',monospace;
+  --disp:'Space Grotesk',sans-serif;
+  --body:'Inter',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--void); color:var(--white);
+  font-family:var(--body); font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--cyan); text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+/* ---- procedural backdrop ---- */
+#bg{position:fixed; inset:0; z-index:0; opacity:.5; pointer-events:none}
+.wrap{position:relative; z-index:1}
+
+/* ---- skip ---- */
+.skip{position:absolute; left:-999px; top:0; background:var(--cyan); color:var(--void);
+  padding:.5rem 1rem; font-family:var(--mono); z-index:100}
+.skip:focus{left:8px; top:8px}
+
+/* ---- header ---- */
+header{
+  position:sticky; top:0; z-index:40;
+  background:rgba(5,5,7,.82); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.bar{display:flex; align-items:center; gap:1rem; padding:.7rem 1.1rem; max-width:1320px; margin:0 auto}
+.brand{display:flex; align-items:center; gap:.6rem; font-family:var(--disp); font-weight:700; letter-spacing:.02em}
+.brand .glyph{width:26px; height:26px; flex:0 0 26px}
+.brand b{color:var(--cyan)}
+.brand .un{color:var(--pink)}
+.status{
+  font-family:var(--mono); font-size:.72rem; color:var(--silver);
+  border:1px solid var(--line); border-radius:999px; padding:.25rem .6rem;
+  display:flex; align-items:center; gap:.4rem;
+}
+.status .dot{width:7px; height:7px; border-radius:50%; background:var(--pink); box-shadow:0 0 8px var(--pink)}
+.bar .spacer{flex:1}
+.bar nav{display:flex; gap:.2rem; font-family:var(--mono); font-size:.78rem}
+.bar nav a{color:var(--silver); padding:.35rem .55rem; border-radius:6px}
+.bar nav a:hover{color:var(--white); background:var(--carbon); text-decoration:none}
+.reg{background:var(--pink); color:var(--void)!important; padding:.4rem .8rem; border-radius:999px;
+  font-family:var(--mono); font-weight:600; font-size:.78rem}
+.reg:hover{text-decoration:none; filter:brightness(1.08)}
+
+/* ---- hero ---- */
+.hero{max-width:1320px; margin:0 auto; padding:2.6rem 1.1rem 1.4rem}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.16em; color:var(--cyan); text-transform:uppercase}
+h1{font-family:var(--disp); font-weight:700; font-size:clamp(2.1rem,6vw,3.9rem);
+  line-height:1; letter-spacing:-.02em; margin:.5rem 0 .3rem}
+h1 .p{color:var(--pink)}
+.sub{font-family:var(--mono); color:var(--silver); font-size:.92rem}
+.sub b{color:var(--white); font-weight:500}
+.countline{margin-top:1rem; font-family:var(--mono); font-size:.86rem;
+  border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; display:inline-flex;
+  gap:1.1rem; flex-wrap:wrap; background:var(--carbon)}
+.countline span b{color:var(--cyan); font-size:1.05rem}
+.heroBtns{margin-top:1.2rem; display:flex; gap:.6rem; flex-wrap:wrap}
+.btn{font-family:var(--mono); font-weight:600; font-size:.82rem; border-radius:999px;
+  padding:.6rem 1.1rem; border:1px solid var(--line); background:transparent; color:var(--white);
+  cursor:pointer; display:inline-flex; align-items:center; gap:.5rem}
+.btn.primary{background:var(--cyan); color:var(--void); border-color:var(--cyan)}
+.btn.pink{background:var(--pink); color:var(--void); border-color:var(--pink)}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost:hover{background:var(--carbon)}
+
+/* ---- controls console ---- */
+.console{position:sticky; top:52px; z-index:30; background:rgba(5,5,7,.9); backdrop-filter:blur(8px);
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.console .inner{max-width:1320px; margin:0 auto; padding:.7rem 1.1rem; display:flex; flex-direction:column; gap:.6rem}
+.row1{display:flex; gap:.6rem; align-items:center; flex-wrap:wrap}
+.search{flex:1; min-width:200px; display:flex; align-items:center; gap:.5rem; background:var(--carbon);
+  border:1px solid var(--line); border-radius:8px; padding:.45rem .7rem}
+.search svg{flex:0 0 15px; opacity:.7}
+.search input{flex:1; background:transparent; border:none; color:var(--white); font-family:var(--mono);
+  font-size:.85rem; outline:none}
+.search input::placeholder{color:var(--silver)}
+.tzwrap{display:flex; align-items:center; gap:.4rem; font-family:var(--mono); font-size:.76rem; color:var(--silver)}
+.tzwrap select{background:var(--carbon); color:var(--white); border:1px solid var(--line);
+  border-radius:8px; padding:.4rem .5rem; font-family:var(--mono); font-size:.76rem; max-width:190px}
+.count{font-family:var(--mono); font-size:.74rem; color:var(--silver); white-space:nowrap}
+.count b{color:var(--cyan)}
+.row2{display:flex; gap:.4rem; flex-wrap:wrap; align-items:center}
+.pill{font-family:var(--mono); font-size:.73rem; border:1px solid var(--line); background:var(--carbon);
+  color:var(--silver); border-radius:999px; padding:.32rem .7rem; cursor:pointer; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:.35rem}
+.pill:hover{color:var(--white)}
+.pill .tk{width:8px; height:8px; border-radius:2px; display:inline-block}
+.pill[aria-pressed="true"]{color:var(--void); background:var(--white); border-color:var(--white)}
+.pill.day[aria-pressed="true"]{background:var(--cyan); border-color:var(--cyan)}
+.pill.sep{background:transparent; border:none; color:var(--line); cursor:default; padding:.32rem .1rem}
+.clear{font-family:var(--mono); font-size:.73rem; color:var(--pink); background:none; border:none;
+  cursor:pointer; text-decoration:underline; padding:.32rem .4rem}
+
+/* ---- layout ---- */
+main{max-width:1320px; margin:0 auto; padding:1.2rem 1.1rem 5rem}
+.daygroup{margin-top:1.4rem}
+.dayhdr{position:sticky; top:132px; z-index:20; display:flex; align-items:baseline; gap:.8rem;
+  background:linear-gradient(var(--void),var(--void) 70%,transparent);
+  padding:.6rem 0 .5rem; margin-bottom:.3rem}
+.dayhdr h2{font-family:var(--disp); font-weight:700; font-size:1.35rem; margin:0; letter-spacing:-.01em}
+.dayhdr .meta{font-family:var(--mono); font-size:.74rem; color:var(--silver)}
+
+/* time block */
+.timeblock{display:grid; grid-template-columns:78px 1fr; gap:.7rem; margin-bottom:.15rem}
+.tcol{font-family:var(--mono); font-size:.78rem; color:var(--silver); padding-top:.85rem;
+  border-right:1px solid var(--line); text-align:right; padding-right:.7rem; position:relative}
+.tcol .zone{display:block; font-size:.64rem; opacity:.6; margin-top:.15rem}
+.tcol .conf{display:block; font-size:.62rem; opacity:.45; margin-top:.35rem}
+.bcol{display:flex; flex-direction:column; gap:.5rem; padding:.5rem 0}
+
+/* session card */
+.card{background:var(--carbon); border:1px solid var(--line); border-left:3px solid var(--tk,var(--line));
+  border-radius:12px; padding:.75rem .9rem; position:relative}
+.card.feat{border-color:var(--violet); border-left-color:var(--violet);
+  box-shadow:0 0 0 1px rgba(129,118,255,.25), 0 4px 18px rgba(129,118,255,.08)}
+.card.target{border-color:var(--pink); border-left-color:var(--pink);
+  box-shadow:0 0 0 1px rgba(255,80,181,.3), 0 4px 22px rgba(255,80,181,.12)}
+.chead{display:flex; gap:.6rem; align-items:flex-start}
+.chead .txt{flex:1; min-width:0}
+.tags{display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.3rem; align-items:center}
+.badge{font-family:var(--mono); font-size:.63rem; letter-spacing:.04em; text-transform:uppercase;
+  padding:.16rem .45rem; border-radius:5px; border:1px solid var(--line); color:var(--silver)}
+.badge.fmt{color:var(--white)}
+.badge.trk{border-color:var(--tk); color:var(--tk)}
+.badge.violet{border-color:var(--violet); color:var(--violet)}
+.badge.tgt{border-color:var(--pink); color:var(--pink)}
+.badge.you{background:var(--pink); color:var(--void); border-color:var(--pink)}
+.ctitle{font-family:var(--disp); font-weight:600; font-size:1.02rem; line-height:1.25; margin:.1rem 0 .2rem}
+.card.target .ctitle{font-size:1.1rem}
+.cwho{font-size:.86rem; color:var(--silver)}
+.cactions{display:flex; gap:.35rem; flex:0 0 auto}
+.iconbtn{width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--void);
+  color:var(--silver); cursor:pointer; display:grid; place-items:center; padding:0}
+.iconbtn:hover{color:var(--white); border-color:var(--silver)}
+.iconbtn svg{width:16px; height:16px}
+.iconbtn.saved{background:var(--pink); border-color:var(--pink); color:var(--void)}
+.crow{display:flex; gap:1rem; align-items:center; margin-top:.5rem; flex-wrap:wrap}
+.crow a{font-family:var(--mono); font-size:.74rem; display:inline-flex; align-items:center; gap:.3rem}
+.crow a svg,.paper a.plink svg{width:11px; height:11px; flex:0 0 11px; vertical-align:middle}
+.expand{font-family:var(--mono); font-size:.74rem; color:var(--cyan); background:none; border:none;
+  cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:.3rem}
+.expand svg{width:11px; height:11px; transition:transform .2s}
+.card[data-open="true"] .expand svg{transform:rotate(90deg)}
+
+/* papers */
+.papers{display:none; margin-top:.6rem; border-top:1px dashed var(--line); padding-top:.55rem;
+  flex-direction:column; gap:.1rem}
+.card[data-open="true"] .papers{display:flex}
+
+/* about / blurb region */
+.about-sec{display:none; margin-top:.55rem; border-top:1px dashed var(--line); padding-top:.55rem}
+.card[data-open="true"] .about-sec{display:block}
+.blurb{font-size:.9rem; color:var(--white); line-height:1.5; max-width:66ch}
+.paper .pblurb{font-size:.82rem; color:var(--silver); line-height:1.45; margin-top:.25rem; max-width:64ch}
+.paper.hasdetail{flex-wrap:wrap}
+.paper.hasdetail .pmain{flex:1 1 100%}
+.paper{display:flex; gap:.6rem; align-items:baseline; padding:.32rem 0; border-bottom:1px solid rgba(34,34,46,.5)}
+.paper:last-child{border-bottom:none}
+.paper .pt{width:7px; height:7px; border-radius:2px; flex:0 0 7px; margin-top:.45rem}
+.paper .pmain{flex:1; min-width:0}
+.paper .ptitle{font-size:.9rem; font-weight:500}
+.paper .pwho{font-family:var(--mono); font-size:.73rem; color:var(--silver)}
+.paper a.plink{font-family:var(--mono); font-size:.7rem; display:inline-flex; align-items:center; gap:.25rem}
+
+/* conflict / worldcup */
+.conflict{background:var(--void); border:1px dashed var(--orange); border-left:3px solid var(--orange);
+  border-radius:12px; padding:.7rem .9rem}
+.conflict .tags .badge{border-color:var(--orange); color:var(--orange)}
+.conflict .ctitle{font-size:.96rem; color:var(--orange)}
+.conflict .cwho{font-size:.8rem}
+.conflict .note{font-family:var(--mono); font-size:.72rem; color:var(--silver); margin-top:.3rem}
+
+/* empty */
+.empty{text-align:center; padding:4rem 1rem; color:var(--silver); font-family:var(--mono)}
+.empty b{color:var(--white); display:block; font-size:1.1rem; margin-bottom:.4rem; font-family:var(--disp)}
+
+/* my-schedule drawer */
+.drawer{position:fixed; right:0; top:0; bottom:0; width:min(420px,92vw); background:var(--carbon2);
+  border-left:1px solid var(--line); z-index:60; transform:translateX(100%); transition:transform .28s ease;
+  display:flex; flex-direction:column}
+.drawer.open{transform:none}
+.dhdr{display:flex; align-items:center; justify-content:space-between; padding:1rem 1.1rem; border-bottom:1px solid var(--line)}
+.dhdr h3{font-family:var(--disp); margin:0; font-size:1.1rem}
+.dclose{background:none; border:none; color:var(--silver); cursor:pointer; font-size:1.4rem; line-height:1}
+.dbody{flex:1; overflow:auto; padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.6rem}
+.dsess{background:var(--void); border:1px solid var(--line); border-left:3px solid var(--tk,var(--line));
+  border-radius:9px; padding:.6rem .75rem}
+.dsess .dt{font-family:var(--mono); font-size:.72rem; color:var(--silver)}
+.dsess .dttl{font-weight:600; font-size:.9rem; margin:.15rem 0}
+.dsess .drm{font-family:var(--mono); font-size:.7rem; color:var(--pink); background:none; border:none;
+  cursor:pointer; text-decoration:underline; padding:0}
+.dconflict{font-family:var(--mono); font-size:.7rem; color:var(--orange); margin-top:.25rem;
+  display:flex; align-items:center; gap:.35rem}
+.dfoot{padding:1rem 1.1rem; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:.5rem}
+.dfoot .btn{justify-content:center}
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:55; opacity:0; pointer-events:none;
+  transition:opacity .25s}
+.overlay.on{opacity:1; pointer-events:auto}
+.fab{position:fixed; right:1.1rem; bottom:1.1rem; z-index:45; background:var(--pink); color:var(--void);
+  border:none; border-radius:999px; padding:.75rem 1.1rem; font-family:var(--mono); font-weight:600;
+  font-size:.82rem; cursor:pointer; box-shadow:0 6px 24px rgba(255,80,181,.3); display:flex;
+  align-items:center; gap:.5rem}
+.fab .n{background:var(--void); color:var(--pink); border-radius:999px; min-width:20px; height:20px;
+  display:grid; place-items:center; font-size:.72rem; padding:0 .3rem}
+
+/* footer */
+footer{border-top:1px solid var(--line); background:var(--carbon)}
+.foot{max-width:1320px; margin:0 auto; padding:2rem 1.1rem; display:flex; flex-wrap:wrap;
+  gap:2rem; justify-content:space-between}
+.foot .col h4{font-family:var(--disp); font-size:.95rem; margin:0 0 .6rem}
+.foot .col a{display:block; font-family:var(--mono); font-size:.78rem; color:var(--silver); margin:.28rem 0}
+.foot .col a:hover{color:var(--white)}
+.foot .about{max-width:340px; font-size:.85rem; color:var(--silver)}
+.foot .about b{color:var(--white); font-family:var(--disp)}
+.legal{max-width:1320px; margin:0 auto; padding:0 1.1rem 2rem; font-family:var(--mono);
+  font-size:.7rem; color:var(--silver)}
+
+/* toast */
+.toast{position:fixed; left:50%; bottom:1.4rem; transform:translateX(-50%) translateY(120%);
+  background:var(--white); color:var(--void); font-family:var(--mono); font-size:.78rem; font-weight:600;
+  padding:.6rem 1rem; border-radius:999px; z-index:70; transition:transform .3s; box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast.on{transform:translateX(-50%)}
+
+@media (max-width:760px){
+  .bar nav{display:none}
+  .console{top:52px; position:static}
+  .dayhdr{top:0}
+  .timeblock{grid-template-columns:64px 1fr; gap:.5rem}
+  .tcol{font-size:.72rem; padding-right:.5rem}
+  .status{display:none}
+  .fab{padding:.7rem .9rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important; animation:none!important; scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<a href="#schedule" class="skip">Skip to schedule</a>
+<canvas id="bg"></canvas>
+
+<div class="wrap">
+<header>
+  <div class="bar">
+    <span class="brand">
+      <svg class="glyph" viewBox="0 0 40 40" fill="none" stroke-width="2.4" aria-hidden="true">
+        <path d="M8 12h10M8 20h7M8 28h10" stroke="var(--cyan)" stroke-linecap="round"/>
+        <path d="M22 8v24" stroke="var(--pink)" stroke-linecap="round"/>
+        <circle cx="30" cy="14" r="3.2" stroke="var(--green)"/>
+        <path d="M27 26l6 4" stroke="var(--violet)" stroke-linecap="round"/>
+      </svg>
+      <span>ELO <b>(</b><span class="un">un</span><b>)</b>supervised <b>26</b></span>
+    </span>
+    <span class="status"><span class="dot"></span>ONLINE · JUL 15–18</span>
+    <span class="spacer"></span>
+    <nav>
+      <a href="#schedule">Schedule</a>
+      <a href="#featured">Featured</a>
+      <a href="https://stars.library.ucf.edu/elo2026/" target="_blank" rel="noopener">Repository</a>
+      <a href="https://stars.library.ucf.edu/elo2026/information.html" target="_blank" rel="noopener">Access</a>
+    </nav>
+    <a class="reg" href="https://forms.gle/91whqpm3XHcPqrQeA" target="_blank" rel="noopener">Register</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Electronic Literature Organization · Conference</div>
+  <h1>ELO <span class="p">(un)</span>supervised 2026</h1>
+  <div class="sub">July 15–18, 2026 · <b>Fully online</b> · Hosted by the University of Central Florida · Program in <b>US Eastern</b></div>
+  <div class="countline" id="countline" aria-live="polite">
+    <span>STATUS <b id="cstatus">—</b></span>
+    <span>SESSIONS <b id="ctotal">—</b></span>
+    <span>YOUR ZONE <b id="czone">—</b></span>
+  </div>
+  <div class="heroBtns">
+    <a class="btn pink" href="https://forms.gle/91whqpm3XHcPqrQeA" target="_blank" rel="noopener">Register — free for ELO members</a>
+    <button class="btn ghost" id="jumpTarget">Jump to Coaxing the Ripples</button>
+    <button class="btn ghost" id="openMy">My schedule</button>
+  </div>
+</section>
+
+<div class="console" id="controls">
+  <div class="inner">
+    <div class="row1">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input id="q" type="search" placeholder="Search title, presenter, institution…" aria-label="Search sessions">
+      </label>
+      <div class="tzwrap">
+        <span>TZ</span>
+        <select id="tz" aria-label="Display time zone"></select>
+      </div>
+      <span class="count"><b id="matchN">0</b> shown</span>
+    </div>
+    <div class="row2" id="filters">
+      <button class="pill day" data-day="2026-07-15" aria-pressed="false">Wed 15</button>
+      <button class="pill day" data-day="2026-07-16" aria-pressed="false">Thu 16</button>
+      <button class="pill day" data-day="2026-07-17" aria-pressed="false">Fri 17</button>
+      <button class="pill day" data-day="2026-07-18" aria-pressed="false">Sat 18</button>
+      <span class="pill sep">|</span>
+      <button class="pill trk" data-track="algorithms" aria-pressed="false"><span class="tk" style="background:#48DDF3"></span>Algorithms</button>
+      <button class="pill trk" data-track="hypertexts" aria-pressed="false"><span class="tk" style="background:#FF50B5"></span>Hypertexts</button>
+      <button class="pill trk" data-track="narratives" aria-pressed="false"><span class="tk" style="background:#55D68A"></span>Narratives</button>
+      <button class="pill trk" data-track="exhibition" aria-pressed="false"><span class="tk" style="background:#FF8B61"></span>Exhibition</button>
+      <button class="pill trk" data-track="plenary" aria-pressed="false"><span class="tk" style="background:#8176FF"></span>Plenary/Keynote</button>
+      <span class="pill sep">|</span>
+      <button class="pill" data-flag="featured" aria-pressed="false">Featured only</button>
+      <button class="pill" data-flag="saved" aria-pressed="false">Saved only</button>
+      <button class="clear" id="clearAll">Clear all</button>
+    </div>
+  </div>
+</div>
+
+<main id="schedule">
+  <div id="list"></div>
+</main>
+
+<footer id="about">
+  <div class="foot">
+    <div class="col about">
+      <b>Electronic literature does not stay inside the page.</b><br><br>
+      The annual ELO conference brings together artists, scholars, writers, designers, and
+      programmers working across digital and computational forms. ELO 2026 runs fully online,
+      July 15–18, hosted by UCF. The theme, (un)supervised, asks who is watching, who is reading,
+      and who is learning.
+    </div>
+    <div class="col">
+      <h4>Conference</h4>
+      <a href="https://stars.library.ucf.edu/elo2026/" target="_blank" rel="noopener">Full repository</a>
+      <a href="https://stars.library.ucf.edu/elo2026/about.html" target="_blank" rel="noopener">Organizers & committees</a>
+      <a href="https://stars.library.ucf.edu/elo2026/cfp.html" target="_blank" rel="noopener">(Un)Supervised CFP</a>
+      <a href="https://stars.library.ucf.edu/elo2026/information.html" target="_blank" rel="noopener">Logistics & policies</a>
+    </div>
+    <div class="col">
+      <h4>Attend</h4>
+      <a href="https://forms.gle/91whqpm3XHcPqrQeA" target="_blank" rel="noopener">Register (opens new window)</a>
+      <a href="https://eliterature.org/membership/" target="_blank" rel="noopener">Become an ELO member</a>
+      <a href="https://stars.library.ucf.edu/elo2026/registration.html" target="_blank" rel="noopener">Registration & access</a>
+      <a href="https://stars.library.ucf.edu/accessibility.html" target="_blank" rel="noopener">Accessibility statement</a>
+    </div>
+  </div>
+  <div class="legal">
+    ELO 2026 · University of Central Florida · STARS conference repository. Session times entered in
+    US Eastern (America/New_York) and converted locally. World Cup fixtures shown for scheduling
+    awareness only and are not conference events.
+  </div>
+</footer>
+</div>
+
+<button class="fab" id="fab" aria-label="Open my schedule">My schedule <span class="n" id="fabN">0</span></button>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-label="My saved sessions" aria-hidden="true">
+  <div class="dhdr">
+    <h3>My schedule</h3>
+    <button class="dclose" id="dclose" aria-label="Close">×</button>
+  </div>
+  <div class="dbody" id="dbody"></div>
+  <div class="dfoot">
+    <button class="btn primary" id="exportAll">Export all to calendar (.ics)</button>
+    <button class="btn ghost" id="clearSaved">Clear my schedule</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ELO (un)supervised 2026 — schedule dataset
+   Source of truth: conference program (US Eastern). Times stored as
+   America/New_York wall-clock; converted at presentation time only.
+   Verified links point at the STARS repository (stars.library.ucf.edu). */
+
+const REPO = "https://stars.library.ucf.edu/elo2026/";
+const REG  = "https://forms.gle/91whqpm3XHcPqrQeA";
+
+/* track keys -> label + accent (from brand system) */
+const TRACKS = {
+  algorithms: { label: "Algorithms & Imaginaries", accent: "#48DDF3" },
+  hypertexts: { label: "Hypertexts & Fictions",    accent: "#FF50B5" },
+  narratives: { label: "Narratives & Worlds",       accent: "#55D68A" },
+  exhibition: { label: "Exhibition",                accent: "#FF8B61" },
+  plenary:    { label: "Plenaries & Keynotes",      accent: "#8176FF" },
+};
+
+const FORMATS = {
+  plenary: "Plenary", keynote: "Keynote", panel: "Panel",
+  paper: "Paper session", performance: "Performance",
+  experimental: "Experimental", exhibition: "Exhibition",
+  welcome: "Welcome", awards: "Awards", closing: "Closing",
+};
+
+/* helper: build a session row */
+function S(o){ return o; }
+
+/* Each session: id, date (YYYY-MM-DD), start/end (HH:MM 24h ET),
+   format, track, title, who, featured, url (repo link), papers[] */
+const SESSIONS = [
+  /* ============ WED JULY 15 ============ */
+  S({ id:"welcome", date:"2026-07-15", start:"12:30", end:"12:45",
+      format:"welcome", track:"plenary", featured:true,
+      title:"ELO 2026 (Un)Supervised Welcome Remarks",
+      who:"Anastasia Salter (UCF)",
+      url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/1/" }),
+
+  S({ id:"keynote-bertram", date:"2026-07-15", start:"13:00", end:"14:00",
+      format:"keynote", track:"plenary", featured:true,
+      title:"Keynote: Lillian-Yvonne Bertram",
+      who:"Lillian-Yvonne Bertram (University of Maryland — Baltimore)",
+      url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/3/" }),
+
+  S({ id:"wed-215", date:"2026-07-15", start:"14:15", end:"15:15",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (6 sessions)",
+      who:"6 concurrent sessions", url:REPO,
+      papers:[
+        {t:"AI-Generated Code + E-Poetry", p:"Roque Fernández Alcañiz", track:"algorithms"},
+        {t:"Connected/Disconnected", p:"Emery Beckman", track:"algorithms"},
+        {t:"Intro to Scrollimation", p:"Artemio Morales", track:"hypertexts"},
+        {t:"Name that face", p:"Denise Larsen", track:"narratives"},
+        {t:"The Shadow of Situationism", p:"Francisco Reyes Betancourtt", track:"algorithms"},
+        {t:"Words Have Their Final Weapon", p:"Andrew Campana", track:"algorithms"},
+      ] }),
+
+  S({ id:"wed-330", date:"2026-07-15", start:"15:30", end:"16:30",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (6 sessions)",
+      who:"6 concurrent sessions", url:REPO,
+      papers:[
+        {t:"Edit the Peeragogy Wikibook", p:"Charles Danoff", track:"hypertexts"},
+        {t:"High-Performance Spatial Text", p:"patrick lichty", track:"narratives"},
+        {t:"Making the Writer's Project", p:"Alex Calderwood", track:"algorithms"},
+        {t:"Singulars", p:"Halim Madi", track:"algorithms"},
+        {t:"Solar Powered Alba Generator", p:"Allison Parrish", track:"algorithms"},
+        {t:"The Subcutanean Variorum", p:"Mark Sample", track:"algorithms"},
+      ] }),
+
+  S({ id:"wed-445", date:"2026-07-15", start:"16:45", end:"17:45",
+      format:"paper", track:"hypertexts", featured:false,
+      title:"Concurrent paper block (2 sessions)",
+      who:"2 concurrent sessions", url:REPO,
+      papers:[
+        {t:"On the Peripheries of E-lit", p:"Kiera Obbard et al.", track:"hypertexts"},
+        {t:"Out Of This World", p:"Monica Storss et al.", track:"narratives"},
+      ] }),
+
+  S({ id:"exhibition-launch", date:"2026-07-15", start:"19:00", end:"20:30",
+      format:"exhibition", track:"exhibition", featured:true,
+      title:"ELO (Un)Supervised Exhibition Launch",
+      who:"Daniel Cox, R. Lyle Skains",
+      url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/2/" }),
+
+  /* ============ THU JULY 16 ============ */
+  S({ id:"thu-915", date:"2026-07-16", start:"09:15", end:"10:15",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (8 sessions)",
+      who:"8 concurrent sessions", url:REPO,
+      papers:[
+        {t:"A Human Was Here", p:"Emily Carr", track:"algorithms"},
+        {t:"Coercing Contribution", p:"Glenn S. Ritchey III", track:"algorithms"},
+        {t:"Nilo Ybyraporã", p:"Daniela Silva de Freitas", track:"narratives"},
+        {t:"Perverse Pleasure", p:"Joy Pang", track:"hypertexts"},
+        {t:"Poetry of Movement", p:"Shweta Khilnani", track:"narratives"},
+        {t:"Publishing Electronic Literature Research", p:"Samya Brata Roy et al.", track:"algorithms"},
+        {t:"Reimaging Authorship", p:"zhijing wang", track:"algorithms"},
+        {t:"Start typing…", p:"Alex Saum-Pascual", track:"hypertexts"},
+      ] }),
+
+  S({ id:"thu-1030", date:"2026-07-16", start:"10:30", end:"11:30",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (9 sessions)",
+      who:"9 concurrent sessions", url:REPO,
+      papers:[
+        {t:"(Un)Supervised Critical Baking", p:"Emily Johnson, Vee Kennedy", track:"narratives"},
+        {t:"A multi-language video game dialogue corpus", p:"Mark A. Black", track:"narratives"},
+        {t:"Eventization and the Community", p:"Piotr Marecki et al.", track:"algorithms"},
+        {t:"Hosting the Gap", p:"Maya Sarfaty", track:"hypertexts"},
+        {t:"Miniature Novels Inside Code", p:"Matthew F. Griffin", track:"algorithms"},
+        {t:"Narrative Nubs", p:"Nick Montfort", track:"algorithms"},
+        {t:"Never Let It Collapse", p:"Caitlin Fisher", track:"hypertexts"},
+        {t:"Portuguese Net Art and e-Poetics", p:"Johanna Drucker et al.", track:"hypertexts"},
+        {t:"Quilt Poems", p:"Lee Tusman", track:"narratives"},
+      ] }),
+
+  S({ id:"thu-panel", date:"2026-07-16", start:"13:00", end:"14:00",
+      format:"panel", track:"plenary", featured:false,
+      title:"(Un)easily Writing the Future",
+      who:"Stuart Moulthrop, Judith Pintar, John G. McDaid",
+      url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/1/" }),
+
+  S({ id:"thu-215", date:"2026-07-16", start:"14:15", end:"15:15",
+      format:"paper", track:"narratives", featured:false,
+      title:"Concurrent paper block (3 sessions)",
+      who:"3 concurrent sessions", url:REPO,
+      papers:[
+        {t:"Post-Digital Creativity", p:"Tegan Pyke et al.", track:"narratives"},
+        {t:"Storyboarding for Scrollimation", p:"Artemio Morales", track:"hypertexts"},
+        {t:"Techno-Human Desire", p:"Chloe M. A. Mauvais et al.", track:"algorithms"},
+      ] }),
+
+  S({ id:"thu-330", date:"2026-07-16", start:"15:30", end:"16:30",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (3 sessions)",
+      who:"3 concurrent sessions", url:REPO,
+      papers:[
+        {t:"CELL Project Roundtable 2026", p:"Davin Heckman", track:"algorithms"},
+        {t:"Cooperation, Collaboration, and Community", p:"Rachel Kerr et al.", track:"narratives"},
+        {t:"E-Lit Periodicals", p:"Peter D. Edgar et al.", track:"algorithms"},
+      ] }),
+
+  S({ id:"thu-445", date:"2026-07-16", start:"16:45", end:"17:45",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (9 sessions)",
+      who:"9 concurrent sessions", url:REPO,
+      papers:[
+        {t:"Boîte en Valise", p:"patrick lichty", track:"narratives"},
+        {t:"Co-Habited Texts", p:"Abhik Hasnain et al.", track:"hypertexts"},
+        {t:"Compressed Cinema", p:"Mallen Clifton", track:"narratives"},
+        {t:"From Voice to Environment", p:"Daniel Lichtman", track:"narratives"},
+        {t:"National Fictions", p:"Elizabeth Losh", track:"algorithms"},
+        {t:"Necrotextual Poetics", p:"Zach Whalen", track:"algorithms"},
+        {t:"Red-Teaming GenAI Chatbots", p:"Siobhan O'Flynn", track:"algorithms"},
+        {t:"Remaking the Red Death", p:"Kenton T. Howard", track:"hypertexts"},
+        {t:"Thinking Ahead about Your Legacy", p:"Dene Grigar et al.", track:"algorithms"},
+      ] }),
+
+  S({ id:"thu-perf", date:"2026-07-16", start:"19:00", end:"20:30",
+      format:"performance", track:"narratives", featured:false,
+      title:"Performances (3)",
+      who:"3 performances", url:REPO,
+      papers:[
+        {t:"Authority Figures", p:"John Murray et al.", track:"narratives"},
+        {t:"Hacking Stone Moons", p:"Denise Larsen et al.", track:"narratives"},
+        {t:"The Female Voice, The Male Gaze", p:"Aishat Olayetunde Isiaq", track:"hypertexts"},
+      ] }),
+
+  /* ============ FRI JULY 17 ============ */
+  S({ id:"fri-midnight", date:"2026-07-17", start:"00:00", end:"01:00",
+      format:"paper", track:"narratives", featured:false,
+      title:"Positioning Electronic Literature",
+      who:"Mehulkumar Desai, Shanmugapriya T", url:REPO }),
+
+  S({ id:"coaxing-ripples", date:"2026-07-17", start:"09:15", end:"10:15",
+      format:"paper", track:"hypertexts", featured:true, target:true,
+      title:"Coaxing the Ripples: thoughts on distant writing of interactive works",
+      who:"Terhi Marttila, Jay David Bolter, Watson Hartsoe",
+      url:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/17/" }),
+
+  S({ id:"fri-915", date:"2026-07-17", start:"09:15", end:"10:15",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (10 sessions)",
+      who:"10 concurrent sessions", url:REPO,
+      papers:[
+        {t:"\"I Believe You\"", p:"Xiang Yu", track:"algorithms",
+         u:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/22/"},
+        {t:"A Machine That Eats Books", p:"Alex Mitchell", track:"hypertexts"},
+        {t:"AFOA.NZ", p:"Gisela De Castro", track:"narratives"},
+        {t:"Blurring Ontologies", p:"Lopamudra Saha", track:"algorithms"},
+        {t:"Exploring fractures", p:"Christine Wilks", track:"hypertexts"},
+        {t:"In Dark times", p:"Shannon Lee", track:"narratives"},
+        {t:"Migritude in the Digital Space", p:"Ruth Oluyemi Akande", track:"narratives"},
+        {t:"Network of Time", p:"Jesse M. Ward", track:"hypertexts"},
+        {t:"Supervising the Creation", p:"Sebastian R. Richter", track:"algorithms"},
+        {t:"Twice,again: Virentis", p:"Andrew Burrell", track:"narratives"},
+        {t:"Water Songs", p:"Jolene L. Armstrong et al.", track:"narratives"},
+      ] }),
+
+  S({ id:"fri-1030", date:"2026-07-17", start:"10:30", end:"11:30",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (8 sessions)",
+      who:"8 concurrent sessions", url:REPO,
+      papers:[
+        {t:"\"Huir sí es mejor plan\"", p:"Fernanda Mugica", track:"narratives"},
+        {t:"(Un)Supervised Translation", p:"Sara Raffel et al.", track:"algorithms"},
+        {t:"Code poetry and labour", p:"María Garay Arriba", track:"algorithms"},
+        {t:"Conflicting agencies", p:"Ana Marques da Silva", track:"algorithms"},
+        {t:"Electronic Literature in AI", p:"Mihai Bacaran", track:"algorithms"},
+        {t:"Posthuman Ethics", p:"Liselotte de Beer", track:"algorithms"},
+        {t:"The Headless Seven", p:"Lyle Skains", track:"hypertexts"},
+        {t:"The Implications of Generative-AI", p:"Angely C. Suarez DeJesus", track:"algorithms"},
+      ] }),
+
+  S({ id:"fri-plenary-cell", date:"2026-07-17", start:"13:00", end:"14:00",
+      format:"plenary", track:"plenary", featured:true,
+      title:"Plenary: Electronic Literature Collection 5",
+      who:"Daniel Cox, Zach Whalen, Élika Ortega-Guzman, Dani Spinosa",
+      url:REPO }),
+
+  S({ id:"fri-215", date:"2026-07-17", start:"14:15", end:"15:15",
+      format:"paper", track:"hypertexts", featured:false,
+      title:"Concurrent paper block (5 sessions)",
+      who:"5 concurrent sessions", url:REPO,
+      papers:[
+        {t:"\"You can see Note 23 here.\"", p:"Jason Boyd", track:"hypertexts"},
+        {t:"An/archivism, Chronopoetics", p:"Claudia Kozak et al.", track:"algorithms"},
+        {t:"Archival Storytelling", p:"Dene Grigar", track:"hypertexts"},
+        {t:"Digitally Disfiguring the Canon", p:"David T.H. Wright", track:"algorithms"},
+        {t:"Performing Comedy", p:"Rob Wittig et al.", track:"narratives"},
+      ] }),
+
+  S({ id:"fri-eliza", date:"2026-07-17", start:"15:30", end:"16:30",
+      format:"panel", track:"plenary", featured:false,
+      title:"Inventing ELIZA",
+      who:"Mark Marino et al.", url:REPO }),
+
+  S({ id:"fri-experimental", date:"2026-07-17", start:"16:45", end:"20:30",
+      format:"experimental", track:"exhibition", featured:false,
+      title:"Essay on the future of writing-reading",
+      who:"Vinicius Marquet", url:REPO }),
+
+  S({ id:"fri-perf", date:"2026-07-17", start:"19:00", end:"20:30",
+      format:"performance", track:"narratives", featured:false,
+      title:"Performances (4)",
+      who:"4 performances", url:REPO,
+      papers:[
+        {t:"Inscription", p:"Xiang Yu", track:"hypertexts"},
+        {t:"Latent Laughing Medusa", p:"Judd Morrissey", track:"algorithms"},
+        {t:"man.A.machine.txt", p:"James H. Pardue", track:"algorithms"},
+        {t:"Surveillance as Care", p:"Erin R. Glass", track:"narratives"},
+      ] }),
+
+  /* ============ SAT JULY 18 ============ */
+  S({ id:"sat-915", date:"2026-07-18", start:"09:15", end:"10:15",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (9 sessions)",
+      who:"9 concurrent sessions", url:REPO,
+      papers:[
+        {t:"Coding a Poetics of Love and Politics", p:"Tiffany Fung", track:"algorithms"},
+        {t:"Coding the Wild", p:"Yolanda De Gregorio", track:"narratives"},
+        {t:"From AI to EI", p:"Richard A. Carter", track:"algorithms"},
+        {t:"How Firm is Our Foundation?", p:"Katherine Parrish", track:"hypertexts"},
+        {t:"Reorienting Electronic Literature", p:"Mehulkumar Desai et al.", track:"algorithms",
+         u:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/26/"},
+        {t:"Small Changes, Large Effects", p:"Mumtaz Mazumdar", track:"algorithms"},
+        {t:"Teaching Writers to Think Queerly", p:"LJ Connolly", track:"narratives"},
+        {t:"Twine and Inky", p:"Jeremy Andriano", track:"narratives"},
+        {t:"Vibe Coding", p:"Yohanna Joseph Waliya", track:"algorithms"},
+      ] }),
+
+  S({ id:"sat-1030", date:"2026-07-18", start:"10:30", end:"11:30",
+      format:"paper", track:"narratives", featured:false,
+      title:"Concurrent paper block (9 sessions)",
+      who:"9 concurrent sessions", url:REPO,
+      papers:[
+        {t:"Detour, Digress, Destroy", p:"Devin Higgins", track:"algorithms"},
+        {t:"Digital Nollywood", p:"Theodora Bassey Etim", track:"narratives",
+         u:"https://stars.library.ucf.edu/elo2026/narrativesandworlds/schedule/31/"},
+        {t:"Exiled to Latent Space", p:"Kavisha D. Alagiya", track:"algorithms"},
+        {t:"Human Digital Interaction", p:"Kirill Azernyi", track:"hypertexts"},
+        {t:"New Beginnings", p:"Brendan Howell et al.", track:"narratives"},
+        {t:"Reacting to Electronic Literature", p:"Faith Samuel Bassey", track:"narratives"},
+        {t:"The Question is a Node", p:"Michael Merriam", track:"hypertexts"},
+        {t:"Unsupervised Pedagogy", p:"Lilian Okoro", track:"narratives"},
+        {t:"Unsupervised: Shedding Light", p:"Jasmine Mattey", track:"narratives"},
+      ] }),
+
+  S({ id:"sat-keynote-flores", date:"2026-07-18", start:"13:00", end:"14:00",
+      format:"keynote", track:"plenary", featured:true,
+      title:"Keynote: Leonardo Flores — Beyond Impossible Writing",
+      who:"Leonardo Flores (Appalachian State University)",
+      url:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/26/" }),
+
+  S({ id:"sat-215", date:"2026-07-18", start:"14:15", end:"15:15",
+      format:"paper", track:"algorithms", featured:false,
+      title:"Concurrent paper block (5 sessions)",
+      who:"5 concurrent sessions", url:REPO,
+      papers:[
+        {t:"\"The First Web Novel at 30\"", p:"Robert Arellano et al.", track:"hypertexts"},
+        {t:"Algorithmic Narrators", p:"Yingzi Kong", track:"algorithms"},
+        {t:"Algorithmic Translation", p:"Dr. Gloria Wilson Inyang", track:"algorithms"},
+        {t:"Once Upon an Algorithm", p:"Bridget Kies", track:"narratives"},
+        {t:"When AI Magic Meets Creative Writing", p:"Kateryna Shabelnyk", track:"algorithms"},
+      ] }),
+
+  S({ id:"sat-townhall", date:"2026-07-18", start:"15:30", end:"16:30",
+      format:"plenary", track:"plenary", featured:true,
+      title:"Plenary: ELO Town Hall",
+      who:"Anastasia Salter", url:REPO }),
+
+  S({ id:"sat-awards", date:"2026-07-18", start:"16:45", end:"17:45",
+      format:"awards", track:"plenary", featured:true,
+      title:"2026 Electronic Literature Awards Ceremony",
+      who:"Anastasia Salter, Jason Nelson, Alinta Krauth", url:REPO }),
+];
+
+/* ---- World Cup 2026 knockout overlay (verified current results/venues) ----
+   These are EXTERNAL events shown as scheduling conflicts, not ELO sessions. */
+const WORLDCUP = [
+  { id:"wc-sf2", date:"2026-07-15", start:"15:00", end:"17:00",
+    title:"World Cup Semi-Final — England vs Argentina",
+    venue:"Mercedes-Benz Stadium, Atlanta GA",
+    note:"3:00 PM ET kickoff. Overlaps the Wed 2:15 & 3:30 conference blocks." },
+  { id:"wc-third", date:"2026-07-18", start:"17:00", end:"19:00",
+    title:"World Cup Third-Place Match",
+    venue:"Hard Rock Stadium, Miami Gardens FL",
+    note:"5:00 PM ET kickoff. Overlaps the Awards Ceremony (4:45–5:45)." },
+  { id:"wc-final", date:"2026-07-19", start:"15:00", end:"17:00",
+    title:"World Cup Final",
+    venue:"MetLife Stadium, New York / New Jersey",
+    note:"3:00 PM ET kickoff. Day after the conference closes." },
+];
+
+const DAYS = [
+  { key:"2026-07-15", label:"Wed 15", full:"Wednesday, July 15" },
+  { key:"2026-07-16", label:"Thu 16", full:"Thursday, July 16" },
+  { key:"2026-07-17", label:"Fri 17", full:"Friday, July 17" },
+  { key:"2026-07-18", label:"Sat 18", full:"Saturday, July 18" },
+];
+
+window.ELO = { REPO, REG, TRACKS, FORMATS, SESSIONS, WORLDCUP, DAYS };
+
+</script>
+<script>
+/* Verified session detail — real STARS URLs + blurbs paraphrased from the
+   conference's own published abstracts/bios. No quotes, no invented facts.
+   Keyed by session id; papers keyed by their title inside `papers{}`.
+   A session with no entry here simply shows its repository link. */
+
+const DETAILS = {
+  /* ---- featured / plenary ---- */
+  "welcome":{ url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/1/",
+    blurb:"Conference co-chair Anastasia Salter opens ELO 2026. Salter is ELO's president and directs the Texts & Technology PhD program at UCF; her books include Critical Making in the Age of AI and Twining. Her remarks are expected to frame the (un)supervised theme around alternatives to extractive educational technology." },
+
+  "keynote-bertram":{ url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/3/",
+    blurb:"Poet and Associate Professor Lillian-Yvonne Bertram uses algorithms and programming languages to interrogate systemic anti-Blackness. Their collection Travesty Generator was longlisted for the 2020 National Book Award; they co-edited MIT Press's Output anthology of computer-generated text. A practice they describe as writing programs that write poems." },
+
+  "sat-keynote-flores":{ url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/5/",
+    blurb:"Closing keynote by Leonardo Flores, English chair at Appalachian State and president of the Latin American electronic-literature network Lit(e)Lat. Known for I ♥ E-Poetry and the Electronic Literature Collection Vol. 3, he asks how generative AI moves procedural writing past its earlier, human-authored constraints." },
+
+  "thu-panel":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/1/",
+    blurb:"Three veteran digital writers — Stuart Moulthrop (Victory Garden), John G. McDaid (Uncle Buddy's Phantom Funhouse), and sociologist Judith Pintar (the 1991 interactive fiction Cosmoserve) — reflect on how language models change how they see themselves as writers and teachers. Pintar demos a Gemini-facilitated Rogerian session with an Inform-written Eliza bot." },
+
+  "fri-plenary-cell":{ url:"https://stars.library.ucf.edu/elo2026/combined_schedule/all/4/",
+    blurb:"The editorial collective behind Volume 5 of the Electronic Literature Collection — Daniel Cox, Zach Whalen, Élika Ortega-Guzman, and Dani Spinosa — introduces the field's definitive open-access anthology, spanning creative coding, multilingual and print-digital hybrids, and decentralized cataloging." },
+
+  "fri-eliza":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/1/",
+    blurb:"Mark Marino (USC), a central figure in Critical Code Studies, revisits ELIZA — Joseph Weizenbaum's 1960s chatbot — as a reminder that projecting empathy and consciousness onto machines has been foundational since the birth of conversational computing." },
+
+  /* ---- target ---- */
+  "coaxing-ripples":{ url:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/17/",
+    blurb:"Terhi Marttila, Jay David Bolter, and Watson Hartsoe frame Ripples as an experiment in distant writing — authoring at n degrees of remove, where the human writes a prompt that in turn generates the work. One starting point produced three divergent artifacts; the talk unpacks that genealogy, including the disillusionment of unimaginative machine language and the moments that make the approach worth pursuing. Hartsoe is a computational-arts researcher at Georgia Tech; Bolter is emeritus there and author of Writing Space and Remediation." },
+
+  /* ---- Day 1: 2:15 block (Algorithms) ---- */
+  "wed-215":{ blurb:"Six concurrent talks. Confirmed repository links and abstracts are attached to each below where available." },
+
+  /* ---- Day 4 talks with confirmed pages ---- */
+  "sat-215":{ blurb:"Five concurrent talks spanning algorithmic narration, translation, and creative-writing tooling." },
+};
+
+/* paper-level details keyed by exact paper title */
+const PAPER_DETAILS = {
+  "Words Have Their Final Weapon":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/2/",
+    blurb:"Andrew Campana (Cornell) traces more than half a century of computer-generated Japanese poetry — from 1960s haiku experiments to Suzuki Shirōyasu's 1980s poem machines to 1990s internet poets — showing that today's AI debates had lively, largely unrecognized precursors. He critiques how AI discourse frames 'Japan' as the generatable other." },
+  "AI-Generated Code + E-Poetry":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/",
+    blurb:"Roque Fernández Alcañiz (Santiago de Compostela / Coimbra) merges AI-generated code with e-poetry in TouchDesigner, a node-based visual language for real-time multimedia — directing coding models to build spatial visual poetics rather than hand-writing the node graph." },
+  "Connected/Disconnected":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/5/",
+    blurb:"Emery Beckman (UCF) treats agentic AI as a digital companion to creative design, demoing AI-assisted poems built alongside Claude Code that mirror the push and pull of technology and society while keeping human thought at the forefront." },
+  "Intro to Scrollimation":{ url:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/1/",
+    blurb:"Artemio Morales, founder of AltSalt, runs a hands-on workshop in Scroll Cinema — a no-code visual editor for scroll-driven e-lit in the vein of A Modern Ghost, Device 6, and The Boat. Configure timelines, triggers, and cinematic autoplay in the browser." },
+  "Name that face":{ url:"https://stars.library.ucf.edu/elo2026/hypertextsandfictions/schedule/",
+    blurb:"Denise Larsen works at the intersection of public-domain archiving and narrative, using community-curated Wikimedia images to generate emergent storyworlds." },
+  "The Shadow of Situationism":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/",
+    blurb:"Francisco Reyes Betancourtt (UC Irvine) situates AI-generated poetry in the lineage of the Situationist International and détournement, arguing LLMs can be turned from tools of homogenization into radical engines that reroute the digital spectacle." },
+
+  /* ---- Day 1: 3:30 block ---- */
+  "High-Performance Spatial Text":{ url:"https://stars.library.ucf.edu/elo2026/narrativesandworlds/schedule/2/",
+    blurb:"Patrick Lichty (Winona State) — veteran of RTMark and the VR performance group Second Front — runs a workshop staging spatial text under speed and constraint: a collective racing simulation in Unreal Engine that shifts from a contemplative journey model to a high-velocity one, framing constraint itself as a generative literary condition (via Frank, Mitchell, Aarseth, Hayles)." },
+  "Making the Writer's Project":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/8/",
+    blurb:"Alex Calderwood (UCSC) presents a series of playful, provocative text editors: one asks if you're sure before every word, one disables delete, one turns your prior writing into a Tetris-like poetry game — each pairing an interface experiment with a theoretical insight about writerly agency under AI mediation." },
+  "Singulars":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/6/",
+    blurb:"Halim Madi co-creates poetry live with a language model trained on an English-poetry anthology and his own writing, proposing AI co-authorship as a laboratory for how embodiment and emotional risk recalibrate creativity — a reverse Turing test staged as performance." },
+  "Solar Powered Alba Generator":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/9/",
+    blurb:"Allison Parrish (NYU ITP) presents a handheld, solar-powered poetry device with no battery — a Raspberry Pi RP2040 that runs only when its panel draws enough light, generating text from a tiny Markov chain retrained on-device. A pointed argument that computational poetry need not carry the environmental cost of large models." },
+  "The Subcutanean Variorum":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/",
+    blurb:"Mark Sample turns Subcutanean — a procedural horror novel printed in thousands of unique variations — into a variorum, a critical edition that catalogs the algorithm's permutations and offers a method for studying deeply variable, non-static texts." },
+
+  /* ---- Day 2 ---- */
+  "Coercing Contribution":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/",
+    blurb:"Glenn S. Ritchey III (UCF), whose work analyzes power in contested geographies from Belfast murals to Kashmir, dissects how participatory platforms architect and 'coerce' user engagement — and how communities resist." },
+  "Publishing Electronic Literature Research":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/10/",
+    blurb:"Samya Brata Roy, Shanmugapriya T, and Mehulkumar Desai map the structural tension for e-lit scholars in India, where Scopus/Web of Science indexing rewards conventional formats and penalizes innovative digital research — a roadmap for institutional validation." },
+  "National Fictions":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/16/",
+    blurb:"Elizabeth Losh (William & Mary) argues for worldbuilding, not close reading, as the critical lens for e-lit, using the strange case of the Free Republic of Verdis — a micronation on the Croatia–Serbia border promoted via TikTok — as a participatory fiction." },
+
+  /* ---- Day 3 ---- */
+  "A Machine That Eats Books":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/24/",
+    blurb:"Alex Mitchell reads Inkle's 2026 narrative-puzzle game TR-49 — a database narrative in the lineage of Her Story and Obra Dinn — where you reassemble a story by connecting distorted fragments of text, as a reflection on how AI reshapes our grasp of reality." },
+  "Network of Time":{ url:"https://stars.library.ucf.edu/elo2026/narrativesandworlds/schedule/18/",
+    blurb:"Jesse M. Ward builds e-lit from one rule: two people are linked when a real photograph shows them in the same place at the same moment. Across 170 years and 20,000+ people, the system generates a short nonfiction path between any two figures — photographs as narrative atoms." },
+  "An/archivism, Chronopoetics":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/27/",
+    blurb:"Six Latin American researchers (Kozak, Gainza, Yagmour Figuera, Läufer, Gómez, Bongers) examine how generative AI reshapes literary and artistic creation in the region — an/archives, a 'fourth memory' of synthetic images, and the material entanglements of minerals, water, and energy." },
+
+  /* ---- Day 4 ---- */
+  "From AI to EI":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/35/",
+    blurb:"Richard A. Carter (York) pushes past blanket critiques of generative AI to ask whether alternative, less extractive imaginaries — an 'environmental intelligence' — are possible, without dismissing the real environmental and labor harms." },
+  "Exiled to Latent Space":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/38/",
+    blurb:"Kavisha D. Alagiya runs a workshop on what it means to write for systems that translate our words into vectors in high-dimensional spaces we cannot perceive — meaning organized by statistical proximity rather than authorial intention." },
+  "Algorithmic Narrators":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/40/",
+    blurb:"Yingzi Kong compares Doubao (ByteDance) and ChatGPT (OpenAI) to argue generative systems are not culturally neutral but institutionalized storytellers whose sensibilities carry the imprint of their national and institutional origins." },
+  "Surveillance as Care":{ url:"https://stars.library.ucf.edu/elo2026/algorithmsandimaginaries/schedule/32/",
+    blurb:"Erin R. Glass performs a satirical launch of the fictional PureGenius™ platform and its Genius Loop™, which reframes total surveillance of students as 'care' — a pointed critique of extractive ed-tech dressed as compassion." },
+};
+
+window.ELO_DETAILS = { DETAILS, PAPER_DETAILS };
+
+</script>
+<script>
+(function(){
+const {TRACKS,FORMATS,SESSIONS,WORLDCUP,DAYS,REPO}=window.ELO;
+const {DETAILS,PAPER_DETAILS}=window.ELO_DETAILS||{DETAILS:{},PAPER_DETAILS:{}};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+/* safe storage — falls back to in-memory if localStorage is blocked
+   (opaque origins, privacy modes) so saving never throws */
+const store=(()=>{
+  try{ const k="__elo_t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return localStorage; }
+  catch(e){ const m={}; return {getItem:k=>k in m?m[k]:null, setItem:(k,v)=>{m[k]=String(v);}, removeItem:k=>{delete m[k];}}; }
+})();
+
+/* ---------- state ---------- */
+const state={ q:"", days:new Set(), tracks:new Set(), featured:false, savedOnly:false,
+  tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"America/New_York" };
+let saved=new Set(JSON.parse(store.getItem("elo26_saved")||"[]"));
+const savedTz=store.getItem("elo26_tz"); if(savedTz) state.tz=savedTz;
+
+/* ---------- time helpers ---------- */
+// Build a real instant from ET wall-clock. ET in July = EDT = UTC-4.
+function instant(dateStr,hm){ return new Date(`${dateStr}T${hm}:00-04:00`); }
+function fmtTime(d,tz){
+  return new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit",timeZone:tz}).format(d);
+}
+function fmtAbbr(d,tz){
+  const p=new Intl.DateTimeFormat("en-US",{timeZoneName:"short",timeZone:tz}).formatToParts(d)
+    .find(x=>x.type==="timeZoneName"); return p?p.value:"";
+}
+function confTime(dateStr,hm){ return fmtTime(instant(dateStr,hm),"America/New_York"); }
+
+/* ---------- time zone list ---------- */
+const zones=["America/New_York","America/Chicago","America/Denver","America/Los_Angeles",
+  "America/Sao_Paulo","Europe/London","Europe/Lisbon","Europe/Berlin","Europe/Helsinki",
+  "Africa/Lagos","Asia/Kolkata","Asia/Shanghai","Asia/Tokyo","Australia/Sydney","Pacific/Auckland","UTC"];
+(function initTz(){
+  const sel=$("#tz"); const set=new Set(zones); set.add(state.tz);
+  [...set].forEach(z=>{ const o=document.createElement("option"); o.value=z;
+    o.textContent=z.replace(/_/g," "); sel.appendChild(o); });
+  sel.value=state.tz;
+  sel.addEventListener("change",()=>{ state.tz=sel.value; store.setItem("elo26_tz",sel.value); render(); });
+})();
+
+/* ---------- countdown / status ---------- */
+function status(){
+  const now=new Date(), start=instant("2026-07-15","12:30"), end=instant("2026-07-18","17:45");
+  if(now<start){ const d=Math.ceil((start-now)/86400000); return d<=0?"STARTS TODAY":`${d} DAY${d>1?"S":""} OUT`; }
+  if(now>end) return "CONCLUDED"; return "LIVE NOW";
+}
+$("#cstatus").textContent=status();
+$("#ctotal").textContent=SESSIONS.length;
+$("#czone").textContent=state.tz.split("/").pop().replace(/_/g," ");
+
+/* ---------- filtering ---------- */
+function matches(s){
+  if(state.days.size && !state.days.has(s.date)) return false;
+  if(state.tracks.size && !state.tracks.has(s.track) &&
+     !(s.papers||[]).some(p=>state.tracks.has(p.track))) return false;
+  if(state.featured && !s.featured) return false;
+  if(state.savedOnly && !saved.has(s.id)) return false;
+  if(state.q){
+    const q=state.q.toLowerCase();
+    const hay=[s.title,s.who,FORMATS[s.format],TRACKS[s.track].label,
+      ...(s.papers||[]).flatMap(p=>[p.t,p.p])].join(" ").toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+/* ---------- conflict detection ---------- */
+function overlaps(a,b){
+  return a.date===b.date && !(a.end<=b.start || b.end<=a.start);
+}
+function savedConflicts(s){
+  return SESSIONS.filter(o=>o.id!==s.id && saved.has(o.id) && overlaps(s,o));
+}
+
+/* ---------- render ---------- */
+function icon(name){
+  const I={
+    save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M4 12h16"/></svg>',
+    saved:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>',
+    cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
+    ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>',
+    chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>',
+    warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>'
+  }; return I[name]||"";
+}
+
+function cardHTML(s){
+  const tk=TRACKS[s.track].accent;
+  const inst=instant(s.date,s.start), instE=instant(s.date,s.end);
+  const cls=["card"]; if(s.target)cls.push("target"); else if(s.featured)cls.push("feat");
+  const isSaved=saved.has(s.id);
+  const conf=savedConflicts(s);
+  let tags=`<span class="badge fmt">${FORMATS[s.format]}</span>`+
+    `<span class="badge trk">${TRACKS[s.track].label}</span>`;
+  if(s.target) tags+=`<span class="badge tgt">Target node</span>`;
+  else if(s.featured) tags+=`<span class="badge violet">Featured</span>`;
+  if(isSaved) tags+=`<span class="badge you">On your schedule</span>`;
+  if(conf.length && isSaved) tags+=`<span class="badge tgt">${icon('warn')} time clash</span>`;
+
+  const det=DETAILS[s.id];
+  let papers="";
+  if(s.papers){
+    papers=`<div class="papers">`+s.papers.map(p=>{
+      const pk=TRACKS[p.track].accent;
+      const pd=PAPER_DETAILS[p.t];
+      const href=pd?pd.url:(p.u||null);
+      const link=href?` <a class="plink" href="${href}" target="_blank" rel="noopener">open${icon('ext')}</a>`:"";
+      const pb=pd&&pd.blurb?`<div class="pblurb">${esc(pd.blurb)}</div>`:"";
+      return `<div class="paper${pd?' hasdetail':''}"><span class="pt" style="background:${pk}"></span>
+        <span class="pmain"><span class="ptitle">${esc(p.t)}</span>
+        <span class="pwho">${esc(p.p)} · ${TRACKS[p.track].label}</span>${pb}</span>${link}</div>`;
+    }).join("")+`</div>`;
+  }
+
+  // verified repo url (detail overrides the generic one)
+  const repoUrl=(det&&det.url)||s.url;
+  const aboutSec=(det&&det.blurb)?`<div class="about-sec"><div class="blurb">${esc(det.blurb)}</div></div>`:"";
+
+  // a card is expandable if it has papers OR a blurb
+  let expandBtn="";
+  if(s.papers) expandBtn=`<button class="expand" data-x="${s.id}">${icon('chev')} ${s.papers.length} sessions + details</button>`;
+  else if(det&&det.blurb) expandBtn=`<button class="expand" data-x="${s.id}">${icon('chev')} About this session</button>`;
+
+  return `<div class="${cls.join(' ')}" style="--tk:${tk}" data-id="${s.id}" data-open="false">
+    <div class="chead">
+      <div class="txt">
+        <div class="tags">${tags}</div>
+        <div class="ctitle">${esc(s.title)}</div>
+        <div class="cwho">${esc(s.who)}</div>
+      </div>
+      <div class="cactions">
+        <button class="iconbtn ${isSaved?'saved':''}" data-save="${s.id}"
+          aria-pressed="${isSaved}" aria-label="${isSaved?'Remove from':'Add to'} my schedule"
+          title="${isSaved?'Saved':'Save'}">${icon(isSaved?'saved':'save')}</button>
+        <button class="iconbtn" data-ics="${s.id}" aria-label="Add to calendar" title="Download .ics">${icon('cal')}</button>
+      </div>
+    </div>
+    <div class="crow">
+      ${expandBtn}
+      ${repoUrl?`<a href="${repoUrl}" target="_blank" rel="noopener">Repository entry${icon('ext')}</a>`:""}
+    </div>
+    ${aboutSec}
+    ${papers}
+  </div>`;
+}
+
+function conflictHTML(w){
+  const inst=instant(w.date,w.start);
+  return `<div class="conflict">
+    <div class="tags"><span class="badge">External · World Cup</span></div>
+    <div class="ctitle">${esc(w.title)}</div>
+    <div class="cwho">${esc(w.venue)}</div>
+    <div class="note">${esc(w.note)}</div>
+  </div>`;
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function render(){
+  const list=$("#list"); list.innerHTML="";
+  const zoneShort=state.tz.split("/").pop().replace(/_/g," ");
+  $("#czone").textContent=zoneShort;
+  let shown=0;
+
+  DAYS.forEach(day=>{
+    if(state.days.size && !state.days.has(day.key)) return;
+    const daySess=SESSIONS.filter(s=>s.date===day.key && matches(s));
+    // group by start time
+    const byTime={};
+    daySess.forEach(s=>{ (byTime[s.start]=byTime[s.start]||[]).push(s); });
+    const wcDay=WORLDCUP.filter(w=>w.date===day.key);
+    if(!daySess.length && !(wcDay.length && !state.savedOnly && !state.q && !state.tracks.size && !state.featured)) return;
+
+    const group=document.createElement("section"); group.className="daygroup";
+    let html=`<div class="dayhdr"><h2>${day.full}</h2>
+      <span class="meta">${daySess.length} session${daySess.length!==1?'s':''} shown · times in ${zoneShort}</span></div>`;
+
+    // merge sessions + worldcup by time
+    const times=[...new Set([...Object.keys(byTime), ...(!state.savedOnly&&!state.q&&!state.tracks.size&&!state.featured?wcDay.map(w=>w.start):[])])]
+      .sort();
+    times.forEach(t=>{
+      const inst=instant(day.key,t);
+      const local=fmtTime(inst,state.tz), abbr=fmtAbbr(inst,state.tz);
+      const cinfo=confTime(day.key,t);
+      const sameAsConf=(state.tz==="America/New_York");
+      let blocks="";
+      (byTime[t]||[]).forEach(s=>{ blocks+=cardHTML(s); shown++; });
+      const wc=(!state.savedOnly&&!state.q&&!state.tracks.size&&!state.featured)
+        ? wcDay.filter(w=>w.start===t) : [];
+      wc.forEach(w=>{ blocks+=conflictHTML(w); });
+      if(!blocks) return;
+      html+=`<div class="timeblock">
+        <div class="tcol">${local}<span class="zone">${abbr}</span>
+          ${sameAsConf?"":`<span class="conf">${cinfo} ET</span>`}</div>
+        <div class="bcol">${blocks}</div></div>`;
+    });
+    group.innerHTML=html; list.appendChild(group);
+  });
+
+  if(shown===0){
+    list.innerHTML=`<div class="empty"><b>No sessions match this path through the program.</b>
+      Reset the filters and follow another signal.</div>`;
+  }
+  $("#matchN").textContent=shown;
+  $("#fabN").textContent=saved.size;
+  syncURL();
+}
+
+/* ---------- interactions ---------- */
+$("#list").addEventListener("click",e=>{
+  const x=e.target.closest("[data-x]"); if(x){ const c=x.closest(".card");
+    c.dataset.open=c.dataset.open==="true"?"false":"true"; return; }
+  const sv=e.target.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save); return; }
+  const ic=e.target.closest("[data-ics]"); if(ic){ downloadICS([byId(ic.dataset.ics)]); return; }
+});
+
+function byId(id){ return SESSIONS.find(s=>s.id===id); }
+function toggleSave(id){
+  if(saved.has(id)) saved.delete(id); else saved.add(id);
+  store.setItem("elo26_saved",JSON.stringify([...saved]));
+  const s=byId(id);
+  if(saved.has(id)){
+    const c=savedConflicts(s);
+    toast(c.length?`Saved — heads up, clashes with ${c.length} saved session${c.length>1?'s':''}`:"Saved to your schedule");
+  } else toast("Removed from your schedule");
+  render(); renderDrawer();
+}
+
+/* filters */
+$("#filters").addEventListener("click",e=>{
+  const p=e.target.closest(".pill"); if(!p||p.classList.contains("sep"))return;
+  if(p.dataset.day){ toggleSet(state.days,p.dataset.day,p); }
+  else if(p.dataset.track){ toggleSet(state.tracks,p.dataset.track,p); }
+  else if(p.dataset.flag){ state[p.dataset.flag]=!state[p.dataset.flag];
+    p.setAttribute("aria-pressed",state[p.dataset.flag]); }
+  render();
+});
+function toggleSet(set,val,el){
+  if(set.has(val)){set.delete(val); el.setAttribute("aria-pressed","false");}
+  else{set.add(val); el.setAttribute("aria-pressed","true");}
+}
+let qt;
+$("#q").addEventListener("input",e=>{ clearTimeout(qt);
+  qt=setTimeout(()=>{ state.q=e.target.value.trim(); render(); },160); });
+$("#clearAll").addEventListener("click",()=>{
+  state.q=""; state.days.clear(); state.tracks.clear(); state.featured=false; state.savedOnly=false;
+  $("#q").value=""; $$(".pill[aria-pressed]").forEach(p=>p.setAttribute("aria-pressed","false"));
+  render();
+});
+$("#jumpTarget").addEventListener("click",()=>{
+  state.q=""; state.days.clear(); state.tracks.clear(); state.featured=false; state.savedOnly=false;
+  $("#q").value=""; $$(".pill[aria-pressed]").forEach(p=>p.setAttribute("aria-pressed","false"));
+  render();
+  setTimeout(()=>{ const el=$('[data-id="coaxing-ripples"]');
+    if(el){ el.scrollIntoView({behavior:"smooth",block:"center"});
+      el.animate([{boxShadow:"0 0 0 2px var(--pink)"},{boxShadow:"0 0 0 10px transparent"}],{duration:1200}); } },120);
+});
+
+/* ---------- drawer ---------- */
+function openDrawer(){ $("#drawer").classList.add("open"); $("#overlay").classList.add("on");
+  $("#drawer").setAttribute("aria-hidden","false"); renderDrawer(); }
+function closeDrawer(){ $("#drawer").classList.remove("open"); $("#overlay").classList.remove("on");
+  $("#drawer").setAttribute("aria-hidden","true"); }
+$("#fab").addEventListener("click",openDrawer);
+$("#openMy").addEventListener("click",openDrawer);
+$("#dclose").addEventListener("click",closeDrawer);
+$("#overlay").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape")closeDrawer(); });
+
+function renderDrawer(){
+  const body=$("#dbody");
+  const list=SESSIONS.filter(s=>saved.has(s.id))
+    .sort((a,b)=>instant(a.date,a.start)-instant(b.date,b.start));
+  if(!list.length){ body.innerHTML=`<div class="empty" style="padding:2rem 0"><b>Nothing saved yet.</b>
+    Add sessions with the + button to build your own path.</div>`; return; }
+  body.innerHTML=list.map(s=>{
+    const tk=TRACKS[s.track].accent;
+    const inst=instant(s.date,s.start);
+    const dstr=new Intl.DateTimeFormat("en-US",{weekday:"short",timeZone:state.tz}).format(inst);
+    const conf=savedConflicts(s);
+    return `<div class="dsess" style="--tk:${tk}">
+      <div class="dt">${dstr} · ${fmtTime(inst,state.tz)} ${fmtAbbr(inst,state.tz)}</div>
+      <div class="dttl">${esc(s.title)}</div>
+      ${conf.length?`<div class="dconflict">${icon('warn')} clashes with ${conf.length} other saved session${conf.length>1?'s':''}</div>`:""}
+      <button class="drm" data-drm="${s.id}">Remove</button>
+    </div>`;
+  }).join("");
+  body.querySelectorAll("[data-drm]").forEach(b=>b.addEventListener("click",()=>toggleSave(b.dataset.drm)));
+}
+$("#clearSaved").addEventListener("click",()=>{
+  if(!saved.size)return;
+  saved.clear(); store.setItem("elo26_saved","[]"); render(); renderDrawer(); toast("Schedule cleared");
+});
+
+/* ---------- ICS ---------- */
+function icsDate(d){ return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,""); }
+function downloadICS(sessions){
+  if(!sessions.length){toast("Nothing to export");return;}
+  let ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ELO2026//Schedule//EN\r\nCALSCALE:GREGORIAN\r\n";
+  sessions.forEach(s=>{
+    const st=instant(s.date,s.start), en=instant(s.date,s.end);
+    const desc=`${FORMATS[s.format]} — ${TRACKS[s.track].label}. ${s.who}. Fully online. Program time US Eastern.`;
+    ics+="BEGIN:VEVENT\r\n"+
+      `UID:${s.id}@elo2026\r\n`+
+      `DTSTAMP:${icsDate(new Date())}\r\n`+
+      `DTSTART:${icsDate(st)}\r\n`+
+      `DTEND:${icsDate(en)}\r\n`+
+      `SUMMARY:${icsEsc(s.title)}\r\n`+
+      `DESCRIPTION:${icsEsc(desc)}\r\n`+
+      (s.url?`URL:${s.url}\r\n`:"")+
+      "LOCATION:Online\r\nEND:VEVENT\r\n";
+  });
+  ics+="END:VCALENDAR";
+  const blob=new Blob([ics],{type:"text/calendar"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=sessions.length===1?`${sessions[0].id}.ics`:"elo2026-my-schedule.ics";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(sessions.length===1?"Calendar file downloaded":`Exported ${sessions.length} sessions`);
+}
+function icsEsc(s){return String(s).replace(/[\\,;]/g,c=>"\\"+c).replace(/\n/g,"\\n");}
+$("#exportAll").addEventListener("click",()=>downloadICS(SESSIONS.filter(s=>saved.has(s.id))));
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg){ const el=$("#toast"); el.textContent=msg; el.classList.add("on");
+  clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("on"),2200); }
+
+/* ---------- URL sync ---------- */
+function syncURL(){
+  const p=new URLSearchParams();
+  if(state.q)p.set("q",state.q);
+  if(state.days.size)p.set("day",[...state.days].join(","));
+  if(state.tracks.size)p.set("track",[...state.tracks].join(","));
+  if(state.featured)p.set("featured","1");
+  if(state.savedOnly)p.set("saved","1");
+  const qs=p.toString();
+  try{ history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")); }
+  catch(e){ /* sandboxed srcdoc has no writable URL — degrade quietly */
+    try{ location.hash=qs?"f="+qs:""; }catch(_){} }
+}
+function loadURL(){
+  let src=location.search.replace(/^\?/,"");
+  if(!src && location.hash.startsWith("#f=")) src=location.hash.slice(3);
+  const p=new URLSearchParams(src);
+  if(p.get("q")){ state.q=p.get("q"); $("#q").value=state.q; }
+  if(p.get("day")) p.get("day").split(",").forEach(d=>{ state.days.add(d);
+    const el=$(`[data-day="${d}"]`); if(el)el.setAttribute("aria-pressed","true"); });
+  if(p.get("track")) p.get("track").split(",").forEach(t=>{ state.tracks.add(t);
+    const el=$(`[data-track="${t}"]`); if(el)el.setAttribute("aria-pressed","true"); });
+  if(p.get("featured")){ state.featured=true; $('[data-flag="featured"]').setAttribute("aria-pressed","true"); }
+  if(p.get("saved")){ state.savedOnly=true; $('[data-flag="saved"]').setAttribute("aria-pressed","true"); }
+}
+
+/* ---------- procedural backdrop (reduced-motion aware) ---------- */
+(function bg(){
+  const c=$("#bg"), x=c.getContext("2d"); let W,H,nodes,raf;
+  const reduce=(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches)||false;
+  function size(){ W=c.width=innerWidth; H=c.height=innerHeight;
+    nodes=Array.from({length:Math.min(46,Math.floor(W/32))},()=>({
+      x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15})); }
+  const cols=["#48DDF3","#FF50B5","#55D68A","#8176FF"];
+  function draw(){
+    x.clearRect(0,0,W,H);
+    for(let i=0;i<nodes.length;i++){ const a=nodes[i];
+      if(!reduce){ a.x+=a.vx; a.y+=a.vy;
+        if(a.x<0||a.x>W)a.vx*=-1; if(a.y<0||a.y>H)a.vy*=-1; }
+      for(let j=i+1;j<nodes.length;j++){ const b=nodes[j];
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<130){ x.strokeStyle=cols[(i+j)%4]; x.globalAlpha=(1-d/130)*.18; x.lineWidth=.6;
+          x.beginPath(); x.moveTo(a.x,a.y); x.lineTo(b.x,b.y); x.stroke(); } }
+      x.globalAlpha=.5; x.fillStyle=cols[i%4]; x.fillRect(a.x-1,a.y-1,2,2);
+    }
+    x.globalAlpha=1;
+    if(!reduce) raf=requestAnimationFrame(draw);
+  }
+  size(); draw(); addEventListener("resize",()=>{ cancelAnimationFrame(raf); size(); draw(); });
+})();
+
+/* ---------- boot ---------- */
+loadURL(); render(); renderDrawer();
+})();
+</script>
+</body>
+</html>
